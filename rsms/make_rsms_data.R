@@ -8,6 +8,14 @@ info<-sms@species.info[first.VPA:nsp,c(1:3,5:6,9),drop=FALSE]
 spNames<-dimnames(info)[[1]]
 off.age<-1L-sms@first.age
 
+
+fullRange<-expand.grid(species.n=1:nSpecies,year=c(years,sms@last.year.model+1),quarter=1:sms@last.season,age=ages) %>%
+           filter(quarter>=sms@rec.season | age >sms@first.age)
+head(fullRange)
+
+x<-3:7
+data.frame(x=x,fac=factor(x,labels=1:length(x)))
+
 ## configuration of parameters
 
 data$keyLogFsta
@@ -83,10 +91,6 @@ keyFleet<-a
 
 keyFleet.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
 
-#$ sampleTimesSeason        : num [1:3] 1 1
-#$ sampleTimeWithin         : num [1:3] 00.5 0.5
-
-
 ## survey catchability
 data$keyLogFpar
 
@@ -109,12 +113,14 @@ str(d,2)
 
 ftable(xtabs(CATCHN~year+quarter+age,data=subset(d$catch,year==2001 & species.n==1)))
 
-#merge data to get consistent age and yrar index
+#merge data to get consistent age and year index
 b<-full_join(d$catch,d$bio,join_by(year, species.n, quarter, sub_area, age))
 if (multi) {
   b2<-full_join(d$mean_l,d$consum,join_by(year, species.n, quarter, sub_area, age))
   b<-full_join(b,b2,join_by(year, species.n, quarter, sub_area, age))
 }
+
+
 
 b <-b %>% mutate(species=unclass(factor(species.n)),
                       yi=unclass(factor(year)),
@@ -134,12 +140,36 @@ dat<-list(
   propF=zero,
   propM=zero
 )
-str(data)
+
+
+
+indices[[1]]@range.SMS
+indices[[1]]@range
+indices[[1]]@catch.n
+indices[[1]]@effort
+indices[[1]]@name
+
+cpue<-lapply(indices,function(x){
+  nage<-x@range["max"]-x@range["min"]+1L
+  a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))
+  a$species.n<-x@range.SMS["species"]
+  a$fleet.no<-x@range.SMS["fleet.no"]
+  a$sp.fl<-x@range.SMS["sp.fl"]
+  a
+})
+
+cpue<-do.call(rbind,cpue)
+head(cpue)
+cpue<-cpue %>% dplyr::select(year,quarter=season,age,species.n,fleet.no,sp.fl,obs=data)
 
 
 
 
-obs<-do.call(cbind,matrix(ff))
+
+head(cpue)
+
+
+
 colnames(obs)<-c("year","fleet","age","species","obs")
 str(obs)
 head(obs)

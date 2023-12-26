@@ -1,5 +1,5 @@
 #Remove all objects
-rm(list = ls())
+#rm(list = ls())
 
 # Operating System
 OS<- .Platform$OS.type
@@ -28,6 +28,7 @@ root.copy<-root
 
 my.stock.dir<-"ns_2023_ss_input"
 
+my.stock.dir<-"S16"
 # make a backup of the SMS source code
 # file.copy(file.path(root.prog,"program","sms.tpl"),file.path(root.prog,"program",paste("sms_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)
 # file.copy(file.path(root.prog,"program","op.tpl"),file.path(root.prog,"program",paste("op_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)
@@ -43,7 +44,7 @@ makeAllGraphs<-F      # batch job to make "all" graphs and tables after a key-ru
 
 
 
-# Use all libraries or just a simple configuration (few libraries and limited access to FLR) or full access to 
+# Use all libraries or just a simple configuration (few libraries and limited access to FLR) or full access to
 allLibraries<-FALSE
 
 # Path to data directory
@@ -52,10 +53,10 @@ data.path<-file.path(root,my.stock.dir)
 # Path to R-programme directory, do not change
 prog.path<-file.path(root.prog,"r_prog")
 my.FLR.path<-file.path(root.prog,"r_prog","flsms")
-
+rsms<-file.path(prog.path,"rsms")
 
 # path to the sms.exe file, used for retrospective runs
-#sms.command<-file.path("..","program","sms") 
+#sms.command<-file.path("..","program","sms")
 
 # libraries
 library(lattice)

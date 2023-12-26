@@ -11,7 +11,7 @@ doHessian<-F
 do.sensitivity<-FALSE
 
 #######################
-source(file.path(prog.path.func,"hcr_op_batch_optimize_function.r"))
+source(file.path(prog.path.func,"hcr_op_batch_optimize_function.R"))
 
   #                     Cod     Whiting     Haddock      Saithe     Herring      NorthSandeel  southSan     Nor. pout       Sprat      Plaice        Sole 
   HCR1<-            c(    1,          1,          1,          1,          1,          1,           1,          1,          1,          1,          1) 

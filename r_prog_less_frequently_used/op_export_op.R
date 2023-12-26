@@ -5,7 +5,7 @@ dir.create(toDir,showWarnings = FALSE)
 dir.create(file.path(toDir,"backup"),showWarnings = FALSE)
 dir.create(file.path(toDir,"R-prog"),showWarnings = FALSE)
 
-source(file.path(prog.path,"get_correlation3.r"))
+source(file.path(prog.path,"get_correlation3.R"))
 
 OP.files<-c(
   "area_names.in",
@@ -51,9 +51,9 @@ cat("# stock number by year (2009-2011), species and age \n",file=outfile)
 for (i in (1:3)) write.table(b[i,,],file=outfile,col.names=F,row.names=F,append=T)
 
 
-file.copy(file.path(root,"R_prog","FLSMS","FLOP.control.r"),file.path(toDir,"r-prog","FLOP.control.r"), overwrite = TRUE)
-file.copy(file.path(root,"R_prog","OP_test.r"),file.path(toDir,"r-prog","OP_test.r"), overwrite = TRUE)
-file.copy(file.path(root,"R_prog","get_correlated_noise_Francois.r"),file.path(toDir,"r-prog","get_correlated_noise_Francois.r"), overwrite = TRUE)
-file.copy(file.path(root,"R_prog","function","OP_plot.r"),file.path(toDir,"r-prog","OP_plot.r"), overwrite = TRUE)
-file.copy(file.path(root,"R_prog","get_correlation3.r"),file.path(toDir,"r-prog","get_correlation3.r"), overwrite = TRUE)
+file.copy(file.path(root,"R_prog","FLSMS","FLOP.control.R"),file.path(toDir,"r-prog","FLOP.control.R"), overwrite = TRUE)
+file.copy(file.path(root,"R_prog","OP_test.R"),file.path(toDir,"r-prog","OP_test.R"), overwrite = TRUE)
+file.copy(file.path(root,"R_prog","get_correlated_noise_Francois.R"),file.path(toDir,"r-prog","get_correlated_noise_Francois.R"), overwrite = TRUE)
+file.copy(file.path(root,"R_prog","function","OP_plot.R"),file.path(toDir,"r-prog","OP_plot.R"), overwrite = TRUE)
+file.copy(file.path(root,"R_prog","get_correlation3.R"),file.path(toDir,"r-prog","get_correlation3.R"), overwrite = TRUE)
 

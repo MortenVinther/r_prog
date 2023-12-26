@@ -14,7 +14,7 @@ new.first.year<-1974
 
 
 # read existing input files and transport them into the old 4M exchange format
-source(file.path(prog.path,"From_SMS_format_to_list.r"))
+source(file.path(prog.path,"From_SMS_format_to_list.R"))
 # this script write the files  VPA_Bi01.in,  VPA_Ca01.in  in the default data directory 
 From_SMS_format_to_list(otherPredExist=T,catchMultiplier=1000,code.name=c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","W_M","N_M","W_H","N_H","GSE","HBP",'COD','WHG','HAD','POK','HER','SAN','NOP','SPR','PLE','SOL'))
 

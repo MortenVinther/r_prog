@@ -6,8 +6,8 @@ library(lattice)
 
 if (!SMS.installed) {
   data.path<-file.path("C:","mv","sms","FBA")
-  source(file.path(data.path,"R-prog","FLOP.control.r"))
-  source(file.path(data.path,"R-prog","OP_plot.r"))
+  source(file.path(data.path,"R-prog","FLOP.control.R"))
+  source(file.path(data.path,"R-prog","OP_plot.R"))
 }
 
 if (SMS.installed) {

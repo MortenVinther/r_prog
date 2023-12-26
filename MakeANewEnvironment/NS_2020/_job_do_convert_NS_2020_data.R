@@ -37,7 +37,7 @@ options(stringsAsFactors = FALSE)
 #  first 1.
 
 if (do.1) {  # write a number of of files on a spredsheet like format with data extracted from the current environment
-  source(file.path(prog.path,RexchangeDir,newEnv,'from_sms_format_to_list.r'))
+  source(file.path(prog.path,RexchangeDir,newEnv,'from_sms_format_to_list.R'))
  
   my.code.name<-c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","W_H","N_H","GSE","HBP",'HAK','COD','WHG','HAD','POK','MAC','HER','NSA','SSA','NOP','SPR','PLE','SOL')
   #my.code.name<-c("MAC")
@@ -68,7 +68,7 @@ if (do.2) {
 
 
 # stock distribution
-if (do.stock.dist.basic) source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2020sp.r')) # Stock ditribution by stock, produces maps and cod Rdata
+if (do.stock.dist.basic) source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2020sp.R')) # Stock ditribution by stock, produces maps and cod Rdata
 
 
 # Other predators
@@ -81,7 +81,7 @@ source(file.path(prog.path,RexchangeDir,newEnv,'other_predators.R'))
 # mean length
 source(file.path(prog.path,RexchangeDir,newEnv,'mean_length.R'))
 
-source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2020.r')) # Stock distribution by stock
+source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2020.R')) # Stock distribution by stock
 
 
 ################

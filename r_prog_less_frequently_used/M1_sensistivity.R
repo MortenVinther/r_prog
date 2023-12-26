@@ -71,7 +71,7 @@ dig<-3
                     HPC=F)                          # run it as batch program on the UNIX High Performance Computer 
   
   
-  source(file.path(prog.path,'plot_summary_ices_multi.r'))
+  source(file.path(prog.path,'plot_summary_ices_multi.R'))
   
   dirs<-c("Baltic-2022-keyRun","Baltic-2022-V07_M1sensiti")
   labels<-c("2022 key run","M1*0.5")

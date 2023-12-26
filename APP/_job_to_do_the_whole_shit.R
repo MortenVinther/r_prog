@@ -22,7 +22,7 @@ SMS<-SMS.control  # just a shorter name
 # 1. Make a SMS and files for OP forcast 
 
 # Make an OP control object. File='OP.dat' used for data extraction from SMS (which you have to run afterwards)
-source(file=file.path(prog.path.func,'hcr_op_batch_common.r'))
+source(file=file.path(prog.path.func,'hcr_op_batch_common.R'))
 
 # first  year for calculation of mean stock numbers of other predators  
 #                                      Fulmar   Guillemot    Her.Gull   Kittiwake    GBB.Gull      Gannet      Puffin   Razorbill   A.radiata  G.gurnards W.horse.mac N.horse.mac   Grey.seal  H.porpoise      Hake 
@@ -169,7 +169,7 @@ if (FALSE) {
   write_options(rec.mode,APP_final=TRUE,change_op_config=FALSE,make_AMOEBA_data=TRUE)
   
   make_data<-TRUE
-  source(file.path(APP_r,"hcr_op_batch_amoeba.r"))
+  source(file.path(APP_r,"hcr_op_batch_amoeba.R"))
   
   ### copy AMOEBA files
   amoeba.files<-c("yield110.csv","status_q_2020.csv","fleetNames_2020.csv","ssb110_2020.csv")

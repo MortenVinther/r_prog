@@ -36,7 +36,7 @@ options(stringsAsFactors = FALSE)
 
 if (do.1) {  # write a number of of files on a spreadsheet like format with data extracted from the current (old) environment.
   # You have first to run init.R with the old environment where data come from
-  source(file.path(prog.path,RexchangeDir,newEnv,'from_sms_format_to_list.r'))
+  source(file.path(prog.path,RexchangeDir,newEnv,'from_sms_format_to_list.R'))
   my.code.name<- new.code.name
   #my.code.name<-c("MAC")
   From_SMS_format_to_list(otherPredExist=T,catchMultiplier=1,code.name=my.code.name,exchangeDir=file.path(root,exchangeDir),addfn=old_key_label)
@@ -60,7 +60,7 @@ if (do.2) {
 ######################################################################################
 
 # stock distribution
-if (do.stock.dist.basic) source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2023sp.r')) # Stock distribution by stock, produces maps and cod Rdata
+if (do.stock.dist.basic) source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2023sp.R')) # Stock distribution by stock, produces maps and cod Rdata
 
 # Other predators
 source(file.path(prog.path,RexchangeDir,newEnv,'Horse_mack.R'))
@@ -72,7 +72,7 @@ source(file.path(prog.path,RexchangeDir,newEnv,'other_predators.R'))
 # mean length
 source(file.path(prog.path,RexchangeDir,newEnv,'mean_length.R'))
 
-source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2023.r')) # Stock distribution by stock
+source(file.path(prog.path,RexchangeDir,newEnv,'stock_distribution_NS_2023.R')) # Stock distribution by stock
 
 
 ################

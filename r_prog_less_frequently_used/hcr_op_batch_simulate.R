@@ -411,7 +411,7 @@ if (stochastic.recruitment==0) {       # determenistic runs
   if (F)  {  # just to repair form memory overload
      tmpDir<-"C:/users/movi/sms/NS_63-10-Nov-2013/HCR_1_stoch_wide_01_HCR1_1_Rec3__2111"
      load(file =file.path(tmpDir, "condensed.RData"))
-     source(file.path(prog.path,"HCR_OP_condense_function.r"))
+     source(file.path(prog.path,"HCR_OP_condense_function.R"))
      a<-transform.condensed(a=condensed,my.area=my.area)
      cat("\nStarts writing set  a\n")
      save(a, file =file.path(tmpDir, "a.RData"));  

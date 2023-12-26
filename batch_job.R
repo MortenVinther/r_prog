@@ -52,10 +52,10 @@ for (my.stock.dir in indir) {
                     HPC=F)                          # run it as batch program on the UNIX High Performance Computer 
   
   
-  if (doretro) source(file.path(prog.path,"retrospectiv_multi_sp.r"))
+  if (doretro) source(file.path(prog.path,"retrospectiv_multi_sp.R"))
   
   globalStockDir<<- my.stock.dir
-  if (dofig) source(file.path(prog.path,"makeAllGraphs_NorthSea.r"))
+  if (dofig) source(file.path(prog.path,"makeAllGraphs_NorthSea.R"))
 
   if (doknitr) {
     save(list = ls(all.names = TRUE), file = file.path(data.path,"SMS.RData"), envir = .GlobalEnv)

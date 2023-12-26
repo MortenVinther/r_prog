@@ -3,7 +3,7 @@ cat("\nHEJ FMSY-matrix\n")
 
 cat("\nscenario.dir:",scenario.dir,"\n")
 if (my.area=='North Sea') {
-  #source(file.path(prog.path,"FMSY_matrix_scenarios.r"))
+  #source(file.path(prog.path,"FMSY_matrix_scenarios.R"))
   
   first.sc<-22  # first screen for plot
   

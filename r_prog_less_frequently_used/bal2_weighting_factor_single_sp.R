@@ -104,7 +104,7 @@ for (fac in(w.fac)) {
 noxy<-nox*noy
 newplot(dev,nox,noy,portrait)
 
-#source(file.path(prog.path,"plot_triple.r"))
+#source(file.path(prog.path,"plot_triple.R"))
 plot.triple(legend.position,legend.ncol)
 
 

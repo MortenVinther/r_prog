@@ -120,7 +120,7 @@ if (OS=='windows') op.command<-'op.exe' else if (OS=='unix') op.command<-'op'
 
 
 
-source(file=file.path(prog.path.func,'hcr_op_batch_simulate_function.r'))
+source(file=file.path(prog.path.func,'hcr_op_batch_simulate_function.R'))
  
 if (my.area=='North Sea') {
   
@@ -195,7 +195,7 @@ keepPro<-0.95  # keep F values which is factor keepPro of  MSY, used in stepwise
 
 ##### fixed M species
 if (F) {
-  source(file.path(prog.path.func,"fmsy_matrix_functions_tables.r"))
+  source(file.path(prog.path.func,"fmsy_matrix_functions_tables.R"))
 
  POK.PL.SOL(HCR=HCR1,stochastic.recruitment=recruitmentMode,recruit.adjust.CV=2)
   #POK.PL.SOL(HCR=HCR2,stochastic.recruitment=recruitmentMode,recruit.adjust.CV=1)
@@ -448,7 +448,7 @@ if (FALSE) { # used to subset data befor further processing. Mainly used with ve
                           ncol=3,byrow=T)  # min and max F for inclusion in plots, remember to set option subset.out below
     }
   
-  source(file.path(prog.path.func,"fmsy_matrix_functions_tables.r"))
+  source(file.path(prog.path.func,"fmsy_matrix_functions_tables.R"))
 
   my.dev<-'png' 
   

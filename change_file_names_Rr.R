@@ -5,8 +5,8 @@ ff<-dir(prog.path,pattern="*.R",recursive=T,full.names=TRUE)
 for (f in ff) {
  #f<-"/home/morten/SMS/r_prog/makeAllGraphs_NorthSea.R"
   a<-readLines(con=f)
-  pat1<-'\\.r")'
-  pat2<-"\\.r')"
+  pat1<-'\\.R")'
+  pat2<-"\\.R')"
   pat3<-"SMS\\.dat"
   ll1<-grep(pat1 ,a)
   ll2<-grep(pat2,a)

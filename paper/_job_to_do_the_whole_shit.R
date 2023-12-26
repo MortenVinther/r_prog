@@ -195,7 +195,7 @@ labels<-basic_labels<-labels<-c('1. key run',"2. MS N","3. MS Nbar","4. MS Lengt
 data.frame(dirs,labels)
 
 
-source(file.path(prog.path,"compare_runs_objective_function.r"))
+source(file.path(prog.path,"compare_runs_objective_function.R"))
 
 
 a<-read_csv(file="compare_like_species.csv") %>% select(label,Species,Species.n,neg_like) %>% filter(Species.n>=16 & Species.n<=25)

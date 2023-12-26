@@ -208,7 +208,7 @@ compare_runs_Z(
 
 
 
-source(file.path(prog.path,"compare_runs_objective_function.r"))
+source(file.path(prog.path,"compare_runs_objective_function.R"))
 
 
 compare_runs_stock_rec(dirs,labels,first.year.on.plot=1974,last.year.on.plot=2020,incl.sp="all",
@@ -294,7 +294,7 @@ dirs<-a$dirs
 labels<-a$labels
 
 
-source(file.path(prog.path,"compare_runs_objective_function.r"))
+source(file.path(prog.path,"compare_runs_objective_function.R"))
 
 add_mult<-function(infi,outfi) {
   cat(infi,'\n',outfi,"\n")
@@ -411,7 +411,7 @@ compare_runs_Z(
 
 
 
-source(file.path(prog.path,"compare_runs_objective_function.r"))
+source(file.path(prog.path,"compare_runs_objective_function.R"))
 
 
 compare_runs_stock_rec(dirs,labels,first.year.on.plot=1974,last.year.on.plot=2020,incl.sp="all",

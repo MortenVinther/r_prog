@@ -20,7 +20,7 @@ paper<-F   # if paper==T output on file, else screen
 cleanup()
 
 # initialise the function that does all the work
-source(file.path(prog.path.func,"MSY_batch.r"))
+source(file.path(prog.path.func,"MSY_batch.R"))
 
 # Change option in SMS.dat
 control<-read.FLSMS.control()

@@ -109,5 +109,5 @@ compare_WKBBALTPEL<-function(labels,dirs,IDout='') {
   ###  all
   
   
-  source(file.path(prog.path,"compare_runs_objective_function.r"))
+  source(file.path(prog.path,"compare_runs_objective_function.R"))
 }

@@ -114,7 +114,7 @@ if (KeyRunYear==2017) {
 
 # Make an OP control object. File='OP.dat'
 setwd(data.path)
-source(file=file.path(prog.path.func,'hcr_op_batch_common.r'))
+source(file=file.path(prog.path.func,'hcr_op_batch_common.R'))
 
 res<-make.OP.dat(my.area=my.area,my.last.year=my.last.year,first.year.output=first.year.output,
                  do.indicators=do.indicators,
@@ -657,7 +657,7 @@ if (!just.batch.file) {
     }
     
     if (read.condense | combine.scenario.run) {
-      source(file.path(prog.path.func,"hcr_op_condense_function.r"))
+      source(file.path(prog.path.func,"hcr_op_condense_function.R"))
       a<-transform.condensed(a=condensed,my.area=my.area)
 
       save(a, file =file.path(scenario.dir, "a.RData"));  
@@ -790,7 +790,7 @@ if (!just.batch.file) {
         out.file<-'all'
         out.types<-c('Yield','SSB','Recruit','Fbar','belowBlim', 'belowBpa','riskBlim')
    aaa<-a
-        source(file.path(prog.path.func,"fmsy_matrix_functions_plots.r"))
+        source(file.path(prog.path.func,"fmsy_matrix_functions_plots.R"))
         if (do.plot.condense) {
           incl.sp.no<-(nsp-nsp.VPA+1):(nsp-2) # all vpa species except PLE and Sole
           spNames<-sp.names[incl.sp.no] 
@@ -837,7 +837,7 @@ if (!just.batch.file) {
              if (dim(a)[[1]]>1)  {
                out.file='aboveBlim'
                out.types<-c('Yield','SSB','Recruit','Fbar','belowBlim', 'belowBpa')
-              source(file.path(prog.path.func,"FMSY_matrix_functions.r"))
+              source(file.path(prog.path.func,"FMSY_matrix_functions.R"))
               plot.matrix(tit='Yield',type=out.types[1],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a) 
               plot.matrix(tit='SSB',  type=out.types[2],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a)
               plot.matrix(tit='Recruits', type=out.types[3],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a)
@@ -865,7 +865,7 @@ if (!just.batch.file) {
                out.file='aboveBpa'
                out.types<-c('Yield','SSB','Recruit','Fbar','belowBlim', 'belowBpa')
       
-              source(file.path(prog.path.func,"fmsy_matrix_functions.r"))
+              source(file.path(prog.path.func,"fmsy_matrix_functions.R"))
               plot.matrix(tit='Yield',type=out.types[1],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a) 
               plot.matrix(tit='SSB',  type=out.types[2],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a)
               plot.matrix(tit='Recruits', type=out.types[3],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a)
@@ -884,11 +884,11 @@ if (!just.batch.file) {
      
 
     if (my.area=='Baltic Sea') {
-       source(file.path(prog.path.func,"fmsy-matrix-baltic.r"))
+       source(file.path(prog.path.func,"fmsy-matrix-baltic.R"))
     } # end Baltic Sea
     
     if (ReduceTable & ReduceOption=="default") {
-           source(file.path(prog.path.func,"fmsy_matrix_functions_tables.r"))
+           source(file.path(prog.path.func,"fmsy_matrix_functions_tables.R"))
            cat('\nStart to reduce Table\n')
            
           load(file =file.path(scenario.dir, "a.RData"))  # to get a fresh, non reduced version
@@ -952,7 +952,7 @@ if (!just.batch.file) {
    }
  
    if (ReduceTable & ReduceOption=="option12") {
-    source(file.path(prog.path.func,"fmsy_matrix_functions_tables.r"))
+    source(file.path(prog.path.func,"fmsy_matrix_functions_tables.R"))
     cat('\nStart to reduce Table Option12 \n')
     
     load(file =file.path(scenario.dir, "a.RData"))  # to get a fresh, non reduced version
@@ -1160,7 +1160,7 @@ if (!just.batch.file) {
         
         
         
-         source(file.path(prog.path.func,"plot_op_community_indicators_average_northsea.r"))
+         source(file.path(prog.path.func,"plot_op_community_indicators_average_northsea.R"))
           if (KeyRunYear==2014) {
             n.species<-9
             my.sp.names<-sp.names[18:26]
@@ -1194,7 +1194,7 @@ if (!just.batch.file) {
          }
       }    # end North Sea
       
-      if (my.area=='Baltic Sea') source(file.path(prog.path.func,"plot_op_community_indicators_average_baltic.r"))
+      if (my.area=='Baltic Sea') source(file.path(prog.path.func,"plot_op_community_indicators_average_baltic.R"))
   }
  } # end just batch
  

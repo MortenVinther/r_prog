@@ -93,7 +93,7 @@ if (F) { for (dir in dirs) {   # re-run ms and ss runs
                            ADMB.options="-gbs 1000000000",deleteFiles=deleteFiles,format.options=F)
    if (any(i<-grep("stom_geo_77_83", dir))) new_rec(changeRec=T,dir=dir) else new_rec(changeRec=F,dir=dir)
    SMS.option<-"-ind run_ms3.dat"
-   if (do.forecast) source(file.path(prog.path,"HCR_batch_Baltic-FWK.r"))
+   if (do.forecast) source(file.path(prog.path,"HCR_batch_Baltic-FWK.R"))
   }
   if (T & (any(i<-grep("_ss_", dir)))) {   #re-run all single species
     data.path<-file.path(root,dir)
@@ -105,7 +105,7 @@ if (F) { for (dir in dirs) {   # re-run ms and ss runs
                            ADMB.options="-gbs 1000000000",deleteFiles=deleteFiles,format.options=F)
    if (any(i<-grep("ss_geo_77_83", dir))) new_rec(changeRec=T,dir=dir) else new_rec(changeRec=F,dir=dir)
    SMS.option<-"-ind run_ms0.dat"
-   if (do.forecast) source(file.path(prog.path,"HCR_batch_Baltic-FWK.r"))
+   if (do.forecast) source(file.path(prog.path,"HCR_batch_Baltic-FWK.R"))
   }
 }}
 

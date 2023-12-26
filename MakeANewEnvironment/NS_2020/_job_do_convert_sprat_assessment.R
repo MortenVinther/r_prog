@@ -37,7 +37,7 @@ options(stringsAsFactors = FALSE)
 #  first 1.
 
 if (do.1) {  # write a number of of files on a spredsheet like format with data extracted from the current environment
-  source(file.path(prog.path,RexchangeDir,newEnv,'from_sms_format_to_list.r'))
+  source(file.path(prog.path,RexchangeDir,newEnv,'from_sms_format_to_list.R'))
  
   my.code.name<-c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","W_H","N_H","GSE","HBP",'HAK','COD','WHG','HAD','POK','MAC','HER','NSA','SSA','NOP','SPR','PLE','SOL')
   #my.code.name<-c("MAC")

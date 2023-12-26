@@ -201,7 +201,7 @@ cleanup()
 
 source(file.path(prog.path,"compare_runs_objective_function.R"))
 source(file.path(prog.path,"compare_runs.R"))
-source(file.path(prog.path,"compare_runs_prey_size_selection.r"))
+source(file.path(prog.path,"compare_runs_prey_size_selection.R"))
 #if (bio.interact) source(file.path(prog.path,"compare_runs_M2.R"))
 #if (bio.interact) source(file.path(prog.path,"compare_runs_N.R"))
 

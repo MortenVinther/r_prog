@@ -143,7 +143,7 @@ do_scenario<-function(scenarioNo) {
    
   # 
   
-  source(file=file.path(prog.path.func,'hcr_op_batch_common.r'))
+  source(file=file.path(prog.path.func,'hcr_op_batch_common.R'))
   
   res<-make.OP.dat(my.area='North Sea',my.last.year=2020,first.year.output=2020,do.indicators=F,stochastic.recruitment=0,recruit.adjust.CV=0, recruit.adjust.factor=1,    
                         y.end=2019,y.first=2017,y.first.other=2019)

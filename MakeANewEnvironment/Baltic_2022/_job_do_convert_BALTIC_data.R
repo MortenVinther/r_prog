@@ -45,7 +45,7 @@ do_loess<-TRUE
 
 if (FALSE) {  # write a number of of files on a spreadsheet like format with data extracted from the current environment (should be an old source run)
               # do not do that for 2019 files (but copy previously made csv files)
-  source(file.path(prog.path,RexchangeDir,'from_sms_format_to_list.r'))
+  source(file.path(prog.path,RexchangeDir,'from_sms_format_to_list.R'))
  
   my.code.name<-c('COD','HER','SPR')
    From_SMS_format_to_list(otherPredExist=otherPredExist,catchMultiplier=1,code.name=my.code.name,exchangeDir=file.path(root,exchangeDir),addfn=keyLabel)

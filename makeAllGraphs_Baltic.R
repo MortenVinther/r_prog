@@ -161,7 +161,7 @@ do_figs<-function(vdir,caps,level=3,files,labels,header) {
 
 
 
-if (make_plots) source(file.path(prog.path,'tables_report.r'))  # makes tables and SMS.RData 
+if (make_plots) source(file.path(prog.path,'tables_report.R'))  # makes tables and SMS.RData 
 
 if (make_html) {
 
@@ -343,7 +343,7 @@ ofiles<-c('_tab_C1.html'
    dir.create( stom.resid.dir.pl_resid,showWarnings = FALSE)
    dir.create( stom.resid.dir.like,showWarnings = FALSE)
    
-   source(file.path(prog.path,'plot_stomach_data_makeAllGraphs.r'))
+   source(file.path(prog.path,'plot_stomach_data_makeAllGraphs.R'))
  }
 
  if (make_html) {
@@ -438,7 +438,7 @@ lapply(ofiles,function(f){
 StockSummary.dir<-file.path(data.path,inOut.dir,out.dir,'StockSummary')
 if (make_plots) {  
   dir.create(StockSummary.dir,showWarnings = FALSE)
-  source(file.path(prog.path,'plot_summary_ices_multi.r'))
+  source(file.path(prog.path,'plot_summary_ices_multi.R'))
   plot_summary_ices_multi(
     Portrait=T,                 # graphical output orientation
     include.terminal.year= FALSE,          # plot terminal year (last assessment year +1) as well?
@@ -465,7 +465,7 @@ if (make_plots) {
   dir.create(file.path(PartialM2.dir,'Annually'),showWarnings = FALSE)
   dir.create(file.path(PartialM2.dir,'Quarterly'),showWarnings = FALSE)
   PartialM2.dir<-file.path(inOut.dir,out.dir,'PartialM2')
-  source(file.path(prog.path,'part_m2.r'))
+  source(file.path(prog.path,'part_m2.R'))
   partial_M2(
     nox=2,
     noy=3,
@@ -504,7 +504,7 @@ whoEatsWhom.dir<-file.path(data.path,inOut.dir,out.dir,'WhoEatsWhom')
 if (make_plots) {  
   dir.create(whoEatsWhom.dir,showWarnings = FALSE)
   whoEatsWhom.dir<-file.path(inOut.dir,out.dir,'WhoEatsWhom')
-  source(file.path(prog.path,'who_eats_whom.r'))
+  source(file.path(prog.path,'who_eats_whom.R'))
   who_eats_whom(
     first.year=my.first.year.on.plot,                #first year on plot, negative value means value defined by data
     last.year=my.last.year.on.plot,                  #last year on plot
@@ -638,7 +638,7 @@ sankey.dir<-file.path(data.path,inOut.dir,out.dir,'BiomassFlow')
 if (make_plots) {  
   dir.create(sankey.dir,showWarnings = FALSE)
   
-  source(file.path(prog.path,'sankey.r'))
+  source(file.path(prog.path,'sankey.R'))
   do_sankey(years=c(1974,2000,2021), out.dir= sankey.dir, excl_sp=c('Plaice','Sole'),incl_catch=TRUE,do_show=FALSE) 
 }
 
@@ -684,8 +684,8 @@ if (make_plots) {
   dir.create(uncertain.dir,showWarnings = FALSE)
   file.copy(file.path( html_dir,'par_names.csv'),file.path(data.path,'par_names.csv'),overwrite=TRUE)
   
-  # only part of the script is used source(file.path(prog.path,'cv.r'))
-  source(file.path(prog.path,'cv.r'))
+  # only part of the script is used source(file.path(prog.path,'cv.R'))
+  source(file.path(prog.path,'cv.R'))
   if (do_uncertanties_M2) {
     file.copy(file.path(data.path,'Uncertanties_M2_age0.png'),uncertain.dir,overwrite=TRUE)
     file.copy(file.path(data.path,'Uncertanties_M2_age1.png'),uncertain.dir,overwrite=TRUE)
@@ -725,7 +725,7 @@ if (make_plots) {
   dir.create(retro.dir,showWarnings = FALSE)
   
   rfile<-file.path(data.path,'Retro_files.Rdata')
-  if (!file.exists(rfile)) source(file.path(prog.path,'retrospectiv_multi_sp.r'))  # makes tables and SMS.RData 
+  if (!file.exists(rfile)) source(file.path(prog.path,'retrospectiv_multi_sp.R'))  # makes tables and SMS.RData 
   if (file.exists(rfile)) {
     load(file=rfile,verbose=TRUE)
    

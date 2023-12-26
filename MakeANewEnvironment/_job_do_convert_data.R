@@ -19,7 +19,7 @@ options(stringsAsFactors = FALSE)
 
 
 if (FALSE) {  # write a number of of files on a spredsheet like format with data extracted from the current environment
-  source(file.path(prog.path,RexchangeDir,'from_sms_format_to_list.r'))
+  source(file.path(prog.path,RexchangeDir,'from_sms_format_to_list.R'))
  
   my.code.name<-c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","W_M","N_M","W_H","N_H","GSE","HBP",'HAK','COD','WHG','HAD','POK','HER','NSA','SSA','NOP','SPR','PLE','SOL')
   #my.code.name<-c("MAC")
@@ -28,7 +28,7 @@ if (FALSE) {  # write a number of of files on a spredsheet like format with data
 }
 
 # Update mackerel catches. Use old 4M data for the period 1974-1979 and ICES SAM data from 1980 onwards
-source(file.path(prog.path,RexchangeDir,'mackerel.r'))  # makes SAM (catch) and bio data for Mackerel 
+source(file.path(prog.path,RexchangeDir,'mackerel.R'))  # makes SAM (catch) and bio data for Mackerel 
 ###
 
 #####################################################################################

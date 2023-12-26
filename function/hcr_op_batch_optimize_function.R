@@ -43,7 +43,7 @@ OP.opti<-function(scenario.basis="test",use.weigting=F,use.price.at.age=F,stocha
   setwd(data.path)
   
   #basic settings
-  source(file=file.path(prog.path.func,'hcr_op_batch_common.r'))
+  source(file=file.path(prog.path.func,'hcr_op_batch_common.R'))
   res<-make.OP.dat(my.area=my.area,my.last.year=my.last.year,first.year.output=my.first.year,stochastic.recruitment=stochastic.recruitment,recruit.adjust.CV=recruit.adjust.CV, recruit.adjust.factor=recruit.adjust.factor)
   OP<-res[["OP"]]
   #SMS<.res[["SMS"]]
@@ -286,7 +286,7 @@ OP.opti<-function(scenario.basis="test",use.weigting=F,use.price.at.age=F,stocha
   setwd(data.path)
   
   if (!just.batch.file) {
-    source(file.path(prog.path,"hcr_op_plot.r"))
+    source(file.path(prog.path,"hcr_op_plot.R"))
     
     mode<-scan(file=file.path(scenario.dir,'op_config.dat'),n=1,comment.char = "#")
     ptitle<-paste(ifelse(mode==0,'Single species, ',''),ifelse(stochastic.recruitment>0,'Stochastic','Determenistic'),' recruitment, ',
@@ -297,8 +297,8 @@ OP.opti<-function(scenario.basis="test",use.weigting=F,use.price.at.age=F,stocha
     plot.OP.HCR(file.name="HCR-OP", my.device='png',first.year.on.plot=my.first.year,last.year.on.plot=my.last.year,scenario.dir=scenario.dir,tit=ptitle,used.penalty=penalty,portrait=FALSE)
     
     
-    source(file.path(prog.path,"plot_summary_ices_multi.r"))
-    if (Hessian) source(file.path(prog.path.func,"hcr_op_batch_optimize_derivatives.r"))
-    if (stochastic.recruitment>0) source(file.path(prog.path,"hcr_op_plot_sr_residuals.r"))
+    source(file.path(prog.path,"plot_summary_ices_multi.R"))
+    if (Hessian) source(file.path(prog.path.func,"hcr_op_batch_optimize_derivatives.R"))
+    if (stochastic.recruitment>0) source(file.path(prog.path,"hcr_op_plot_sr_residuals.R"))
   }
 }

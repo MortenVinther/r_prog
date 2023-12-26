@@ -446,7 +446,7 @@ if (!just.batch.file) {
     }
     
     if (read.condense | combine.scenario.run) {
-      source(file.path(prog.path,"HCR_OP_condense_function.r"))
+      source(file.path(prog.path,"HCR_OP_condense_function.R"))
       a<-transform.condensed(a=condensed,my.area=my.area)
 
       save(a, file =file.path(scenario.dir, "a.RData"));  
@@ -477,7 +477,7 @@ if (!just.batch.file) {
         out.file<-'all'
         out.types<-c('Yield','SSB','Recruit','Fbar','belowBlim', 'belowBpa','riskBlim')
    
-        source(file.path(prog.path,"FMSY_matrix_functions_plots.r"))
+        source(file.path(prog.path,"FMSY_matrix_functions_plots.R"))
         if (do.plot.condense) {
           plot.matrix(tit='Yield',type=out.types[1],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22) 
           plot.matrix(tit='SSB',  type=out.types[2],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22)
@@ -509,7 +509,7 @@ if (!just.batch.file) {
              if (dim(a)[[1]]>1)  {
                out.file='aboveBlim'
                out.types<-c('Yield','SSB','Recruit','Fbar','belowBlim', 'belowBpa')
-              source(file.path(prog.path,"FMSY_matrix_functions.r"))
+              source(file.path(prog.path,"FMSY_matrix_functions.R"))
               plot.matrix(tit='Yield',type=out.types[1],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22) 
               plot.matrix(tit='SSB',  type=out.types[2],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22)
               plot.matrix(tit='Recruits', type=out.types[3],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22)
@@ -537,7 +537,7 @@ if (!just.batch.file) {
                out.file='aboveBpa'
                out.types<-c('Yield','SSB','Recruit','Fbar','belowBlim', 'belowBpa')
       
-              source(file.path(prog.path,"FMSY_matrix_functions.r"))
+              source(file.path(prog.path,"FMSY_matrix_functions.R"))
               plot.matrix(tit='Yield',type=out.types[1],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22) 
               plot.matrix(tit='SSB',  type=out.types[2],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22)
               plot.matrix(tit='Recruits', type=out.types[3],spNames=sp.names[17:24],my.dev='png',out.file=out.file,scenario.dir=scenario.dir,a=a,first.sc=22)
@@ -560,7 +560,7 @@ if (!just.batch.file) {
     } # end Baltic Sea
     
     if (ReduceTable) {
-           source(file.path(prog.path,"FMSY_matrix_functions_tables.r"))
+           source(file.path(prog.path,"FMSY_matrix_functions_tables.R"))
            cat('\nStart to reduce Table\n')
            
           load(file =file.path(scenario.dir, "a.RData"))  # to get a fresh, non reduced version

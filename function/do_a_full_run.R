@@ -7,7 +7,7 @@
 #do.mcmc        perform Markov Chain Monte Carlo with a number (=mcmc) of simulations and save (=mcsave) a set of parameters for MCMC analysis
 #mcmc           create a number (=mcmc) number of MCMC simulations
 #mcsave         save the parameters for every mcsave simultaions
-#do.likelihood.profil  # Make a likelihood profile of SSB 
+#do.likelihood.profil  # Make a likelihood profile of SSB
 #do.prsave      # save results of likelihood profile
 #do.prediction  perform a single species prediction
 #Screen.show    Show results from SMS run on the R-console screen (TRUE) or write results to file ud*.*
@@ -46,9 +46,9 @@ if (OS=="windows") {
   cp<-"cp -f "
   quo<-''
   pgm<-"./sms"
-  
+
 }
-    
+
 
 
 sms.do<-file.path(outdir,paste0(label,do.bat))
@@ -60,7 +60,7 @@ append<-FALSE
 control<-read.FLSMS.control(dir=rundir)   # read option file, SMS.dat
 
 if (OS=="unix"){
-  HPC.init<-"#!/bin/sh \n\n"
+  if (HPC) HPC.init<-"#!/bin/sh\n" else HPC.init<-"#!/bin/bash\n"
   if (HPC) {
     HPC.init<-paste(HPC.init,"# embedded options to qsub - start with #PBS",
     "# -- Name of the job ---",
@@ -83,34 +83,35 @@ if (OS=="unix"){
   #cat(HPC.init);cat('\n\n')
   cat(HPC.init,file=sms.do,append=append)
   append<-TRUE
-  
+
   #delete requested files
   if (!is.na(deleteFiles[1]) & do.single) {
     for  (dels in deleteFiles) {
       cat(paste(del, dels,"\n",sep=""),file=sms.do,append=append)
     }
   }
-  
+
 }
 if (do.single) {
 
- if (OS=="windows" | OS=='unix') {  
+ if (OS=="windows" | OS=='unix') {
      #delete requested files
-     cat(paste(dosDrive,"\n","cd ",quo,outdir,quo,"\n",sep=""),file=sms.do,append=append)
+   if (OS=="windows")  cat(paste(dosDrive,"\n"),file=sms.do,append=append)
+     cat(paste("\n","cd ",quo,outdir,quo,"\n",sep=""),file=sms.do,append=append)
      if (cleanup) if (!is.na(deleteFiles[1])) {
         for  (dels in deleteFiles) {
         cat(paste("del ", dels,"\n",sep=""),file=sms.do,append=TRUE)
        }
      }
-  } 
-   
+  }
+
  append<-TRUE
- 
+
     #run SMS in single species mode
     control@VPA.mode<-0          # be sure that the the run is made in single species mode
     if (SSB.R.seperate) {
-       control@phase.SSB.R.alfa<-2 
-       control@phase.SSB.R.beta<-2 
+       control@phase.SSB.R.alfa<-2
+       control@phase.SSB.R.beta<-2
     }
     write.FLSMS.control(control,file=file.path(rundir,paste(label,'ms0.dat',sep="")),write.multi=F,nice=format.options,writeSpNames=F)
 
@@ -119,7 +120,7 @@ if (do.single) {
     if (do.MCMCeval) hes.string<-paste(" -mceval ")
     if (do.likelihood.profile)  hes.string<-paste(" -lprof ")
     if (do.likelihood.profile & do.prsave)  hes.string<-paste(" -lprof -prsave ")
-   
+
     if (do.multi.1 | do.multi.2 | do.multi.2.redo) hes.string<-' -nohess '
 
    if (OS=="windows")  cat(paste(dosDrive,"\n","cd ",quo,outdir,quo,"\n",sep=""),file=sms.do,append=append)
@@ -133,7 +134,7 @@ if (do.single) {
     cat(paste(cp,quo,"sms.par",quo," ",quo,label,"ms0.par",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"sms.rep",quo," ",quo,label,"ms0",".rep",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"gradient.dat",quo," ",quo,label,"ms0",".grd",quo,"\n",sep=""),file=sms.do,append=TRUE)
-    
+
     if (do.hessian & !(do.multi.1 | do.multi.2 | do.multi.2.redo)) cat(paste(cp,quo,"sms.std",quo," ",quo,label,"ms0",".std",quo,"\n",sep=""),file=sms.do,append=TRUE)
     append<-TRUE
 }
@@ -157,7 +158,7 @@ if (do.multi.1) {
     cat(paste(cp,quo,"sms.par",quo," ",quo,label,"ms1.par",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"sms.rep",quo," ",quo,label,"ms1",".rep",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"gradient.dat",quo," ",quo,label,"ms1",".grd",quo,"\n",sep=""),file=sms.do,append=TRUE)
-    
+
     append<-TRUE
 }
 
@@ -166,8 +167,8 @@ if (do.multi.2) {
     control@VPA.mode<-2                    # set multispecies mode =2
     control@phase.stom.var<- -1            # stomach variance
     if (SSB.R.seperate) {
-       control@phase.SSB.R.alfa<-3 
-       control@phase.SSB.R.beta<-3 
+       control@phase.SSB.R.alfa<-3
+       control@phase.SSB.R.beta<-3
     }
 
     write.FLSMS.control(control,file=file.path(rundir,paste(label,'ms2.dat',sep="")),write.multi=T,nice=format.options,writeSpNames=F)
@@ -187,7 +188,7 @@ if (do.multi.2) {
     cat(paste(cp,quo,"sms.par",quo," ",quo,label,"ms2.par",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"sms.rep",quo," ",quo,label,"ms2",".rep",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"gradient.dat",quo," ",quo,label,"ms2",".grd",quo,"\n",sep=""),file=sms.do,append=TRUE)
-    
+
        if (do.hessian) cat(paste(cp,quo,"sms.std",quo," ",quo,label,"ms2",".std",quo,"\n",sep=""),file=sms.do,append=TRUE)
     append<-TRUE
 }
@@ -197,8 +198,8 @@ if (do.multi.2.redo) {
     control@VPA.mode<-2                    # set multispecies mode =2
     control@phase.stom.var<-2              # stomach variance
     if (SSB.R.seperate) {
-       control@phase.SSB.R.alfa<-3 
-       control@phase.SSB.R.beta<-3 
+       control@phase.SSB.R.alfa<-3
+       control@phase.SSB.R.beta<-3
     }
 
     write.FLSMS.control(control,file=file.path(rundir,paste(label,'ms3.dat',sep="")),write.multi=T,nice=format.options,writeSpNames=F)
@@ -217,7 +218,7 @@ if (do.multi.2.redo) {
     cat(paste(cp,quo,"sms.par",quo," ",quo,label,"ms3.par",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"sms.rep",quo," ",quo,label,"ms3",".rep",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"gradient.dat",quo," ",quo,label,"ms3",".grd",quo,"\n",sep=""),file=sms.do,append=TRUE)
-    
+
     if (do.hessian) cat(paste(cp,quo,"sms.std",quo," ",quo,label,"ms3",".std",quo,"\n",sep=""),file=sms.do,append=TRUE)
     append<-TRUE
 }
@@ -226,26 +227,26 @@ if (do.multi.2.redo.Nbar | do.multi.2.redo.Nbar.fixed) {
     #run SMS in multi species mode 2 with estimation of all parameters, start to change options
     control@VPA.mode<-2                    # set multispecies mode =2
     control@phase.stom.var<- -1              # stomach variance.
-    control@use.Nbar<-1                    # Use mean stock number 
+    control@use.Nbar<-1                    # Use mean stock number
     control@M2.iterations<-7
-    control@max.M2.sum2<-0 
+    control@max.M2.sum2<-0
     if (SSB.R.seperate) {
-       control@phase.SSB.R.alfa<-3 
-       control@phase.SSB.R.beta<-3 
+       control@phase.SSB.R.alfa<-3
+       control@phase.SSB.R.beta<-3
     }
     if ( do.multi.2.redo.Nbar.fixed) {
       control@phase.vulnera<- -1              # set all predation parameters to fixed
-      control@phase.other.suit.slope<- -1 
-      control@phase.pref.size.ratio<- -1 
-      control@phase.pref.size.ratio.correction<- -1 
-      control@phase.prey.size.adjustment <- -1 
-      control@phase.var.size.ratio<- -1 
-      #control@phase.season.overlap<- -1 
-      control@phase.stom.var<- -1 
-      control@phase.mesh.adjust<- -1     
+      control@phase.other.suit.slope<- -1
+      control@phase.pref.size.ratio<- -1
+      control@phase.pref.size.ratio.correction<- -1
+      control@phase.prey.size.adjustment <- -1
+      control@phase.var.size.ratio<- -1
+      #control@phase.season.overlap<- -1
+      control@phase.stom.var<- -1
+      control@phase.mesh.adjust<- -1
     }
     write.FLSMS.control(control,file=file.path(rundir,paste(label,'ms3Nbar.dat',sep="")),write.multi=T,nice=format.options,writeSpNames=F)
-    
+
     if (shake.ms2.par) {
        p<-scan(file.path(rundir,paste(label,"ms2.par",sep="")),comment.char = "#")
        p<-p*runif(n=length(p),min=1.0,max=1.15)
@@ -265,7 +266,7 @@ if (do.multi.2.redo.Nbar | do.multi.2.redo.Nbar.fixed) {
     cat(paste(cp,quo,"sms.par",quo," ",quo,label,"ms3Nbar.par",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"sms.rep",quo," ",quo,label,"ms3Nbar",".rep",quo,"\n",sep=""),file=sms.do,append=TRUE)
     cat(paste(cp,quo,"gradient.dat",quo," ",quo,label,"ms3Nbar",".grd",quo,"\n",sep=""),file=sms.do,append=TRUE)
-    
+
     if (do.hessian) cat(paste(cp,quo,"sms.std",quo," ",quo,label,"ms3Nbar",".std",quo,"\n",sep=""),file=sms.do,append=TRUE)
     append<-TRUE
 }
@@ -283,16 +284,23 @@ if (do.prediction) {
     if (Screen.show)  cat(paste(pgm," -ind ",label,ll," -mceval \n",sep=""),file=sms.do,append=TRUE)
     if (pause & Screen.show) cat("pause \n",file=sms.do,append=TRUE)
 }
-#print(sms.do)
-#if (OS=="unix") sms.do<-"./run_do.sh"
-if (do.run) {
 
+
+
+if (OS=="unix") {
+  #command<-paste0("cd ",quo,outdir,quo,"\n","chmod 777 ", label,do.bat,"\n")
+  #print(command)
+  system(paste("chmod 777", sms.do),wait=TRUE)
+  #system2(command)
+
+}
+if (do.run) {
     command<-paste(quo,sms.do,quo,sep='')
-    command<-sub('/','',command)
-    #print(command)
-    if (OS=="windows") shell(command, invisible = TRUE) 
-    if (OS=="unix") system(command,show.output.on.console =Screen.show) 
-    
+    if (OS=="windows") command<-sub('/','',command)
+     print(command)
+    if (OS=="windows") shell(command, invisible = TRUE,show.output.on.console =Screen.show)
+    if (OS=="unix") system(command)
+
 } else cat(paste("batch file: ",sms.do,"for SMS run is made\n"))
 }
 

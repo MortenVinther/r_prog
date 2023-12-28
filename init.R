@@ -1,5 +1,5 @@
 #Remove all objects
-rm(list = ls())
+#rm(list = ls())
 
 # Operating System
 OS<- .Platform$OS.type

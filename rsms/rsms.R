@@ -1,4 +1,4 @@
-#rm(list=ls())
+rm(list=ls())
 library(RTMB)
 library(tidyverse)
 sam.root<-file.path("~","cod");
@@ -6,7 +6,6 @@ sam.root<-file.path("~","cod");
 rsms.root<-file.path("~","cod","RSMS");
 
 load(file=file.path(rsms.root,"rsms_input.Rdata"),verbose=TRUE)
-str(data,1)
 setwd(rsms.root)
 
 if (TRUE) {
@@ -24,7 +23,9 @@ func <- function(
                  logQpow,
                  logSdLogFsta,
                  logSdLogN,
-                 logSdLogObs,
+                 logSdLogObsCatch,
+                 logSdLogObsSurvey,
+                 logCatachability,
                  rec_loga,
                  rec_logb,
                  rho,
@@ -58,8 +59,9 @@ func <- function(
     stateDimN <- nlogN
     sdLogFsta = exp(logSdLogFsta)
     varLogN = exp(logSdLogN*2)
-    varLogObs = exp(logSdLogObs*2)
-
+    varLogObsCatch = exp(logSdLogObsCatch*2)
+ 
+    varLogObsSurvey = exp(logSdLogObsSurvey*2)
     makeVar2<-function() {
       d<-lapply(1:nSpecies,function(x) {
         matrix(0,nrow=info[x,'la'],ncol=timeSteps,dimnames=list(a=paste0("a",1:info[x,'la']),y=years))
@@ -122,10 +124,10 @@ func <- function(
       }
     }
    logssb <- log(ssb)
-
+  
 
   for (s in (1:nSpecies)) {
-   cat('Species:',s,'\n')
+   #cat('Species:',s,'\n')
     ## Now take care of N
     nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
@@ -188,18 +190,17 @@ func <- function(
           if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <- Chat[[s]][j,i]+ exp(logNbarq[[s]][i,q,j]+logFs[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,q,j]))}
         }
       }
-    }
   } # end species loop
+  
   Chat<-lapply(Chat,log)
 
 
   ##  match to observations
-  keyVarObsCatch # not used
-debug<-FALSE
-ans=0;
+ # first catches
+debug<-TRUE
   # first catches
   for (s in 1:nSpecies ){
-    cat('Species: ',s,'\n')
+    #cat('Species: ',s,'\n')
     idx<-keyCatch[,"s"]==s
     key.v<-keyCatch[idx,"keyVarObsCatch"]
     yy<-keyCatch[idx,"y"]
@@ -208,66 +209,48 @@ ans=0;
     obs<-logCatchObs[idx]
     predObs<-as.vector(Chat[[s]][ay])
     if (debug) for (i in 1:length(predObs)) {
-       var <- VarObsCatch[key.v[i]]
+       var <- varLogObsCatch[key.v[i]]
        #cat(yy[i]-off.year,aa[i],obs[i],predObs[i],sqrt(var),dnorm(obs[i],predObs[i],sqrt(var),log=TRUE),'\n')
        ans <- ans - dnorm(obs[i],predObs[i],sqrt(var),log=TRUE)
     } else {
-      var <- VarObsCatch[key.v]
+      var <- varLogObsCatch[key.v]
       ans <- ans - sum(dnorm(obs,predObs,sqrt(var),log=TRUE))
     }
-cat(ans,'\n')
+#cat(ans,'\n')
   }
 
-ans
-    head(keyCatch)
-    logCatchObs,
-    nCatchObs
 
-    keyFleet
-    logSurveyObs
+# and now surveys
 
+nFleet<-max(keySurvey$f)
+for (fl in  1:nFleet  ){
+  #cat("survey: ",fl,'\n')
+  keys<-keySurvey[keySurvey$f==fl,]
+  q<-as.integer(keys[1,"q"])
+  s<-as.integer(keys[1,'s'])
+  for (i in 1:dim(keys)[[1]]) {
+      y<-keys[i,'y']
+      a<-keys[i,'a']
+      keyPowerQ<-keys[i,"keyPowerQ"]
+      keyCatchability<-keys[i,"keyCatchability"]
+      keyVarObsSurvey<-keys[i,"keyVarObsSurvey"]
+      obs.no<-keys[i,'obs.no']
+      predObs<-logNq[[s]][y,q,a] - Zq[[s]][y,q,a]*sampleTimeWithinSurvey[fl]
+      if(keyPowerQ>0) predObs <- predObs*exp(logQpow[keyPowerQ])
+      predObs <- predObs+logCatachability[keyCatchability]
 
-    minYear <- keys[1,1]
-    predObs <- 0
-    var <- 0
-    for(i in 1:nobs){
-        y <- keys[i,1] - minYear + 1 ## 1 based
-        f <- keys[i,2] ## 1 based
-        ft <- fleetTypes[f] ## 1 based
-        a <- keys[i,3] - minAge + 1 ## 1 based
-        if(ft==0) {   ## residual fleet
-           predObs<-Chat[y,a]
-        }else{
-            if(ft==1){## comm fleet
-                stop("Not implemented yet!!!")
-            }else{
-                if(ft==2){## survey
-                    q<-sampleTimesSeason[f]
-                    predObs<-logNq[y,q,a] - Zq[y,q,a]*sampleTimeWithin[f]
-                   if(keyQpow[f,a]>(-1)){
-                        predObs = predObs*exp(logQpow[keyQpow[f,a]+1L])
-                   }
-                    if(keyLogFpar[f,a]>(-1)){
-                        predObs <- predObs+logFpar[keyLogFpar[f,a]+1L]
-                    }
-                }else{
-                    if(ft==3){## SSB survey -- nevermind for now
-                        stop("Not implemented yet!!!")
-                    }else{
-                        if(ft==4){## SSB survey -- nevermind for now
-                            stop("Not implemented yet!!!")
-                        }
-                    }
-                }
-            }
-        }
-        var <- varLogObs[keyVarObs[f,a]+1L]
-        ans <- ans - dnorm(obs[i],predObs,sqrt(var),log=TRUE)
+      var <- varLogObsSurvey[keyVarObsSurvey]
+      #cat(i,s,fl,y,y-off.year,q,a,logSurveyObs[obs.no],predObs," var=",var,keyCatchability,keyVarObsSurvey,'\n')
+      ans <- ans - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+  }
+  #cat(ans,'\n')
+} # end fleet loop
+ cat("ans: ",ans,'\n')
+# keySurvey.overview 
         ## SIMULATE {
         ##   obs(i,3) = exp( rnorm(predObs, sqrt(var)) ) ;
         ## }
-    }
-  } # end species loop
+  
     ADREPORT(ssb)
     REPORT(logNq)
     REPORT(Zq)
@@ -280,7 +263,7 @@ ans
 environment(func) <- list2env(data)
 do.call(func, parameters)
 
-obj <- MakeADFun(function(p)do.call(func,p), parameters, random=c("U"), DLL="sam",silent=TRUE)
+obj <- MakeADFun(function(p)do.call(func,p), parameters, random=c("U"), DLL="sam",silent=FALSE)
 
 lower <- obj$par*0-Inf
 upper <- obj$par*0+Inf
@@ -290,3 +273,6 @@ upper["rho"] <- 0.99
 system.time(opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper))
 
 cat("\nobjective:",opt$objective,"  convergence:",opt$convergence) # 0 indicates successful convergence.
+
+
+

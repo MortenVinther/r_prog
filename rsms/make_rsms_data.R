@@ -1,4 +1,5 @@
 rsms.root<-file.path("~","cod","RSMS");
+sam.root<-file.path("~","cod");
 
 sms<-SMS.control  # just shorter name
 multi<-!(sms@VPA.mode==0)
@@ -32,7 +33,7 @@ off.season=0L # not used
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages));
 
 load(file=file.path(sam.root,"sam_par_dat.Rdata"),verbose=TRUE)
-str(sam_data)
+#str(sam_data)
 
 # data for rsms
 
@@ -42,7 +43,7 @@ str(sam_data)
 
 ##### states at age for F random walk,
 # use sms@catch.season.age for now
-data$keyLogFsta
+sam_data$keyLogFsta
 sms@catch.season.age
 
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nSpecies,dimnames=list(spNames,paste('age',ages)))
@@ -73,8 +74,8 @@ nlogFfrom<- c(1,head(cumsum(nlogF),-1)+1 )
 nlogFfromTo<-matrix(c(nlogFfrom,nlogFto),ncol=2)
   
 ##### states at age for N random walk,
-data$keyVarLogN
-parameters$logSdLogN
+sam_data$keyVarLogN
+sam_parameters$logSdLogN
 
 nlogN<-as.integer(info[,"last-age"]-sms@first.age+1L)
 
@@ -100,7 +101,8 @@ keyLogNsta[,1:2]<-c(seq(from=1,by=2,length.out=length(nlogN)),seq(from=2,by=2,le
 keyLogNsta
 
 #### variance of catch and surveys
-data$keyVarObs
+sam_data$keyVarObs
+
 #split into two groups: catches and surveys
 sms@catch.s2.group
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nSpecies,dimnames=list(spNames,paste('age',ages)))
@@ -119,7 +121,7 @@ for (s in 1:nSpecies) {
 }
 keyVarObsCatch<-x
 keyVarObsCatch.df<-xx
-VarObsCatch<-rep(0.5,max(keyVarObsCatch)) # parameter
+logSdLogObsCatch<-rep(-0.35,max(keyVarObsCatch)) # parameter
   
 # read survey data and options into FLR objects
 indices<-SMS2FLIndices(sms)
@@ -154,23 +156,23 @@ t(a)
 a<-t(a)[,c('f','s','minyear',"miny","maxyear","maxy","minage","mina","maxage","maxa","q.age","plusgroup","PowerAge","startf","endf")]
 
 rownames(a)<-paste(1:nFleets,fleetNames)
-keyFleet<-a
-keyFleet.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
+keySurvey<-a
+keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
 
-keyFleet
-keyFleet.df
+keySurvey
+keySurvey.df
 
 
 
 ## survey variance
-data$keyVarObs
+sam_data$keyVarObs
 
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<-1L
 xx<-NULL
 for (f in (1:nFleets)) {
-  jjj<-sort(unique(c(indices[[f]]@range.SMS$var.age.group,keyFleet[f,'maxage']+1)+off.age))
-  s<-keyFleet[f,'s']
+  jjj<-sort(unique(c(indices[[f]]@range.SMS$var.age.group,keySurvey[f,'maxage']+1)+off.age))
+  s<-keySurvey[f,'s']
   for (jj in (1:(length(jjj)-1))) {
     for (j in jjj[jj]:(jjj[jj+1]-1)) {
       x[f,j]<-i;
@@ -184,17 +186,18 @@ xx
 summary(xx)
 keyVarObsSurvey<-x
 keyVarObsSurvey.df<-xx
+logSdLogObsSurvey<-rep(-0.35,max(keyVarObsSurvey))
 
-
+sam_parameters$logSdLogObs
 ## survey catchability
-data$keyLogFpar
+sam_data$keyLogFpar
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<-0L
 xx<-NULL
 for (f in (1:nFleets)) {
-  s<-keyFleet[f,'s']
-  for (j in (keyFleet[f,'mina']:keyFleet[f,'maxa'])) {
-     if (j<=keyFleet[f,'q.age']+off.age+1L) i<-i+1L
+  s<-keySurvey[f,'s']
+  for (j in (keySurvey[f,'mina']:keySurvey[f,'maxa'])) {
+     if (j<=keySurvey[f,'q.age']+off.age+1L) i<-i+1L
      x[f,j ]<-i
      xx<-rbind(xx,data.frame(f=f,species.n=s,age=j-off.age,a=j,keyCatchability=i))
   }
@@ -202,27 +205,69 @@ for (f in (1:nFleets)) {
 
 keyCatchability<-x
 keyCatchability.df<-xx
-
-
-
+logCatachability<-rep(0.0,max(keyCatchability)) 
 
 ## Catchability power age
-data$keyQpow
+sam_data$keyQpow
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<- -1L
 xx<-NULL
 for (f in (1:nFleets)) {
-  s<-keyFleet[f,'s']
-  for (j in (keyFleet[f,'mina']:keyFleet[f,'maxa'])) {
-    if (j==keyFleet[f,'PowerAge']+off.age) i<-i+1L
+  s<-keySurvey[f,'s']
+  for (j in (keySurvey[f,'mina']:keySurvey[f,'maxa'])) {
+    if (j==keySurvey[f,'PowerAge']+off.age) i<-i+1L
     x[f,j ]<-i
-    xx<-rbind(xx,data.frame(f=f,species.n=s,age=j-off.age,a=j,keyCatchability=i))
+    xx<-rbind(xx,data.frame(f=f,s=s,species.n=s,age=j-off.age,a=j,keyPowerQ=i))
   }
 }
 x
 keyQpow<-x
 keyQpow.df<-xx
+if (max(keyQpow) >0) logQpow<-rep(0.0,max(keyQpow)) else  logQpow<-rep(0.0,0)
 
+### survey observations
+
+cpue<-lapply(indices,function(x){
+  nage<-x@range["max"]-x@range["min"]+1L
+  a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))
+  a$species.n<-unlist(x@range.SMS["species"])
+  a$fleet.no<-unlist(x@range.SMS["fleet.no"])
+  a$f<-unlist(x@range.SMS["sp.fl"])
+  a
+})
+
+cpue<-do.call(rbind,cpue)
+head(cpue)
+str(cpue)
+
+cpue<-cpue %>% mutate(y=year+off.year,q=season,a=age+off.age,s=species.n)%>%
+  mutate(quarter=season,obs=data) %>%
+  dplyr::select(year,y,season,q,age,a,species.n,s,fleet.no,f,obs) %>%
+  filter(obs>0) %>% arrange(s,fleet.no,y,a) 
+ cpue$obs.no<-1L:dim(cpue)[[1]]
+head(cpue)
+
+cpue<-cpue %>% filter(year<=sms@last.year.model)   # SKAL RETTES
+fobs<-cpue %>% select(s,f,y,a) %>% group_by(s,f) %>%summarize(n=dplyr::n()) %>%  ungroup() %>% mutate(last=cumsum(n),first=lag(last)+1L)
+fobs[1,"first"]<-1L
+
+tail(fobs)
+keySurvey.overview<-cbind(keyFleet,n=as.vector(fobs$n),first=as.vector(fobs$first),last=as.vector(fobs$last))
+str(keySurvey.overview)
+
+# keyVarObsSurvey.df
+# keyCatchability.df
+# keyQpow.df
+
+k<-full_join(keyVarObsSurvey.df,keyCatchability.df) %>% dplyr::select(f, s, a, keyVarObsSurvey, keyCatchability) %>% arrange(f,s,a)
+k<-full_join(k,select(keyQpow.df,s,f,a,keyPowerQ),by = join_by(f, s, a))
+
+cpue<-left_join(cpue,k,by = join_by(a, s, f)) %>% arrange(f,s,a)
+cpue$obs.no<-1:dim(cpue)[[1]]
+
+keySurvey<-  cpue %>% dplyr::select(obs.no,f,s,y,a,q ,keyVarObsSurvey, keyCatchability,keyPowerQ)
+stopifnot(dim(filter(keySurvey, is.na(keyVarObsSurvey) | is.na(keyCatchability)))[[1]]==0)
+logSurveyObs<-log(cpue$obs)
 
 
 source(file.path(rsms,"from_sms_format_to_rsms_data.R"))
@@ -275,37 +320,7 @@ str(keyCatch,2)
 stopifnot(dim(filter(keyCatch,is.na(keyLogFsta)))[[1]]==0)
 keyCatch<-as.matrix(keyCatch)
 
-### survey observations
 
-cpue<-lapply(indices,function(x){
-  nage<-x@range["max"]-x@range["min"]+1L
-  a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))
-  a$species.n<-unlist(x@range.SMS["species"])
-  a$fleet.no<-unlist(x@range.SMS["fleet.no"])
-  a$f<-unlist(x@range.SMS["sp.fl"])
-  a
-})
-
-cpue<-do.call(rbind,cpue)
-head(cpue)
-str(cpue)
-
-cpue<-cpue %>% mutate(y=year+off.year,q=season,a=age+off.age,s=species.n)%>%
-  mutate(quarter=season,obs=data) %>%
-  dplyr::select(year,y,season,q,age,a,species.n,s,fleet.no,f,obs) %>%
-  filter(obs>0) %>% arrange(s,fleet.no,y,a)
-head(cpue)
-
-# keyVarObsSurvey.df
-# keyCatchability.df
-
-k<-full_join(keyVarObsSurvey.df,keyCatchability.df) %>% dplyr::select(f, s, a, keyVarObsSurvey, keyCatchability) %>% arrange(f,s,a)
-cpue<-left_join(cpue,k,by = join_by(a, s, f)) %>% arrange(f,s,a)
-cpue$obs.no<-1:dim(cpue)[[1]]
-
-keySurvey<-  cpue %>% dplyr::select(obs.no,f,s,y,a,q, fleet.no ,keyVarObsSurvey, keyCatchability)
-stopifnot(dim(filter(keySurvey, is.na(keyVarObsSurvey) | is.na(keyCatchability)))[[1]]==0)
-logSurveyObs<-log(cpue$obs)
 info<-cbind(info,
     la=info[,"last-age"]+off.age,
     faf=info[,"first-age F>0"]+off.age,
@@ -323,7 +338,7 @@ dat<-list(                                          # Description of data, most 
   reca=as.integer(sms@first.age)+off.age,          # recruitmet age (index)
   maxAgePlusGroup=info[,'+group'],                  #  Is last age group considered a plus group (1 yes, or 0 no).
   years=sms@first.year.model:sms@last.year.model,   # A vector of the years used in the model
-  #spNames=spNames,                                  # Species names of species with analytical assessment
+  spNames=spNames,                                  # Species names of species with analytical assessment
   spawnSeason=1L,
   recSeason=recSeason,                              # recruitment season
   fbarRange=fbarRange,                              # Minimum and maximum age by species used to calculate Fbar 
@@ -331,7 +346,8 @@ dat<-list(                                          # Description of data, most 
   off.year=off.year,                                # offset between year and the year index used in RSMS (where fist year index  have to be 1 )
   #off.season=off.season,
   #off.species=off.species,
-  #off.oths=off.oths
+  #off.oths=off.oths,
+  stockRecruitmentModelCode=stockRecruitmentModelCode,
   keyLogFsta=keyLogFsta,                         # A matrix of integers. The number of rows is equal to the number of species fleets and the number of columns is equal to the number of age classes. The matrix describes the coupling of the fishing mortality states. '-1' is used for entries where no fishing mortality applies. For the valid entries consecutive integers starting 1 must be used, because they are used as indices in the corresponding state vector. If the same number is used for two fleet-age combinations, then the fishing mortality for those are assumed equal (linked to the same state).
   nlogF=nlogF,                                   # A vector with the sum of number of F state age groups by species. Each species number corresponds to the  number of unique (and not -1 value) in each (species) row of keyLogFsta
   keyLogFsta.list=keyLogFsta.list,
@@ -341,9 +357,10 @@ dat<-list(                                          # Description of data, most 
   nlogNfromTo=nlogNfromTo,
   
   keyLogNsta=keyLogNsta,                         # ?????????????????species/age key for sd of N random 
-  keyLogNstaSdSp=keyLogNstaSdSp,                 #
+  #keyLogNstaSdSp=keyLogNstaSdSp,                 #
 
-  keyLogFstaSdSp=keyLogFstaSdSp,
+  #keyLogFstaSdSp=keyLogFstaSdSp,
+  keyVarLogN=keyVarLogN,
   keyVarObsCatch=keyVarObsCatch,
   keyVarObsSurvey=keyVarObsSurvey,
   keyCatchability=keyCatchability,
@@ -356,10 +373,12 @@ dat<-list(                                          # Description of data, most 
   propM=zero,
   keyCatch=keyCatch,
   logCatchObs=logCatchObs,
-  nCatchObs=length(logCatchObs),
-  keySurvey=keyFleet,
+  #nCatchObs=length(logCatchObs),
+  keySurvey=keySurvey,
+  keySurvey.overview=keySurvey.overview,  # not really used
   logSurveyObs=logSurveyObs,
-  nSurveyObs=length(logSurveyObs)
+  sampleTimeWithinSurvey=sampleTimeWithin
+  #nSurveyObs=length(logSurveyObs)
 )
 
 
@@ -368,8 +387,6 @@ str(dat,1)
 
 str(sam_parameters)
 
-logCatachability<-rep(0.0,max(keyCatchability))
-if (max(keyQpow) >0) logQpow<-rep(0.0,max(keyQpow)) else  logQpow<-rep(0.0,0)
 logSdLogFsta<-rep(-0.7,max(keyLogFsta))
 rho<-rep(0.6,nSpecies)
 rec_loga <- rep(1,nSpecies)
@@ -377,8 +394,9 @@ rec_logb <-rep(-12,nSpecies)  # not all will be used
 U<-matrix(0.0, nrow=sum(info[,"last-age"]-sms@first.age+1)+length(unlist(sms@catch.season.age)),ncol=nYears )
 
 parameters<-list(
-  VarObsCatch=VarObsCatch,
+  logSdLogObsCatch=logSdLogObsCatch,
   logCatachability=logCatachability,
+  logSdLogObsSurvey=logSdLogObsSurvey,
   logQpow=logQpow,
   logSdLogFsta=logSdLogFsta,
   logSdLogN=logSdLogN,

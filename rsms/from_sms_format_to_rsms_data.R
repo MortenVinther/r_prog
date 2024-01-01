@@ -21,7 +21,7 @@ b<-expand.grid(sub_area=1:noAreas,species.n=first.VPA:nsp,year=years[1]:years[2]
 
 b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
 b<-data.frame(b,CATCHN=CATCHN,WCATCH=WCATCH,PROP_CAT=Prop.landed)
-b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT))
+b<-subset(b,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT))
 b$CATCHN<-catchMultiplier*b$CATCHN
 out<-list(catch=b)
 ############## bio data

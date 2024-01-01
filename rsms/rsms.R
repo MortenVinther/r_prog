@@ -1,4 +1,4 @@
-rm(list=ls())
+#rm(list=ls())
 library(RTMB)
 library(tidyverse)
 sam.root<-file.path("~","cod");
@@ -74,7 +74,9 @@ func <- function(parameters) {
     
     fq<-1L;     # first season (e.g. quarter)
     lq<-nSeasons
-    nllCatch<-as.vector(rep(0,nSpecies))
+    
+    nlls<-matrix(0,ncol=4,nrow=nSpecies,dimnames=list(species=spNames,nll=c("catch","F","N","survey")))
+                 
 
     for (s in (1:nSpecies)) {
       ## First take care of F
@@ -87,6 +89,7 @@ func <- function(parameters) {
                     function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])
 
       ans <- ans - sum(dmvnorm( diff( t(logFs[[s]])) , 0, fvar, log=TRUE))
+      if (Debug) nlls[s,"F"]<-  -sum(dmvnorm( diff( t(logFs[[s]])) , 0, fvar, log=TRUE))
     }
     # cat("ans after diff: ",ans,'\n')
     
@@ -122,9 +125,8 @@ func <- function(parameters) {
 
    logssb <- log(ssb)
   
- 
+  if (Debug) nlls[,"N"]<-0
   for (s in (1:nSpecies)) {
-   #cat('Species:',s,'\n')
     ## Now take care of N
     nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
@@ -157,6 +159,7 @@ func <- function(parameters) {
                                  exp(logNs[[s]][stateDimN[s],i-1]-exp(logFs[[s]][keyLogFsta[s,stateDimN[s]],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]]))  )
       }
       ans <- ans - dmvnorm(logNs[[s]][,i], predN, nvar, log=TRUE) ## N-Process likelihood
+      if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logNs[[s]][,i], predN, nvar, log=TRUE) 
     }
   } #end species loop
   
@@ -197,9 +200,9 @@ func <- function(parameters) {
 
 
   ##  match to observations
- # first catches
 
   # first catches
+  nlls[,'catch']<- 0
   for (s in 1:nSpecies ){
     #cat('Species: ',s,'\n')
     idx<-keyCatch[,"s"]==s
@@ -213,16 +216,17 @@ func <- function(parameters) {
        var <- varLogObsCatch[key.v[i]]
        #cat(yy[i]-off.year,aa[i],obs[i],predObs[i],sqrt(var),dnorm(obs[i],predObs[i],sqrt(var),log=TRUE),'\n')
        ans <- ans - dnorm(obs[i],predObs[i],sqrt(var),log=TRUE)
-    }
-    if (Debug==1)  {  # the same and more efficient than above, but problems with convergence 
+   }
+   if (Debug==1)  {  # the same and more efficient than above, but problems with convergence ??
       var <- varLogObsCatch[key.v]
-      nllCatch[s]<-   - sum(dnorm(obs,predObs,sqrt(var),log=TRUE))
+      nlls[s,'catch']<- nlls[s,'catch']   - sum(dnorm(obs,predObs,sqrt(var),log=TRUE))
     }
+    
   }
   
   
 # and now surveys
-
+if (Debug==1)  nlls[,'survey']<-0
 nFleets<-max(keySurvey[,"f"])
 for (fl in  1:nFleets) {
   #cat("survey: ",fl,'\n')
@@ -243,6 +247,11 @@ for (fl in  1:nFleets) {
       var <- varLogObsSurvey[keyVarObsSurvey]
       #cat(i,s,fl,y,y-off.year,q,a,logSurveyObs[obs.no],predObs," var=",var,keyCatchability,keyVarObsSurvey,'\n')
       ans <- ans - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+      
+      if (Debug==1)  {  
+        nlls[s,'survey']<- nlls[s,'survey']   - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+      }
+      
   }
 } # end fleet loop
  #cat("ans: after survey ",ans,'\n')
@@ -257,7 +266,7 @@ for (fl in  1:nFleets) {
     REPORT(logNq)
     REPORT(Zq)
     REPORT(Chat)
-    REPORT(nllCatch)
+    REPORT(nlls)
     
     ans
 }
@@ -286,7 +295,7 @@ str(rep,1)
 lapply(rep$logNq,function(x) round(exp(x[,1,])))
 lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
 lapply(rep$Chat,function(x) round(exp(x)))
-rep$nllCatch
+rep$nlls
 
 rep <- sdreport(obj)
 x<-as.list(rep, "Est")

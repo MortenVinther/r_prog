@@ -290,7 +290,7 @@ str(rep,1)
 lapply(rep$logNq,function(x) round(exp(x[,1,])))
 lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
 lapply(rep$Chat,function(x) round(exp(x)))
-rep$nllCatch
+rep$nlls
 
 rep <- sdreport(obj)
 x<-as.list(rep, "Est")

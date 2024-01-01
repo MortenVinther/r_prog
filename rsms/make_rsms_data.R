@@ -1,5 +1,5 @@
 make_rsms_data<-function(dir,annual=FALSE) {
-# dir<-"S16_S21"; annual<-TRUE
+# dir<-"S16_S21"; annual<-TRUE; dir="S17"
  
 Init.function(dir=file.path(root,dir)) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
@@ -300,12 +300,16 @@ if (multi) {
   b2<-full_join(d$mean_l,d$consum,join_by(year, species.n, quarter, sub_area, age))
   b<-full_join(b,b2,join_by(year, species.n, quarter, sub_area, age))
 }
+filter(b,age==0 & CATCHN>0)
+
+
 # SKAL ÆNDRES
 b$seasFprop<-0.25
 b[b$age==0,"seasFprop"]<-0.5
 
 b<-b %>% mutate(y=year+off.year,q=quarter,s=species.n+off.species,a=age+off.age)
 b<-left_join(b,data.frame(s=info[,'s'],la=info[,"last-age"]+off.age),by = join_by(s)) %>% filter(a<=la)
+
 
 propMat         <-by(b,b$s,function(x) {y<-tapply(x$PROPMAT,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 stockMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WSEA,list(x$y,x$q,x$a),sum) ; y[is.na(y)]<-0; y})
@@ -468,6 +472,6 @@ if (annual) {
   
   save(data,parameters,file=file.path(rsms.root,"rsms_input.Rdata"))
 }
-
+ list(data=data,parameters=parameters)
 }
 

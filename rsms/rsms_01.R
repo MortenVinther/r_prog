@@ -1,14 +1,14 @@
-rm(list=ls())
+# rm(list=ls())
 library(RTMB)
 library(tidyverse)
 sam.root<-file.path("~","cod");
 rsms.root<-file.path("~","cod","RSMS");
 
 load(file=file.path(rsms.root,"rsms_input.Rdata"),verbose=TRUE)
-str(parameters)
-str(data)
+#str(parameters)
+#str(data)
 
-data$stockRecruitmentModelCode[]<-1L
+data$stockRecruitmentModelCode[]<-2L
 data$Debug<-1L
 setwd(rsms.root)
 
@@ -74,7 +74,7 @@ func <- function(parameters) {
     
     fq<-1L;     # first season (e.g. quarter)
     lq<-nSeasons
-    nllCatch<-as.vector(rep(0,nSpecies))
+    nllCatch<-rep(0,nSpecies)
 
     for (s in (1:nSpecies)) {
       ## First take care of F
@@ -88,7 +88,7 @@ func <- function(parameters) {
 
       ans <- ans - sum(dmvnorm( diff( t(logFs[[s]])) , 0, fvar, log=TRUE))
     }
-    # cat("ans after diff: ",ans,'\n')
+    #cat("ans after diff: ",ans,'\n')
     
     
     ## SIMULATE {
@@ -156,11 +156,15 @@ func <- function(parameters) {
         predN[stateDimN[s]] = log( exp(exp(logFs[[s]][keyLogFsta[s,stateDimN[s]-1],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
                                  exp(logNs[[s]][stateDimN[s],i-1]-exp(logFs[[s]][keyLogFsta[s,stateDimN[s]],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]]))  )
       }
+      
+     #  cat(s,i,j,'\n')
+     #  print(class(predN))
+     # print(class(logNs[[s]][,i]))
       ans <- ans - dmvnorm(logNs[[s]][,i], predN, nvar, log=TRUE) ## N-Process likelihood
     }
   } #end species loop
   
-  #  cat("ans after N-Process likelihood: ",ans,'\n')
+  #cat("ans after N-Process likelihood: ",ans,'\n')
   
   for (s in (1:nSpecies)) {
     for(i in 1:timeSteps) {
@@ -317,6 +321,3 @@ if (FALSE) {
   chk <- checkConsistency(obj)
   chk
 }
-
-cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
-

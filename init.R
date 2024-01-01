@@ -28,8 +28,9 @@ root.copy<-root
 
 my.stock.dir<-"ns_2023_ss_input"
 
-my.stock.dir<-"S16"
+#my.stock.dir<-"S16"
 #my.stock.dir<-"S16_S21"
+
 # make a backup of the SMS source code
 # file.copy(file.path(root.prog,"program","sms.tpl"),file.path(root.prog,"program",paste("sms_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)
 # file.copy(file.path(root.prog,"program","op.tpl"),file.path(root.prog,"program",paste("op_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)

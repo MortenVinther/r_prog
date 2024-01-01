@@ -1,4 +1,4 @@
-From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1) {
+From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path) {
 la<-SMS.control@max.age.all
 fa<-SMS.control@first.age
 rec.season <-SMS.control@rec.season
@@ -13,9 +13,9 @@ noAreas<-SMS.control@no.areas
 
 #############  catch data
 
-CATCHN<-head(scan(file.path(data.path,'canum.in'),comment.char='#'),-1)
-WCATCH<-head(scan(file.path(data.path,'weca.in'),comment.char='#'),-1)
-Prop.landed<-head(scan(file.path(data.path,'proportion_landed.in'),comment.char='#'),-1)
+CATCHN<-head(scan(file.path(dir,'canum.in'),comment.char='#'),-1)
+WCATCH<-head(scan(file.path(dir,'weca.in'),comment.char='#'),-1)
+Prop.landed<-head(scan(file.path(dir,'proportion_landed.in'),comment.char='#'),-1)
 Prop.landed<-Prop.landed[1:length(WCATCH)]
 b<-expand.grid(sub_area=1:noAreas,species.n=first.VPA:nsp,year=years[1]:years[2],quarter=1:nq,age=fa:la)
 
@@ -26,12 +26,12 @@ b$CATCHN<-catchMultiplier*b$CATCHN
 out<-list(catch=b)
 ############## bio data
 
-WSEA<-head(scan(file.path(data.path,'west.in'),comment.char='#'),-1)
+WSEA<-head(scan(file.path(dir,'west.in'),comment.char='#'),-1)
 WSEA<-WSEA[((first.VPA-1)*noAreas*ny*(la-fa+1)*nq+1):length(WSEA)]
-PROPMAT<-head(scan(file.path(data.path,'propmat.in'),comment.char='#'),-1)
-M<-head(scan(file.path(data.path,'natmor.in'),comment.char='#'),-1)
-M1<-head(scan(file.path(data.path,'natmor1.in'),comment.char='#'),-1)
-PROP_M2<-head(scan(file.path(data.path,'n_proportion_m2.in'),comment.char='#'),-1)
+PROPMAT<-head(scan(file.path(dir,'propmat.in'),comment.char='#'),-1)
+M<-head(scan(file.path(dir,'natmor.in'),comment.char='#'),-1)
+M1<-head(scan(file.path(dir,'natmor1.in'),comment.char='#'),-1)
+PROP_M2<-head(scan(file.path(dir,'n_proportion_m2.in'),comment.char='#'),-1)
 
 b<-expand.grid(sub_area=1:noAreas,species.n=first.VPA:nsp,year=years[1]:(years[2]),quarter=1:nq,age=fa:la)
 b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
@@ -43,10 +43,10 @@ out<-c(out,list(bio=b))
 ################  other_sp
 
 if (otherPredExist) {
-  WSEA<-head(scan(file.path(data.path,'west.in'),comment.char='#'),-1)
+  WSEA<-head(scan(file.path(dir,'west.in'),comment.char='#'),-1)
   WSEA<-WSEA[1:((first.VPA-1)*noAreas*ny*(la-fa+1)*nq)]
   length(WSEA)
-  N<-head(scan(file.path(data.path,'other_pred_n.in'),comment.char='#'),-1)
+  N<-head(scan(file.path(dir,'other_pred_n.in'),comment.char='#'),-1)
   b<-expand.grid(sub_area=1:noAreas,species.n=1:(first.VPA-1),year=years[1]:years[2],quarter=1:nq,age=fa:la)
   b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
   length(N)
@@ -60,7 +60,7 @@ if (otherPredExist) {
 
   ###################### mean l
 
-  l<-head(scan(file.path(data.path,'lsea.in'),comment.char='#'),-1)
+  l<-head(scan(file.path(dir,'lsea.in'),comment.char='#'),-1)
   b<-expand.grid(SMS_area=1:noAreas,species.n=1:nsp,year=years[1]:years[2],quarter=1:nq,age=fa:la)
    b<-b[order(b$SMS_area,b$species.n,b$year,b$quarter,b$age),]
 
@@ -70,7 +70,7 @@ if (otherPredExist) {
 
   ###########################  consum
 
-  CONSUM<-head(scan(file.path(data.path,'consum.in'),comment.char='#'),-1)
+  CONSUM<-head(scan(file.path(dir,'consum.in'),comment.char='#'),-1)
   b<-expand.grid(SMS_area=1:noAreas,species.n=1:npr,year=years[1]:years[2],quarter=1:nq,age=fa:la)
   b<-b[order(b$SMS_area,b$species.n,b$year,b$quarter,b$age),]
 

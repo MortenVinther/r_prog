@@ -1,5 +1,5 @@
 make_rsms_data<-function(dir,annual=FALSE) {
-# dir<-"S16_S21"; annual<-TRUE; dir="S17"
+# dir<-"S16_S21"; annual<-TRUE; dir="S19"
  
 Init.function(dir=file.path(root,dir)) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
@@ -150,9 +150,8 @@ season<-unlist(lapply(indices,function(x) x@range.SMS["season"]))
 PowerAge[PowerAge<0]<- -9
 fleetNames<-unlist(lapply(indices,function(x) x@name))
 q.age<-unlist(lapply(indices,function(x) x@range.SMS['q.age']))
-a<-do.call(data.frame,lapply(indices,function(x) x@range))
-a
 
+a<-do.call(data.frame,lapply(indices,function(x) x@range))
 a<-rbind(a,s=spNo,q.age=q.age,f=1:nFleets,PowerAge=PowerAge,q=season)
 a["plusgroup",]<-0L
 a['mina',]<-a['min',]+off.age
@@ -169,9 +168,8 @@ x[,"sampleTimeWithin"]<- (as.numeric(a['endf',])-as.numeric(a['startf',]))/2
 sampleTimeWithin<-x
 
 a<- a%>% mutate_if(is.numeric,as.integer)
-#t(a)
 a<-t(a)[,c('f','s','minyear',"miny","maxyear","maxy","minage","mina","maxage","maxa","q.age","plusgroup","PowerAge","q","startf","endf")]
-
+if (is.vector(a)) {lena<-length(a); nama=names(a); a<-matrix(a,nrow=1,ncol=lena); colnames(a)<-nama}
 rownames(a)<-paste(1:nFleets,fleetNames)
 keySurvey<-a
 keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
@@ -218,7 +216,7 @@ for (f in (1:nFleets)) {
 
 keyCatchability<-x
 keyCatchability.df<-xx
-logCatachability<-rep(0.0,max(keyCatchability)) 
+logCatchability<-rep(0.0,max(keyCatchability)) 
 
 ## Catchability power age
 sam_data$keyQpow
@@ -303,9 +301,10 @@ if (multi) {
 filter(b,age==0 & CATCHN>0)
 
 
-# SKAL ÆNDRES
+
 b$seasFprop<-0.25
-b[b$age==0,"seasFprop"]<-0.5
+b[b$age==0,"seasFprop"]<-0
+b[b$age==0 & b$q %in% c(3,4),"seasFprop"]<-0.5
 
 b<-b %>% mutate(y=year+off.year,q=quarter,s=species.n+off.species,a=age+off.age)
 b<-left_join(b,data.frame(s=info[,'s'],la=info[,"last-age"]+off.age),by = join_by(s)) %>% filter(a<=la)
@@ -374,7 +373,7 @@ dat<-list(                                          # Description of data, most 
   stockRecruitmentModelCode=stockRecruitmentModelCode,
   keyLogFsta=keyLogFsta,                         # A matrix of integers. The number of rows is equal to the number of species fleets and the number of columns is equal to the number of age classes. The matrix describes the coupling of the fishing mortality states. '-1' is used for entries where no fishing mortality applies. For the valid entries consecutive integers starting 1 must be used, because they are used as indices in the corresponding state vector. If the same number is used for two fleet-age combinations, then the fishing mortality for those are assumed equal (linked to the same state).
   nlogF=nlogF,                                   # A vector with the sum of number of F state age groups by species. Each species number corresponds to the  number of unique (and not -1 value) in each (species) row of keyLogFsta
-  keyLogFsta.list=keyLogFsta.list,
+  #keyLogFsta.list=keyLogFsta.list,
    # keyLogSdLogFsta  keyLogFstaSdSp=keyLogFstaSdSp,                 # A matrix which links each F state age group by species to the logSdLogFsta=
   nlogFfromTo=nlogFfromTo,
   nlogN=nlogN,                                   # A vector with the sum of number of N state age groups by species
@@ -418,7 +417,7 @@ Uf<-matrix(0.0, nrow=length(unlist(sms@catch.season.age)),ncol=nYears)
 
 parameters<-list(
   logSdLogObsCatch=logSdLogObsCatch,
-  logCatachability=logCatachability,
+  logCatchability=logCatchability,
   logSdLogObsSurvey=logSdLogObsSurvey,
   logQpow=logQpow,
   logSdLogFsta=logSdLogFsta,
@@ -449,7 +448,11 @@ if (annual) {
     x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
   })
   data$catchMeanWeight<- lapply(data$catchMeanWeight,function(x) x[,1,,drop=FALSE])  # to be changed
-  data$seasFprop<- lapply(data$seasFprop,function(x) x[,1,,drop=FALSE])  
+  data$seasFprop<- lapply(data$seasFprop,function(x) {
+    x<-apply(x,c(1,3),sum) 
+    x<-array2DF(x) %>% mutate(q=1) %>% mutate_if(is.character,as.integer)
+    x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
+  })
   data$propF<- lapply(data$propF,function(x) x[,1,,drop=FALSE])   
   data$propM<- lapply(data$propM,function(x) x[,1,,drop=FALSE])
   data$natMor<- lapply(data$natMor,function(x) {

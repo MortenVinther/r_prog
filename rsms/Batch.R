@@ -1,10 +1,11 @@
 # First you have to run: run ini.r in SMS dir, and  _init_rsms.R
 
-combSp<-c("S16_S21","S16_S17_S21","S16","S17","S18","S19","S20","S21","s22","S23","S24","S25","S26","S27")
+combSp<-c("S16","S17","S18","S19","S20","S21","S22","S23","S24","S25","S26","S27")
 
 
-combSp<-c("S16_S17_S21")
+#combSp<-c("S16_S17_S21")
 
+#combSp<-"ns_2023_ss_input"
 Annual<- FALSE  # annual or quarterly data
 
 # species combinations
@@ -17,8 +18,8 @@ source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
 
 for (my.comb in combSp) {
 
-  make_rsms_data(dir=my.comb,annual=FALSE)
-  dat<-make_rsms_data(dir=my.comb,annual=F,outDir=rsms.root)
+
+  dat<-make_rsms_data(dir=my.comb,annual=Annual,outDir=rsms.root)
   # makes  save(data,parameters,file=file.path(rsms.root,"rsms_input.Rdata"))
  
    source(file.path(root.prog,"r_prog","rsms","rsms.R")) 
@@ -48,8 +49,6 @@ convert_var<-function(x) {
 
 
 for (my.comb in combSp) {
-
-  my.comb<-"S16_S21"
   load(file.path(rsms.root,paste0(my.comb,'.Rdata')),verbose=T)
   cat("Comb :",my.comb,'\n')
   cat(data$spNames,'\n')
@@ -57,7 +56,6 @@ for (my.comb in combSp) {
   
   rep<-obj$report()
   
-
   if (data$nSeasons==1) N<-lapply(rep$logNq,function(x) (exp(x[,1,])))
   if (data$nSeasons==4) N<-lapply(rep$logNq,function(x) (exp(x[,3,])))
   Recruit<-convert_var(N) %>% filter(Age==0) %>% rename(Species=species,Year=year)

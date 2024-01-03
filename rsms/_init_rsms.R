@@ -7,9 +7,10 @@ library(tidyverse)
 # Operating System
 OS<- .Platform$OS.type
 # Harddisk drive for SMS, runs
-if (OS=="unix")   home<-"~"  else home<-"C:"
+if (OS=="unix")   home<-"~"  else home<-file.path("C:","_C_drev")
 
-sam.root<-file.path(home,"cod");
-rsms.root<-file.path(home,"cod","RSMS")
-rsms.root.prog<-file.path(home,'SMS','r_prog','rsms')
+sam.root<-file.path(home,"RSMS");
+rsms.root<-file.path(home,"RSMS")
+#rsms.root.prog<-file.path(home,'SMS','r_prog','rsms')
+rsms.root.prog<-file.path(root.prog,'r_prog','rsms')
 

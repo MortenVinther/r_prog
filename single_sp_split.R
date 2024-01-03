@@ -1,9 +1,9 @@
 # user options
 
 # species combinations
-#spComb<-list(s16=c(16),s17=c(17),s18=c(18),s19=c(19),s20=c(20),s21=c(21),s22=c(22),s23=c(23),s24=c(24),s25=c(25),s26=c(26),s27=c(27),s16_22=c(16,22))
+spComb<-list(s16=c(16),s17=c(17),s18=c(18),s19=c(19),s20=c(20),s21=c(21),s22=c(22),s23=c(23),s24=c(24),s25=c(25),s26=c(26),s27=c(27),s16_21=c(16,21),s16_17_21=c(16,17,21))
 #spComb<-list(s16=c(16),s21=c(21),s22=c(22),s23=c(23),s16_21=c(16,21))
-spComb<-list(s16=c(16),s16_21=c(16,21))
+#spComb<-list(s16=c(16),s16_21=c(16,21))
 #spComb<-list(s16=c(16))
 codes<-c('COD','WHG','HAD','POK','MAC','HER','NSA','SSA','NOP','SPR','PLE','SOL')
 

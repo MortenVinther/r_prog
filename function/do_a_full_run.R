@@ -298,7 +298,8 @@ if (do.run) {
     command<-paste(quo,sms.do,quo,sep='')
     if (OS=="windows") command<-sub('/','',command)
      print(command)
-    if (OS=="windows") shell(command, invisible = TRUE,show.output.on.console =Screen.show)
+    # if (OS=="windows") shell(command, invisible = TRUE,show.output.on.console =Screen.show)
+    if (OS=="windows") system(command)
     if (OS=="unix") system(command)
 
 } else cat(paste("batch file: ",sms.do,"for SMS run is made\n"))

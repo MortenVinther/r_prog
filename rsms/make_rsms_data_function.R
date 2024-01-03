@@ -1,4 +1,4 @@
-make_rsms_data<-function(dir,annual=FALSE) {
+make_rsms_data<-function(dir,annual=FALSE,outDir=dir) {
 # dir<-"S16_S21"; annual<-TRUE; dir="S19"
  
 Init.function(dir=file.path(root,dir)) # initialize SMS environment
@@ -49,7 +49,7 @@ off.season<-0L # not used
 
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages));
 
-load(file=file.path(sam.root,"sam_par_dat.Rdata"),verbose=TRUE)
+#load(file=file.path(sam.root,"sam_par_dat.Rdata"),verbose=TRUE)
 #str(sam_data)
 
 # data for rsms
@@ -90,8 +90,8 @@ nlogFfrom<- c(1,head(cumsum(nlogF),-1)+1 )
 nlogFfromTo<-matrix(c(as.integer(nlogFfrom),as.integer(nlogFto)),ncol=2)
   
 ##### states at age for N random walk,
-sam_data$keyVarLogN
-sam_parameters$logSdLogN
+#sam_data$keyVarLogN
+#sam_parameters$logSdLogN
 
 nlogN<-as.integer(info[,"last-age"]-sms@first.age+1L)
 
@@ -198,7 +198,7 @@ keyVarObsSurvey<-x
 keyVarObsSurvey.df<-xx
 logSdLogObsSurvey<-rep(-0.35,max(keyVarObsSurvey))
 
-sam_parameters$logSdLogObs
+#sam_parameters$logSdLogObs
 ## survey catchability
 # sam_data$keyLogFpar
 
@@ -219,7 +219,7 @@ keyCatchability.df<-xx
 logCatchability<-rep(0.0,max(keyCatchability)) 
 
 ## Catchability power age
-sam_data$keyQpow
+#sam_data$keyQpow
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<- -1L
 xx<-NULL
@@ -357,7 +357,7 @@ dat<-list(                                          # Description of data, most 
   nAges=nAges,
   minAge=as.integer(sms@first.age),                 # A vector of integers defining the the lowest age class in the assessment for each species.
   maxAge=as.integer(sms@max.age.all),               # Maximum age for all species. The actual age range by species is given in "info"
-  recAge=as.integer(sms@first.age)+off.age,          # recruitmet age (index)
+  recAge=as.integer(sms@first.age),                 # recruitmet age
   maxAgePlusGroup=as.integer(info[,'+group']),                  #  Is last age group considered a plus group (1 yes, or 0 no).
   years=sms@first.year.model:sms@last.year.model,   # A vector of the years used in the model
   spNames=spNames,                                  # Species names of species with analytical assessment
@@ -430,7 +430,7 @@ parameters<-list(
 )
 data<-dat
 
-save(data,parameters,file=file.path(rsms.root,"rsms_input.Rdata")) 
+save(data,parameters,file=file.path(outDir,"rsms_input.Rdata")) 
 
 
 
@@ -473,7 +473,7 @@ if (annual) {
   
   data$keySurvey[,'q']<-1L
   
-  save(data,parameters,file=file.path(rsms.root,"rsms_input.Rdata"))
+  save(data,parameters,file=file.path(outDir,"rsms_input.Rdata"))
 }
  list(data=data,parameters=parameters)
 }

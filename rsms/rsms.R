@@ -6,11 +6,8 @@ load(file=file.path(rsms.root,"rsms_input.Rdata"),verbose=TRUE)
 
 data$stockRecruitmentModelCode[]<-1L
 
-# Saithe data$keyVarLogN[]<-c(1L,1L,1L,2L,2L,2L,2L,2L,2L,2L,2L)
-#data$keyVarLogN[]<-c(1L,2L,2L,2L,2L,2L,2L,2L,2L,2L,2L)
-
 data$Debug<-1L
-setwd(rsms.root)
+#setwd(rsms.root)
 
 ### Parameter transform
 # f <- function(x) {2/(1 + exp(-2 * x)) - 1}
@@ -88,8 +85,7 @@ func <- function(parameters) {
       ans <- ans - sum(dmvnorm( diff( t(logF[[s]])) , 0, fvar, log=TRUE))
       if (Debug) nlls[s,"F"]<-  -sum(dmvnorm( diff( t(logF[[s]])) , 0, fvar, log=TRUE))
     }
-    # cat("ans after diff: ",ans,'\n')
-    
+     
     
     ## SIMULATE {
     ##   logF.col(i) = logF.col(i-1) + neg_log_densityF.simulate();
@@ -97,7 +93,6 @@ func <- function(parameters) {
 
 
     # Spawning Stock Biomass
-    if (recSeason > spawnSeason) fa<-2L else fa<-1L    
     q<-spawnSeason
     
  
@@ -120,17 +115,18 @@ func <- function(parameters) {
       if(stockRecruitmentModelCode[s]==0){ ## straight RW
           predN[recAge] = logN[[s]][recAge, i]
       } else {
-          if (stockRecruitmentModelCode[s]==1){ ##ricker
+          if (stockRecruitmentModelCode[s]==1){ ## Ricker
               predN[recAge] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
           }else{
-              if(stockRecruitmentModelCode[s]==2){  ##B&H
-                  predN[recAge]=rec_loga[2]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
+              if(stockRecruitmentModelCode[s]==2){  ## B&H
+                  predN[recAge]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
               }else{
                   stop("SR model code not recognized");
               }
           }
+
       }
- 
+
       for(j in 2:stateDimN[s]) {
         if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
             predN[j]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
@@ -164,7 +160,9 @@ func <- function(parameters) {
         } else Chat[[s]][j,i] = 0.1; #SNYD for at undgå log(0), værdien bruges ikke, så OK
       
         #remaining seasons
-        if (nSeasons>1) for (q in 2:lq) if (j >1 | q>=recSeason ) {
+        if (j ==1 & recSeason>1) logNq[[s]][i,recSeason,j]<-logN[[s]][j,i] 
+        
+        if (nSeasons>1) for (q in 2:lq) if (j >1 | q>recSeason ) {
           logNq[[s]][i,q,j]<- logNq[[s]][i,q-1,j]-Zq[[s]][i,q-1,j]
           if (keyLogFsta[s,j]>0) {
              Zq[[s]][i,q,j] <- exp(logF[[s]][(keyLogFsta[s,j]),i])*seasFprop[[s]][i,q,j] + natMor[[s]][i,q,j]
@@ -240,7 +238,7 @@ for (fl in  1:nFleets) {
         ##   obs(i,3) = exp( rnorm(predObs, sqrt(var)) ) ;
         ## }
   
-   ADREPORT(ssb)
+    ADREPORT(ssb)
     REPORT(logNq)
     REPORT(Zq)
     REPORT(Chat)
@@ -288,10 +286,14 @@ if (!Batch) {
 rep<-obj$report()
 
 lapply(rep$logNq,function(x) (exp(x[,1,])))
+if (data$nSeasons==4)lapply(rep$logNq,function(x) (exp(x[,3,])))
+
 #lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
 #lapply(rep$Chat,function(x) round(exp(x)))
 
 cbind(rep$nlls,all=rowSums(rep$nlls))
+
+Est<-as.list(rep, "Est", report=TRUE)
 
 rep <- sdreport(obj)
 obj$fn()  #  value er den samme som sum af min nnls
@@ -344,3 +346,4 @@ if (FALSE) {
 
 cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
 }
+

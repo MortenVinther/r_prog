@@ -1,6 +1,6 @@
 source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
 
-dat<-make_rsms_data(dir="S27",annual=T)
+dat<-make_rsms_data(dir="S22",annual=F,outDir=rsms.root)
 dat$data$spNames
 
 str(dat)
@@ -11,6 +11,9 @@ head(dat$data$keyCatch )
 
 dat$data$nlogFfromTo  
 dat$data$keyVarLogN 
+
+dat$data$seasFprop[[1]][1:2,,]
+dat$data$recAge
 
 if (FALSE) {
   logcatch<-dat$data$logCatch

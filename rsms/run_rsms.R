@@ -1,6 +1,6 @@
 source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
 
-dat<-make_rsms_data(dir="S22",annual=F,outDir=rsms.root)
+dat<-make_rsms_data(dir="S17",annual=F,outDir=rsms.root)
 dat$data$spNames
 
 if (FALSE) {

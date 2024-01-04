@@ -36,7 +36,6 @@ func <- function(parameters) {
 
     logF<-list()
     for (s in 1:nSpecies) logF<-c(logF, list(Uf[(nlogFfromTo[s,1]:nlogFfromTo[s,2]),,drop=FALSE]))
-
     timeSteps <- nYears
     stateDimF <- nlogF
     stateDimN <- nlogN
@@ -77,13 +76,15 @@ func <- function(parameters) {
       fcor <- outer(1:stateDimF[s],
                     1:stateDimF[s],
                     function(i,j)(i!=j)*rho[s] + (i==j))
-      fsd <- sdLogFsta[keyLogFsta[s,keyLogFsta[s,]>0]]
+      fsd <- sdLogFsta[keyLogFstaSd[s,keyLogFstaSd[s,]>0]]
       fvar <- outer(1:stateDimF[s],
                     1:stateDimF[s],
                     function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])
-
-      ans <- ans - sum(dmvnorm( diff( t(logF[[s]])) , 0, fvar, log=TRUE))
-      if (Debug) nlls[s,"F"]<-  -sum(dmvnorm( diff( t(logF[[s]])) , 0, fvar, log=TRUE))
+      if (zeroCatchYearExistsSp[s]==1)  ans <- ans - sum(dmvnorm( diff( t(logF[[s]][,-zeroCatchYear[[s]]])),mu=0, Sigma=fvar, log=TRUE)) else {
+                                        ans <- ans - sum(dmvnorm( diff( t(logF[[s]])),mu=0, Sigma=fvar, log=TRUE))
+      }
+       
+      if (Debug) nlls[s,"F"]<-  -sum(dmvnorm( diff( t(logF[[s]])) , 0, Sigma=fvar, log=TRUE))
     }
      
     
@@ -251,26 +252,28 @@ for (fl in  1:nFleets) {
 # func(parameters)   # KALDET VIL PÅVIRKE KALDET TIL MakeAdFun !!!?
 #An error at this point is obviously not due to RTMB.
 
-#Next, it is useful to check that MakeADFun can be run without random effects:
 
-if (FALSE) {
-p<-parameters$Un
-p[2:nAges,2:nYears]<-NA
-isnap<-is.na(p[,])
-p[!isnap]<-1:sum(!isnap)
-#p
+if (data$zeroCatchYearExists==1) {
+  UfMap<-matrix(1L:(dim(parameters$Uf)[[1]]*dim(parameters$Uf)[[2]]),nrow=sum(data$nlogF),byrow=TRUE)
+  for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
+    zy<-data$zeroCatchYear[[s]]
+    fromTo<-data$nlogFfromTo[s,]
+    UfMap[fromTo[1]:fromTo[2],zy]<-NA
+    parameters$Uf[fromTo[1]:fromTo[2],zy]<-log(0.001)
+  }
+  UfMap<-factor(UfMap)
+  #matrix(my.map$Uf,nrow=2)
 }
 
 
-my.map<- list(
+if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
+
   #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
-  #Un=factor(p)
   # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
   #rho =factor(rep(NA,length(parameters$rho)))
-  )
-my.map
 
-# obj <- MakeADFun(func, parameters)
+
+
 obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE,map=my.map)
 
 lower <- obj$par*0-Inf
@@ -278,15 +281,25 @@ upper <- obj$par*0+Inf
 lower["rho"] <- 0.01
 upper["rho"] <- 0.99
 
+nl<-names(lower)
+
+lower[nl=="logSdLogObsSurvey"]<-rep(log(0.15),length(parameters$logSdLogObsSurvey))
+upper[nl=="logSdLogObsSurvey"]<-rep(log(2.0),length(parameters$logSdLogObsSurvey))
+
+lower[nl=="logSdLogObsCatch"]<-rep(log(0.1),length(parameters$logSdLogObsCatch))
+upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
+
+#t(rbind(lower,upper))    
 opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper)
 
 cat("\nobjective:",opt$objective,"  convergence:",opt$convergence) # 0 indicates successful convergence.
 
 if (!Batch) {
+  
 rep<-obj$report()
 
-lapply(rep$logNq,function(x) (exp(x[,1,])))
-if (data$nSeasons==4)lapply(rep$logNq,function(x) (exp(x[,3,])))
+#lapply(rep$logNq,function(x) (exp(x[,1,])))
+#if (data$nSeasons==4)lapply(rep$logNq,function(x) (exp(x[,3,])))
 
 #lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
 #lapply(rep$Chat,function(x) round(exp(x)))
@@ -295,29 +308,32 @@ cbind(rep$nlls,all=rowSums(rep$nlls))
 
 Est<-as.list(rep, "Est", report=TRUE)
 
-rep <- sdreport(obj)
+sdrep <- sdreport(obj)
 obj$fn()  #  value er den samme som sum af min nnls
-x<-as.list(rep, "Est")
-str(x)
-x$logSdLogN; exp(x$logSdLogN) 
+x<-as.list(sdrep, "Est")
+
 round(exp(x$Uf),3)
 round(exp(x$Un),0)
 
-sdS<-exp(x$logSdLogObsCatch)
-tab<-data$keyVarObsCatch
-for (i in 1:length(sdS)) tab[tab[,]==i]<- sdS[i]
-tab
+make_tab<-function(d,key,printIt=TRUE,roundIt=2) {
+  d<-exp(d)
+  tab<-key
+  for (i in 1:length(d)) tab[tab[,]==i]<- d[i]
+  tab
+  if (printIt) {
+    ptab<-tab
+    ptab[ptab== -1] <-NA
+    print(round(ptab,roundIt),na.print='.')
+  } 
+  invisible(tab)
+}
 
 
-sdS<-exp(x$logSdLogObsSurvey)
-tab<-data$keyVarObsSurvey
-for (i in 1:length(sdS)) tab[tab[,]==i]<- sdS[i]
-tab
-
-sdS<-exp(x$logCatchability)
-tab<-data$keyCatchability
-for (i in 1:length(sdS)) tab[tab[,]==i]<- sdS[i]
-tab
+make_tab(d=x$logSdLogN,key=data$keyVarLogN,roundIt=2)
+make_tab(d=x$logSdLogFsta,key=data$keyLogFstaSd,roundIt=2)
+make_tab(d=x$logSdLogObsCatch,key=data$keyVarObsCatch)  
+make_tab(d=x$logSdLogObsSurvey,key=data$keyVarObsSurvey) 
+make_tab(d=x$logCatchability,key=data$keyCatchability) 
 
 
 #############################

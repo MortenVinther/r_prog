@@ -1,11 +1,11 @@
 make_rsms_data<-function(dir,annual=FALSE,outDir=dir) {
-# dir<-"S16_S21"; annual<-TRUE; dir="S19"
+# dir=c("S16_S17_S21"); annual<-F; dir="S22" ;dir="ns_2023_ss_input"
  
 Init.function(dir=file.path(root,dir)) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
   
-rsms.root<-file.path("~","cod","RSMS");
-sam.root<-file.path("~","cod");
+#rsms.root<-file.path("~","cod","RSMS");
+#sam.root<-file.path("~","cod");
 
 sms<-SMS.control  # just shorter name
 multi<-!(sms@VPA.mode==0)
@@ -88,7 +88,14 @@ nlogF<-unlist(lapply(sms@catch.season.age,length))
 nlogFto<-cumsum(nlogF)  
 nlogFfrom<- c(1,head(cumsum(nlogF),-1)+1 )
 nlogFfromTo<-matrix(c(as.integer(nlogFfrom),as.integer(nlogFto)),ncol=2)
-  
+
+keyLogFstaSd<-keyLogFsta
+keyLogFstaSd[keyLogFstaSd<0]<- -9999L
+keyLogFstaSd<-keyLogFstaSd+nlogFfrom-1
+keyLogFstaSd[keyLogFstaSd<0]<- -1L
+keyLogFstaSd
+logSdLogFsta<-rep(-0.7,max(keyLogFstaSd))
+
 ##### states at age for N random walk,
 #sam_data$keyVarLogN
 #sam_parameters$logSdLogN
@@ -286,7 +293,7 @@ keySurvey<-as.matrix(keySurvey)
 logSurveyObs<-log(cpue$obs)
 
 
-source(file.path(rsms,"from_sms_format_to_rsms_data.R"))
+source(file.path(rsms.root.prog,"from_sms_format_to_rsms_data.R"))
 
 d<-From_SMS_format_to_rsms(otherPredExist=multi.environment,catchMultiplier=1,dir=file.path(root,dir))
 
@@ -298,13 +305,29 @@ if (multi) {
   b2<-full_join(d$mean_l,d$consum,join_by(year, species.n, quarter, sub_area, age))
   b<-full_join(b,b2,join_by(year, species.n, quarter, sub_area, age))
 }
-filter(b,age==0 & CATCHN>0)
+
+a<-data.frame(species.n=first.VPA:nsp,annualC=sms@combined.catches)
+b<-left_join(b,a,by = join_by(species.n))
+head(b)
+
+x<-b$age==fa & b$quarter < recSeason & b$annualC==0
+b[x,'CATCHN']<-0
+b[x,'WCATCH']<-0
 
 
+b0<-filter(b,annualC==0) %>% group_by(year,species.n, sub_area, age) %>% mutate(seasFprop=CATCHN/sum(CATCHN,na.rm=T)) %>% ungroup() %>%
+  select(year, species.n, quarter, sub_area,   age, annualC, seasFprop)  
+b1<-filter(b,annualC==1) %>%  select(year, species.n, quarter, sub_area,age, annualC) %>% mutate(seasFprop=0.25) %>%
+     mutate(seasFprop=if_else(age==fa & quarter >= recSeason,0.5, seasFprop)) %>%
+     mutate(seasFprop=if_else(age==fa & quarter < recSeason,0.0, seasFprop))
+#filter(b1,year==1975 & age==0)
+bb<-rbind(b0,b1) 
 
-b$seasFprop<-0.25
-b[b$age==0,"seasFprop"]<-0
-b[b$age==0 & b$q %in% c(3,4),"seasFprop"]<-0.5
+check<-bb %>% group_by(year,species.n, sub_area, age) %>%summarize(Fprop=sum(seasFprop)) %>% ungroup() 
+# filter(check,!(Fprop>0.999 & Fprop<1.001) )
+stopifnot(all(check$Fprop>0.999 & check$Fprop<1.001 | is.na(check$Fprop)))
+
+b<-left_join(b,bb,by = join_by(year, species.n, quarter, sub_area, age,annualC))
 
 b<-b %>% mutate(y=year+off.year,q=quarter,s=species.n+off.species,a=age+off.age)
 b<-left_join(b,data.frame(s=info[,'s'],la=info[,"last-age"]+off.age),by = join_by(s)) %>% filter(a<=la)
@@ -317,15 +340,36 @@ natMor          <-by(b,b$s,function(x) {y<-tapply(x$M,list(x$y,x$q,x$a),sum); y[
 seasFprop       <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 
 
-#zero<-lapply(propMat,function(x) x[,,]<-0) virker ikke ?
-zero<-propMat
-for (s in 1:nSpecies) {zero[[s]][,,]<-0}
+zero<-propMat; for (s in 1:nSpecies) {zero[[s]][,,]<-0}
 
 
 #### catch observations
 
+#first zero-catch years
+zy<-data.frame(s=1:nSpecies,y=0L)
+if (sms@zero.catch.year.season==1) {
+  fname<-'zero_catch_year_season.in'
+  z<-head(scan(file.path(root,dir,fname),comment.char='#'),-1)
+  bz<-expand.grid(s=(first.VPA:nsp) +off.species,y=1:nYears,q=1:nSeasons)
+  bz<-bz[order(bz$s,bz$y,bz$q),]
+  bz$z<-z 
+  head(bz)
+  zeroCatchYear<-bz %>%group_by(s,y) %>% summarize(z=sum(z)) %>%  filter(z==0) %>% mutate(z=NULL)
+  zeroCatchYear 
+} else zeroCatchYear<-NULL
+zy<-rbind(zy,zeroCatchYear)
+
+zeroCatchYear<-by(zy,list(zy$s),function(x) { x<-x$y[x$y>0]})
+lapply(zeroCatchYear,function(x) length(x))
+zeroCatchYearExistsSp<-unlist(lapply(zeroCatchYear,function(x) length(x)))
+zeroCatchYearExistsSp[zeroCatchYearExistsSp>0] <-1L
+
+zy<-zy %>% mutate(zero=TRUE) %>% filter(y>0)
+if (dim(zy)[[1]]>0) zeroCatchYearExists<-1L else zeroCatchYearExists<-0L
+
 catch<-aggregate(CATCHN~year+species.n+ sub_area+ age+y+ s+ a,FUN=sum,data=subset(b,CATCHN>=0 )) %>% filter(CATCHN>0)
 catch<-left_join(catch,data.frame(s=info[,'s'],faf=info[,"first-age F>0"]+off.age),by = join_by(s)) %>% filter(a>=faf)
+catch<-left_join(catch,zy,by = join_by(y, s)) %>% filter(is.na(zero)) %>% mutate(zero=NULL)
 
 catch<-catch %>% arrange(s,y,a)
 catch$obs.no<-1:dim(catch)[[1]]
@@ -371,18 +415,17 @@ dat<-list(                                          # Description of data, most 
   #off.species=off.species,
   #off.oths=off.oths,
   stockRecruitmentModelCode=stockRecruitmentModelCode,
+  zeroCatchYearExists=zeroCatchYearExists,
+  zeroCatchYearExistsSp=zeroCatchYearExistsSp,
+  zeroCatchYear=zeroCatchYear,
   keyLogFsta=keyLogFsta,                         # A matrix of integers. The number of rows is equal to the number of species fleets and the number of columns is equal to the number of age classes. The matrix describes the coupling of the fishing mortality states. '-1' is used for entries where no fishing mortality applies. For the valid entries consecutive integers starting 1 must be used, because they are used as indices in the corresponding state vector. If the same number is used for two fleet-age combinations, then the fishing mortality for those are assumed equal (linked to the same state).
   nlogF=nlogF,                                   # A vector with the sum of number of F state age groups by species. Each species number corresponds to the  number of unique (and not -1 value) in each (species) row of keyLogFsta
-  #keyLogFsta.list=keyLogFsta.list,
-   # keyLogSdLogFsta  keyLogFstaSdSp=keyLogFstaSdSp,                 # A matrix which links each F state age group by species to the logSdLogFsta=
+
+  keyLogFstaSd=keyLogFstaSd,                 # A matrix which links each F state age group by species to the logSdLogFsta=
   nlogFfromTo=nlogFfromTo,
   nlogN=nlogN,                                   # A vector with the sum of number of N state age groups by species
   nlogNfromTo=nlogNfromTo,
-  
-  #keyLogNsta=keyLogNsta,                         # ?????????????????species/age key for sd of N random 
-  #keyLogNstaSdSp=keyLogNstaSdSp,                 #
 
-  #keyLogFstaSdSp=keyLogFstaSdSp,
   keyVarLogN=keyVarLogN,
   keyVarObsCatch=keyVarObsCatch,
   keyVarObsSurvey=keyVarObsSurvey,
@@ -410,7 +453,7 @@ str(dat,1)
 
 #str(sam_parameters)
 
-logSdLogFsta<-rep(-0.7,max(keyLogFsta))
+
 rho<-rep(0.7,nSpecies)
 Un<-matrix(0.0, nrow=sum(info[,"last-age"]-sms@first.age+1L),ncol=nYears )
 Uf<-matrix(0.0, nrow=length(unlist(sms@catch.season.age)),ncol=nYears)
@@ -469,8 +512,6 @@ if (annual) {
   x<-cbind(data$sampleTimeWithinSurvey,q=keySurvey.overview[,'q'])
   x[,"sampleTimeWithin"]<-x[,"sampleTimeWithin"]/4+(x[,"q"]-1)*0.25
   data$sampleTimeWithinSurvey<-x[,1]
-
-  
   data$keySurvey[,'q']<-1L
   
   save(data,parameters,file=file.path(outDir,"rsms_input.Rdata"))

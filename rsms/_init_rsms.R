@@ -6,7 +6,7 @@ library(tidyverse)
 
 # Operating System
 OS<- .Platform$OS.type
-# Harddisk drive for SMS, runs
+#  directory for SMS, runs
 if (OS=="unix")   home<-"~"  else home<-file.path("C:","_C_drev")
 
 sam.root<-file.path(home,"RSMS");

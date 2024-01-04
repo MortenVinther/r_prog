@@ -1,35 +1,36 @@
 # First you have to run: run ini.r in SMS dir, and  _init_rsms.R
 
-combSp<-c("S16","S17","S18","S19","S20","S21","S22","S23","S24","S25","S26","S27")
+combSp<-c("S16","S17","S18","S19","S20","S21","s22","S23","S24","S25","S26","S27")
 
+
+combSp<-c("S24")
 
 #combSp<-c("S16_S17_S21")
 
-#combSp<-"ns_2023_ss_input"
 Annual<- FALSE  # annual or quarterly data
 
 # species combinations
 
 
 Batch<-TRUE
-my.comb<-"S16"
 
+my.comb<-combSp[1]
 source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
 
 for (my.comb in combSp) {
 
-
-  dat<-make_rsms_data(dir=my.comb,annual=Annual,outDir=rsms.root)
+  make_rsms_data(dir=my.comb,annual=FALSE)
+  dat<-make_rsms_data(dir=my.comb,annual=F,outDir=rsms.root)
   # makes  save(data,parameters,file=file.path(rsms.root,"rsms_input.Rdata"))
  
    source(file.path(root.prog,"r_prog","rsms","rsms.R")) 
-  save(obj,opt,data,file=file.path(rsms.root,paste0(my.comb,'.Rdata')))
+  save(obj,opt,data,file=file.path(rsms.root,paste0(my.comb,Annual,'.Rdata')))
 }
 
 for (my.comb in combSp) {
-  load(file.path(rsms.root,paste0(my.comb,'.Rdata')))
-  cat("Comb :",my.comb,'\n')
-  cat("objective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
+  load(file.path(rsms.root,paste0(my.comb,Annual,'.Rdata')))
+  cat("Comb :",my.comb,' ', data$spNames,'\n')
+  cat("objective:",opt$objective,"  convergence:",opt$convergence, "\n")
   
   #rep<-obj$report()
   #print(rep$nlls)
@@ -49,13 +50,13 @@ convert_var<-function(x) {
 
 
 for (my.comb in combSp) {
-  load(file.path(rsms.root,paste0(my.comb,'.Rdata')),verbose=T)
-  cat("Comb :",my.comb,'\n')
-  cat(data$spNames,'\n')
+  load(file.path(rsms.root,paste0(my.comb,Annual,'.Rdata')),verbose=T)
+  cat("Comb :",my.comb,data$spNames,'\n')
   cat("objective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
   
   rep<-obj$report()
   
+
   if (data$nSeasons==1) N<-lapply(rep$logNq,function(x) (exp(x[,1,])))
   if (data$nSeasons==4) N<-lapply(rep$logNq,function(x) (exp(x[,3,])))
   Recruit<-convert_var(N) %>% filter(Age==0) %>% rename(Species=species,Year=year)
@@ -76,9 +77,9 @@ for (my.comb in combSp) {
   for (s in (1:data$nSpecies)) {
     i<-data$nlogFfromTo[s,]
     key<-data$keyLogFsta[s,][data$keyLogFsta[s,]>0]
-    fff<-ff[i[1]:i[2],][key,]
+    fff<-ff[i[1]:i[2],,drop=FALSE][key,]
     data$fbarRange[s,]
-    ageF<-data$fbarRange[s,]+data$off.age-data$info[s,'faf']
+    ageF<-data$fbarRange[s,]+data$off.age-data$info[s,'faf']+1
     
     avg_F<-rbind(avg_F,data.frame(Year=data$year,Species=data$spNames[s],Species.n=s,mean.F=apply(fff[ageF[1]:ageF[2],],c(2),mean)))
   }
@@ -105,7 +106,9 @@ for (my.comb in combSp) {
       facet_grid(variable ~ ., scales="free_y")+
       ggtitle(unlist(bb[1,'Species']))
     print(p)
-    cat('press return\n')
+    cat('press return to see the next plot:')
     readLines(n=1)
+    cat('\n')
   }
 }
+

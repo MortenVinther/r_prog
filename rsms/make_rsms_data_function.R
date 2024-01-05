@@ -396,6 +396,7 @@ dat<-list(                                          # Description of data, most 
   sms.mode=sms@VPA.mode,                            #
   info=info,                                        # Various information for each species with analytical assessment
   nSpecies=nSpecies,                                # Number of species with analytical assessment
+  doSpecies=1L:nSpecies,                            # Species included in the analysis
   #nOthSpecies=nOthSpecies,                          # Number of other predators (used for multispecies mode)   
   nYears=nYears,                                    # Number of years used in the model
   nAges=nAges,

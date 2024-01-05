@@ -7,7 +7,9 @@ load(file=file.path(rsms.root,"rsms_input.Rdata"),verbose=TRUE)
 data$stockRecruitmentModelCode[]<-1L
 
 data$Debug<-1L
-#setwd(rsms.root)
+
+data$doSpecies
+data$doSpecies<-c(1L,3L,7L)
 
 ### Parameter transform
 # f <- function(x) {2/(1 + exp(-2 * x)) - 1}
@@ -71,7 +73,7 @@ func <- function(parameters) {
     nlls<-matrix(0,ncol=4,nrow=nSpecies,dimnames=list(species=spNames,nll=c("catch","F","N","survey")))
                  
 
-    for (s in (1:nSpecies)) {
+    for (s in (doSpecies)) {
       ## First take care of F
       fcor <- outer(1:stateDimF[s],
                     1:stateDimF[s],
@@ -98,7 +100,7 @@ func <- function(parameters) {
     
  
   # SSB 1. January !!   
-  for (s in (1:nSpecies)) { 
+  for (s in (doSpecies)) { 
      for (y in (1:nYears)) {
         ssb[s,y]<-sum(exp(logN[[s]][,y]) *propMat[[s]][y,q,]*stockMeanWeight[[s]][y,q,])  #HUSK AT SÆTTE PropMat for ikke rekruterede aldre til 0
      }
@@ -106,7 +108,7 @@ func <- function(parameters) {
  
   logssb <- log(ssb)
   
-  for (s in (1:nSpecies)) {
+  for (s in (doSpecies)) {
     ## Now take care of N
     nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
@@ -144,7 +146,7 @@ func <- function(parameters) {
     }
   } #end species loop
 
-  for (s in (1:nSpecies)) {
+  for (s in (doSpecies)) {
     for(i in 1:timeSteps) {
       for(j in 1:stateDimN[s]) {
 
@@ -183,7 +185,7 @@ func <- function(parameters) {
   ##  match to observations
 
   # first catches
-  for (s in 1:nSpecies ){
+  for (s in doSpecies ){
     #cat('Species: ',s,'\n')
     idx<-keyCatch[,"s"]==s
     key.v<-keyCatch[idx,"keyVarObsCatch"]
@@ -252,7 +254,7 @@ for (fl in  1:nFleets) {
 # func(parameters)   # KALDET VIL PÅVIRKE KALDET TIL MakeAdFun !!!?
 #An error at this point is obviously not due to RTMB.
 
-
+# adjust if the are species/year combination with zero catches (or assumed F is very low and highly uncertain)
 if (data$zeroCatchYearExists==1) {
   UfMap<-matrix(1L:(dim(parameters$Uf)[[1]]*dim(parameters$Uf)[[2]]),nrow=sum(data$nlogF),byrow=TRUE)
   for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
@@ -265,8 +267,51 @@ if (data$zeroCatchYearExists==1) {
   #matrix(my.map$Uf,nrow=2)
 }
 
+# fix parameters not used, due to subset of species
+doFix<-(data$nSpecies > length(unique(data$doSpecies)))
+if (doFix) { 
+ ms<- setdiff(1:data$nSpecies,unique(data$doSpecies))
+  excl_par<-function(key,pars) {
+    k<-key[ms,]
+    k<-k[k>0]
+    map<- as.numeric(1:length(pars))
+    map[k]<-NA
+    map<-factor(map)
+    map
+  }
+  
+  excl_par2<-function(pars) {
+    map<- as.numeric(1:length(pars))
+    map[ms]<-NA
+    map<-factor(map)
+    map
+  }
+  
+ 
+  str(parameters) 
+  
+  stopifnot(length(parameters$logQpow)==0) # tmp fix
+  
+  mapFix<-list(
+    logSdLogObsCatch  =excl_par(key=data$keyVarObsCatch,  pars=parameters$logSdLogObsCatch),
+    logCatchability   =excl_par(key=data$keyCatchability, pars=parameters$logCatchability),
+    logSdLogObsSurvey =excl_par(key=data$keyVarObsSurvey, pars=parameters$logSdLogObsSurvey),
+    logSdLogFsta      =excl_par(key=data$keyLogFstaSd,    pars=parameters$logSdLogFsta),
+    logSdLogN         =excl_par(key=data$keyVarLogN,      pars=parameters$logSdLogN),
+    
+    rho=excl_par2(parameters$rho),
+    rec_loga=excl_par2(parameters$rec_loga),
+    rec_logb=excl_par2(parameters$rec_logb)
+  )
+ str(mapFix)  
+}
+names(mapFix)
+names(parameters)
+setdiff(names(parameters),names(mapFix))
 
-if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
+if (doFix) my.map<-mapFix else my.map=list() 
+#if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
+
 
   #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
   # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))

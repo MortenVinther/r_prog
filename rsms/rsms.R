@@ -9,7 +9,7 @@ data$stockRecruitmentModelCode[]<-1L
 data$Debug<-1L
 
 data$doSpecies
-data$doSpecies<-c(1L,3L,7L)
+#data$doSpecies<-c(1L,3L,7L)
 
 ### Parameter transform
 # f <- function(x) {2/(1 + exp(-2 * x)) - 1}
@@ -44,6 +44,7 @@ func <- function(parameters) {
     sdLogFsta = exp(logSdLogFsta)
     varLogN = exp(logSdLogN*2)
     varLogObsCatch = exp(logSdLogObsCatch*2)
+    maxAgePlusGroup <-info[,'+group']
  
     varLogObsSurvey = exp(logSdLogObsSurvey*2)
     makeVar2<-function() {
@@ -264,7 +265,6 @@ if (data$zeroCatchYearExists==1) {
     parameters$Uf[fromTo[1]:fromTo[2],zy]<-log(0.001)
   }
   UfMap<-factor(UfMap)
-  #matrix(my.map$Uf,nrow=2)
 }
 
 # fix parameters not used, due to subset of species
@@ -276,23 +276,29 @@ if (doFix) {
     k<-k[k>0]
     map<- as.numeric(1:length(pars))
     map[k]<-NA
-    map<-factor(map)
-    map
+    factor(map)
   }
   
   excl_par2<-function(pars) {
     map<- as.numeric(1:length(pars))
     map[ms]<-NA
-    map<-factor(map)
-    map
+    factor(map)
   }
   
- 
-  str(parameters) 
+  excl_par3<-function(pars,type=1) {
+    map<-matrix(1:(ncol(pars)*nrow(pars)),ncol=ncol(pars),nrow=nrow(pars))
+    if (type==1) map[data$nlogFfromTo[ms,],]<-NA else map[data$nlogNfromTo[ms,],]<-NA
+    factor(map)
+  }
+
+#  str(parameters) 
   
   stopifnot(length(parameters$logQpow)==0) # tmp fix
   
   mapFix<-list(
+    Uf=excl_par3(parameters$Uf,type=1),
+    Un=excl_par3(parameters$Un,type=2),
+    
     logSdLogObsCatch  =excl_par(key=data$keyVarObsCatch,  pars=parameters$logSdLogObsCatch),
     logCatchability   =excl_par(key=data$keyCatchability, pars=parameters$logCatchability),
     logSdLogObsSurvey =excl_par(key=data$keyVarObsSurvey, pars=parameters$logSdLogObsSurvey),
@@ -305,12 +311,9 @@ if (doFix) {
   )
  str(mapFix)  
 }
-names(mapFix)
-names(parameters)
-setdiff(names(parameters),names(mapFix))
 
 if (doFix) my.map<-mapFix else my.map=list() 
-#if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
+if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
 
 
   #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),

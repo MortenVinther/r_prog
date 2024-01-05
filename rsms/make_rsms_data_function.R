@@ -401,9 +401,8 @@ dat<-list(                                          # Description of data, most 
   nYears=nYears,                                    # Number of years used in the model
   nAges=nAges,
   minAge=as.integer(sms@first.age),                 # A vector of integers defining the the lowest age class in the assessment for each species.
-  maxAge=as.integer(sms@max.age.all),               # Maximum age for all species. The actual age range by species is given in "info"
+  #maxAge=as.integer(sms@max.age.all),               # Maximum age for all species. The actual age range by species is given in "info"
   recAge=as.integer(sms@first.age),                 # recruitmet age
-  maxAgePlusGroup=as.integer(info[,'+group']),                  #  Is last age group considered a plus group (1 yes, or 0 no).
   years=sms@first.year.model:sms@last.year.model,   # A vector of the years used in the model
   spNames=spNames,                                  # Species names of species with analytical assessment
   nSeasons=nSeasons,                                # number of seasons

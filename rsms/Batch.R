@@ -1,41 +1,86 @@
 # First you have to run: run ini.r in SMS dir, and  _init_rsms.R
+#
 
-combSp<-c("S16","S17","S18","S19","S20","S21","s22","S23","S24","S25","S26","S27")
-
-
-combSp<-c("S24")
-
-#combSp<-c("S16_S17_S21")
-
+testSp<-1L:12L   #species combinations
+#testSp<-c(2L,6L)
 Annual<- FALSE  # annual or quarterly data
 
-# species combinations
-
-
-Batch<-TRUE
-
-my.comb<-combSp[1]
+### init
 source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
+source(file.path(rsms.root.prog,"pick_species.R"))
+source(file.path(rsms.root.prog,"rsms_function.R"))
 
-for (my.comb in combSp) {
 
-  make_rsms_data(dir=my.comb,annual=FALSE)
-  dat<-make_rsms_data(dir=my.comb,annual=F,outDir=rsms.root)
-  # makes  save(data,parameters,file=file.path(rsms.root,"rsms_input.Rdata"))
- 
-   source(file.path(root.prog,"r_prog","rsms","rsms.R")) 
-  save(obj,opt,data,file=file.path(rsms.root,paste0(my.comb,Annual,'.Rdata')))
-}
+### Extract data from SMS
+SMSenv<-"ns_2023_ss_input"
+# transform  SMS data into RSMS format 
+inp_all<-make_rsms_data(dir=SMSenv,outDir=rsms.root)
 
-for (my.comb in combSp) {
-  load(file.path(rsms.root,paste0(my.comb,Annual,'.Rdata')))
-  cat("Comb :",my.comb,' ', data$spNames,'\n')
-  cat("objective:",opt$objective,"  convergence:",opt$convergence, "\n")
+for (sp in testSp) {
+  # select a combination of species from the (full) data set
+  inp<-pick_species(ps=sp, inp=inp_all) 
   
-  #rep<-obj$report()
-  #print(rep$nlls)
+  #  transform quarterly data into to annual data (testing)
+  if (Annual) inp<-into_annual(inp)
+
   
-}
+  #### prepare to run
+  
+  data<-inp[['data']]
+  parameters<-inp[['parameters']]
+  
+  data$stockRecruitmentModelCode[]<-1L
+  data$Debug<-1L
+  
+  
+  #### Run rsms
+  
+  
+  #Going back to our objective function f, first step is to check that you can evaluate the function as a normal R function:
+  # func(parameters)   # KALDET VIL PÅVIRKE KALDET TIL MakeAdFun !!!?
+  #An error at this point is obviously not due to RTMB.
+  
+  # adjust if the are species/year combination with zero catches (or assumed F is very low and highly uncertain)
+  if (data$zeroCatchYearExists==1) {
+    UfMap<-matrix(1L:(dim(parameters$Uf)[[1]]*dim(parameters$Uf)[[2]]),nrow=sum(data$nlogF),byrow=TRUE)
+    for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
+      zy<-data$zeroCatchYear[[s]]
+      fromTo<-data$nlogFfromTo[s,]
+      UfMap[fromTo[1]:fromTo[2],zy]<-NA
+      parameters$Uf[fromTo[1]:fromTo[2],zy]<-log(0.001)
+    }
+    UfMap<-factor(UfMap)
+  }
+  
+  if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
+  
+  #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
+  # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
+  #rho =factor(rep(NA,length(parameters$rho)))
+  
+  
+  obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=TRUE,map=my.map)
+  
+  lower <- obj$par*0-Inf
+  upper <- obj$par*0+Inf
+  lower["rho"] <- 0.01
+  upper["rho"] <- 0.99
+  
+  nl<-names(lower)
+  
+  lower[nl=="logSdLogObsSurvey"]<-rep(log(0.15),length(parameters$logSdLogObsSurvey))
+  upper[nl=="logSdLogObsSurvey"]<-rep(log(2.0),length(parameters$logSdLogObsSurvey))
+  
+  lower[nl=="logSdLogObsCatch"]<-rep(log(0.1),length(parameters$logSdLogObsCatch))
+  upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
+  
+  #t(rbind(lower,upper))    
+  opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper)
+  save(obj,opt,data,file=file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
+  
+  cat("\nspecies comb:",sp," objective:",opt$objective,"  convergence:",opt$convergence) # 0 indicates successful convergence.
+} 
+
 
 convert_var<-function(x) {
   xx<-lapply(x,function(x) {
@@ -49,9 +94,22 @@ convert_var<-function(x) {
 }
 
 
-for (my.comb in combSp) {
-  load(file.path(rsms.root,paste0(my.comb,Annual,'.Rdata')),verbose=T)
-  cat("Comb :",my.comb,data$spNames,'\n')
+sms<-Read.summary.table(dir=file.path(root,SMSenv),read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
+sms$source='sms'
+
+tab<-NULL
+for (sp in testSp) {
+  load(file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
+  rep<-obj$report()
+  tab<-rbind(tab,cbind(rep$nlls,all=rowSums(rep$nlls)))
+}  
+
+tab
+
+for (sp in testSp) {
+  load(file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
+  
+  cat("SP :",sp,data$spNames,'\n')
   cat("objective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
   
   rep<-obj$report()
@@ -85,20 +143,16 @@ for (my.comb in combSp) {
   }
 
   names(ssb);names(Recruit);names(avg_F)
-  rsms<-left_join(left_join(ssb,Recruit),avg_F) %>% select(Species,Species.n, Year, SSB, N, mean.F) %>% rename(Rec=N) %>% mutate(source='rsms')
+  rsms<-left_join(left_join(ssb,Recruit),avg_F) %>% select(Species, Year, SSB, N, mean.F) %>% rename(Rec=N) %>% mutate(source='rsms')
 
-  
-  
-  sms<-Read.summary.table(dir=file.path(root,my.comb),read.init.function=TRUE) %>% select(Species.n,Year,Rec,SSB,mean.F)
-  sms$source='sms'
-  sms$Species=data$spNames[sms$Species.n]
-
-  b<-rbind(rsms,sms) %>% filter(Year %in% data$years) %>% mutate(Rec=Rec/1000)
+  rsp<-unique(rsms$Species)
+ 
+  b<-rbind(rsms,filter(sms,Species %in% rsp )) %>% filter(Year %in% data$years) %>% mutate(Rec=Rec/1000)
   b<-pivot_longer(b,cols=c(Rec,SSB,mean.F),names_to='variable') %>% mutate_if(is_character, as.factor)
   
   
-  for (s in (1:data$nSpecies)) {
-     bb=filter(b,Species.n==s)
+  for (s in (rsp)) {
+     bb=filter(b,Species==s)
   
     p<-ggplot(data=bb, aes(x=Year, y=value, group=source)) +
       geom_line(aes(linetype=source,col=source))+
@@ -110,5 +164,7 @@ for (my.comb in combSp) {
     readLines(n=1)
     cat('\n')
   }
-}
+
+  }
+
 

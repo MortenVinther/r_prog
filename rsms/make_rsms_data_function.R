@@ -1,5 +1,5 @@
-make_rsms_data<-function(dir,annual=FALSE,outDir=dir) {
-# dir=c("S16_S17_S21"); annual<-F; dir="S22" ;dir="ns_2023_ss_input"
+make_rsms_data<-function(dir,outDir=dir) {
+# dir=c("S16_S17_S21");  dir="S21" ;dir="ns_2023_ss_input"
  
 Init.function(dir=file.path(root,dir)) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
@@ -49,19 +49,10 @@ off.season<-0L # not used
 
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages));
 
-#load(file=file.path(sam.root,"sam_par_dat.Rdata"),verbose=TRUE)
-#str(sam_data)
-
-# data for rsms
-
-
-
 ## configuration of parameter keys
 
 ##### states at age for F random walk,
 # use sms@catch.season.age for now
-#sam_data$keyLogFsta
-#sms@catch.season.age
 
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nSpecies,dimnames=list(spNames,paste('age',ages)))
 i<-1L
@@ -97,8 +88,6 @@ keyLogFstaSd
 logSdLogFsta<-rep(-0.7,max(keyLogFstaSd))
 
 ##### states at age for N random walk,
-#sam_data$keyVarLogN
-#sam_parameters$logSdLogN
 
 nlogN<-as.integer(info[,"last-age"]-sms@first.age+1L)
 
@@ -124,7 +113,6 @@ nlogNfromTo<-matrix(c(as.integer(nlogNfrom),as.integer(nlogNto)),ncol=2)
 #keyLogNsta
 
 #### variance of catch and surveys
-# sam_data$keyVarObs
 
 #split into two groups: catches and surveys
 # sms@catch.s2.group
@@ -184,7 +172,6 @@ keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
 keySurvey
 
 ## survey variance
-# sam_data$keyVarObs
 
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<-1L
@@ -205,10 +192,8 @@ keyVarObsSurvey<-x
 keyVarObsSurvey.df<-xx
 logSdLogObsSurvey<-rep(-0.35,max(keyVarObsSurvey))
 
-#sam_parameters$logSdLogObs
-## survey catchability
-# sam_data$keyLogFpar
 
+## survey catchability
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<-0L
 xx<-NULL
@@ -226,7 +211,6 @@ keyCatchability.df<-xx
 logCatchability<-rep(0.0,max(keyCatchability)) 
 
 ## Catchability power age
-#sam_data$keyQpow
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
 i<- -1L
 xx<-NULL
@@ -255,9 +239,6 @@ cpue<-lapply(indices,function(x){
 })
 
 cpue<-do.call(rbind,cpue)
-head(cpue)
-str(cpue)
-
 
 cpue<-cpue %>% mutate(y=year+off.year,q=as.integer(as.character(cpue$season)),a=age+off.age,s=species.n)%>%
   mutate(quarter=season,obs=data) %>%
@@ -272,7 +253,6 @@ fobs[1,"first"]<-1L
 
 tail(fobs)
 keySurvey.overview<-cbind(keySurvey,n=as.vector(fobs$n),first=as.vector(fobs$first),last=as.vector(fobs$last))
-str(keySurvey.overview)
 
 # keyVarObsSurvey.df
 # keyCatchability.df
@@ -296,8 +276,6 @@ logSurveyObs<-log(cpue$obs)
 source(file.path(rsms.root.prog,"from_sms_format_to_rsms_data.R"))
 
 d<-From_SMS_format_to_rsms(otherPredExist=multi.environment,catchMultiplier=1,dir=file.path(root,dir))
-
-# str(d,2)
 
 #merge data
 b<-full_join(d$catch,d$bio,join_by(year, species.n, quarter, sub_area, age))
@@ -380,7 +358,6 @@ keyCatch<-catch %>% mutate(CATCHN=NULL) %>% mutate_if(is.numeric,as.integer)
 k<-full_join(keyLogFsta.df,keyVarObsCatch.df,by = join_by(s, age, a))
 keyCatch<-left_join(keyCatch,k,by = join_by(s, age, a))
 keyCatch<-keyCatch %>% arrange(obs.no)
-#str(keyCatch,2)
 
 stopifnot(dim(filter(keyCatch,is.na(keyLogFsta)))[[1]]==0)
 keyCatch<-as.matrix(keyCatch)
@@ -392,130 +369,79 @@ info<-cbind(info,
     lasel=info[,"last-age-selec"]+off.age,
     lalike=info[,"last-age-likelihood"]+off.age)
 
-dat<-list(                                          # Description of data, most of the text is copied from the ?sam.fit description
-  sms.mode=sms@VPA.mode,                            #
-  info=info,                                        # Various information for each species with analytical assessment
-  nSpecies=nSpecies,                                # Number of species with analytical assessment
-  doSpecies=1L:nSpecies,                            # Species included in the analysis
-  #nOthSpecies=nOthSpecies,                          # Number of other predators (used for multispecies mode)   
-  nYears=nYears,                                    # Number of years used in the model
-  nAges=nAges,
-  minAge=as.integer(sms@first.age),                 # A vector of integers defining the the lowest age class in the assessment for each species.
-  #maxAge=as.integer(sms@max.age.all),               # Maximum age for all species. The actual age range by species is given in "info"
-  recAge=as.integer(sms@first.age),                 # recruitmet age
-  years=sms@first.year.model:sms@last.year.model,   # A vector of the years used in the model
-  spNames=spNames,                                  # Species names of species with analytical assessment
-  nSeasons=nSeasons,                                # number of seasons
-  spawnSeason=1L,
-  recSeason=recSeason,                              # recruitment season
-  fbarRange=fbarRange,                              # Minimum and maximum age by species used to calculate Fbar 
-  off.age=off.age,                                  # offset between age and the age index used in RSMS (where fist age index  have to be 1 )
-  off.year=off.year,                                # offset between year and the year index used in RSMS (where fist year index  have to be 1 )
-  #off.season=off.season,
-  #off.species=off.species,
-  #off.oths=off.oths,
-  stockRecruitmentModelCode=stockRecruitmentModelCode,
-  zeroCatchYearExists=zeroCatchYearExists,
-  zeroCatchYearExistsSp=zeroCatchYearExistsSp,
-  zeroCatchYear=zeroCatchYear,
-  keyLogFsta=keyLogFsta,                         # A matrix of integers. The number of rows is equal to the number of species fleets and the number of columns is equal to the number of age classes. The matrix describes the coupling of the fishing mortality states. '-1' is used for entries where no fishing mortality applies. For the valid entries consecutive integers starting 1 must be used, because they are used as indices in the corresponding state vector. If the same number is used for two fleet-age combinations, then the fishing mortality for those are assumed equal (linked to the same state).
-  nlogF=nlogF,                                   # A vector with the sum of number of F state age groups by species. Each species number corresponds to the  number of unique (and not -1 value) in each (species) row of keyLogFsta
-
-  keyLogFstaSd=keyLogFstaSd,                 # A matrix which links each F state age group by species to the logSdLogFsta=
-  nlogFfromTo=nlogFfromTo,
-  nlogN=nlogN,                                   # A vector with the sum of number of N state age groups by species
-  nlogNfromTo=nlogNfromTo,
-
-  keyVarLogN=keyVarLogN,
-  keyVarObsCatch=keyVarObsCatch,
-  keyVarObsSurvey=keyVarObsSurvey,
-  keyCatchability=keyCatchability,
-  propMat=  propMat,      
-  stockMeanWeight=stockMeanWeight,
-  catchMeanWeight=catchMeanWeight,
-  seasFprop=seasFprop,
-  natMor= natMor,
-  propF=zero,
-  propM=zero,
-  keyCatch=keyCatch,
-  logCatchObs=logCatchObs,
-  #nCatchObs=length(logCatchObs),
-  keySurvey=keySurvey,
-  keySurvey.overview=keySurvey.overview,  # not really used
-  logSurveyObs=logSurveyObs,
-  sampleTimeWithinSurvey=sampleTimeWithin
-  #nSurveyObs=length(logSurveyObs)
-)
-
-
-#str(sam_data)
-str(dat,1)
-
-#str(sam_parameters)
-
 
 rho<-rep(0.7,nSpecies)
 Un<-matrix(0.0, nrow=sum(info[,"last-age"]-sms@first.age+1L),ncol=nYears )
 Uf<-matrix(0.0, nrow=length(unlist(sms@catch.season.age)),ncol=nYears)
 
-parameters<-list(
-  logSdLogObsCatch=logSdLogObsCatch,
-  logCatchability=logCatchability,
-  logSdLogObsSurvey=logSdLogObsSurvey,
-  logQpow=logQpow,
-  logSdLogFsta=logSdLogFsta,
-  logSdLogN=logSdLogN,
-  rho=rho,
-  rec_loga=rec_loga, 
-  rec_logb=rec_logb, 
-  Un=Un,
-  Uf=Uf
-)
-data<-dat
 
-save(data,parameters,file=file.path(outDir,"rsms_input.Rdata")) 
-
-
-
-if (annual) {
-  
-  #load(file=file.path(rsms.root,"rsms_input.Rdata"),verbose=TRUE)
-  
-  data$nSeasons<-1L
-  data$recSeason<-1L
-  
-  data$propMat <-lapply(data$propMat,function(x) x[,1,,drop=FALSE])
-  data$stockMeanWeight<- lapply(data$stockMeanWeight,function(x) {
-    x<-apply(x,c(1,3),mean) 
-    x<-array2DF(x) %>% mutate(q=1) %>% mutate_if(is.character,as.integer)
-    x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
-  })
-  data$catchMeanWeight<- lapply(data$catchMeanWeight,function(x) x[,1,,drop=FALSE])  # to be changed
-  data$seasFprop<- lapply(data$seasFprop,function(x) {
-    x<-apply(x,c(1,3),sum) 
-    x<-array2DF(x) %>% mutate(q=1) %>% mutate_if(is.character,as.integer)
-    x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
-  })
-  data$propF<- lapply(data$propF,function(x) x[,1,,drop=FALSE])   
-  data$propM<- lapply(data$propM,function(x) x[,1,,drop=FALSE])
-  data$natMor<- lapply(data$natMor,function(x) {
-    x<-apply(x,c(1,3),sum) 
-    x<-array2DF(x) %>% mutate(q=1) %>% mutate_if(is.character,as.integer)
-    x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
-  })
-  data$seasFprop<- lapply(data$seasFprop,function(x) {
-    x<-apply(x,c(1,3),sum) 
-    x<-array2DF(x) %>% mutate(q=1) %>% mutate_if(is.character,as.integer)
-    x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
-  })
-  
-  x<-cbind(data$sampleTimeWithinSurvey,q=keySurvey.overview[,'q'])
-  x[,"sampleTimeWithin"]<-x[,"sampleTimeWithin"]/4+(x[,"q"]-1)*0.25
-  data$sampleTimeWithinSurvey<-x[,1]
-  data$keySurvey[,'q']<-1L
-  
-  save(data,parameters,file=file.path(outDir,"rsms_input.Rdata"))
-}
- list(data=data,parameters=parameters)
+#return values
+list(
+   data=list(                                          # Description of data, most of the text is copied from the ?sam.fit description
+     sms.mode=sms@VPA.mode,                            #
+     info=info,                                        # Various information for each species with analytical assessment
+     nSpecies=nSpecies,                                # Number of species with analytical assessment
+     #nOthSpecies=nOthSpecies,                          # Number of other predators (used for multispecies mode)   
+     nYears=nYears,                                    # Number of years used in the model
+     nAges=nAges,
+     minAge=as.integer(sms@first.age),                 # A vector of integers defining the the lowest age class in the assessment for each species.
+     #maxAge=as.integer(sms@max.age.all),               # Maximum age for all species. The actual age range by species is given in "info"
+     recAge=as.integer(sms@first.age),                 # recruitmet age
+     years=sms@first.year.model:sms@last.year.model,   # A vector of the years used in the model
+     spNames=spNames,                                  # Species names of species with analytical assessment
+     nSeasons=nSeasons,                                # number of seasons
+     spawnSeason=1L,
+     recSeason=recSeason,                              # recruitment season
+     fbarRange=fbarRange,                              # Minimum and maximum age by species used to calculate Fbar 
+     off.age=off.age,                                  # offset between age and the age index used in RSMS (where fist age index  have to be 1 )
+     off.year=off.year,                                # offset between year and the year index used in RSMS (where fist year index  have to be 1 )
+     #off.season=off.season,
+     #off.species=off.species,
+     #off.oths=off.oths,
+     stockRecruitmentModelCode=stockRecruitmentModelCode,
+     zeroCatchYearExists=zeroCatchYearExists,
+     zeroCatchYearExistsSp=zeroCatchYearExistsSp,
+     zeroCatchYear=zeroCatchYear,
+     keyLogFsta=keyLogFsta,                         # A matrix of integers. The number of rows is equal to the number of species fleets and the number of columns is equal to the number of age classes. The matrix describes the coupling of the fishing mortality states. '-1' is used for entries where no fishing mortality applies. For the valid entries consecutive integers starting 1 must be used, because they are used as indices in the corresponding state vector. If the same number is used for two fleet-age combinations, then the fishing mortality for those are assumed equal (linked to the same state).
+     nlogF=nlogF,                                   # A vector with the sum of number of F state age groups by species. Each species number corresponds to the  number of unique (and not -1 value) in each (species) row of keyLogFsta
+     keyLogFstaSd=keyLogFstaSd,                 # A matrix which links each F state age group by species to the logSdLogFsta=
+     nlogFfromTo=nlogFfromTo,
+     nlogN=nlogN,                                   # A vector with the sum of number of N state age groups by species
+     nlogNfromTo=nlogNfromTo,
+     
+     keyVarLogN=keyVarLogN,
+     keyVarObsCatch=keyVarObsCatch,
+     keyVarObsSurvey=keyVarObsSurvey,
+     keyCatchability=keyCatchability,
+     propMat=  propMat,      
+     stockMeanWeight=stockMeanWeight,
+     catchMeanWeight=catchMeanWeight,
+     seasFprop=seasFprop,
+     natMor= natMor,
+     propF=zero,
+     propM=zero,
+     keyCatch=keyCatch,
+     logCatchObs=logCatchObs,
+     #nCatchObs=length(logCatchObs),
+     keySurvey=keySurvey,
+     keySurvey.overview=keySurvey.overview,  # not really used
+     logSurveyObs=logSurveyObs,
+     sampleTimeWithinSurvey=sampleTimeWithin
+     #nSurveyObs=length(logSurveyObs)
+   ),
+   
+  parameters=list(
+      logSdLogObsCatch=logSdLogObsCatch,
+      logCatchability=logCatchability,
+      logSdLogObsSurvey=logSdLogObsSurvey,
+      logQpow=logQpow,
+      logSdLogFsta=logSdLogFsta,
+      logSdLogN=logSdLogN,
+      rho=rho,
+      rec_loga=rec_loga, 
+      rec_logb=rec_logb, 
+      Un=Un,
+      Uf=Uf
+    ))
 }
 

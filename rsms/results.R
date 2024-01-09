@@ -80,7 +80,7 @@ for (s in (1:data$nSpecies)) {
 
 rsms<-left_join(left_join(ssb,Recruit),avg_F) %>% select(Species, Year, SSB, N, mean.F) %>% rename(Rec=N) %>% mutate(source='rsms')
 
-
+SMSenv<-"ns_2023_ss_input"
 sms<-Read.summary.table(dir=file.path(root,SMSenv),read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
 sms$source='sms'
 

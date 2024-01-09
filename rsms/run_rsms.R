@@ -17,7 +17,9 @@ load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 # inp<-make_rsms_data(dir="S21",outDir=rsms.root)
 
 # select a combination of species from the (full) data set
-inp<-pick_species(ps=c(7L), inp=inp_all) 
+inp<-pick_species(ps=c(2L), inp=inp_all) 
+
+# inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
 if (FALSE) inp<-into_annual(inp)
@@ -63,6 +65,9 @@ if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
 
 obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE,map=my.map)
 
+#obj$simulate()
+checkConsistency(obj)
+                 
 lower <- obj$par*0-Inf
 upper <- obj$par*0+Inf
 lower["rho"] <- 0.01
@@ -78,8 +83,8 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 
 
 # N.sandeel
-lower[nl=="logSdLogN"]<-log(c(0.1,0.1))
-upper[nl=="logSdLogN"]<-log(c(20,0.3))
+#lower[nl=="logSdLogN"]<-log(c(0.1,0.1))
+#upper[nl=="logSdLogN"]<-log(c(20,0.3))
 
 #t(rbind(lower,upper))    
 opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper)

@@ -27,6 +27,7 @@ func <- function(parameters) {
   
   logF<-list()
   for (s in 1:nSpecies) logF<-c(logF, list(Uf[(nlogFfromTo[s,1]:nlogFfromTo[s,2]),,drop=FALSE]))
+  
   timeSteps <- nYears
   stateDimF <- nlogF
   stateDimN <- nlogN
@@ -62,7 +63,7 @@ func <- function(parameters) {
   lq<-nSeasons
   nlls<-matrix(0,ncol=4,nrow=nSpecies,dimnames=list(species=spNames,nll=c("catch","F","N","survey")))
   
-  
+
   for (s in 1:nSpecies) {
     ## First take care of F
     fcor <- outer(1:stateDimF[s],
@@ -72,6 +73,11 @@ func <- function(parameters) {
     fvar <- outer(1:stateDimF[s],
                   1:stateDimF[s],
                   function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])
+    
+    
+    # simulation ? 
+    ans<- -sum(dnorm(logF[[s]][,1], log=TRUE))
+    
     if (zeroCatchYearExistsSp[s]==1)  ans <- ans - sum(dmvnorm( diff( t(logF[[s]][,-zeroCatchYear[[s]]])),mu=0, Sigma=fvar, log=TRUE)) else {
       ans <- ans - sum(dmvnorm( diff( t(logF[[s]])),mu=0, Sigma=fvar, log=TRUE))
     }
@@ -88,13 +94,22 @@ func <- function(parameters) {
   # Spawning Stock Biomass
   q<-spawnSeason
   
+  # # SSB 1. January !!   
+  # for (s in 1:nSpecies) { 
+  #   for (y in (1:nYears)) {
+  #     ssb[s,y]<-sum(exp(logN[[s]][,y]) *propMat[[s]][y,q,]*stockMeanWeight[[s]][y,q,])  #HUSK AT SÆTTE PropMat for ikke rekruterede aldre til 0
+  #   }
+  # }  
   
-  # SSB 1. January !!   
-  for (s in 1:nSpecies) { 
-    for (y in (1:nYears)) {
-      ssb[s,y]<-sum(exp(logN[[s]][,y]) *propMat[[s]][y,q,]*stockMeanWeight[[s]][y,q,])  #HUSK AT SÆTTE PropMat for ikke rekruterede aldre til 0
+  # SSB 1. January !!
+  #  Class 'simref' does not allow operation 'sum' (argument must be fully simulated)
+  for (s in 1:nSpecies) {
+    for (y in 1:nYears) {
+      for (a in 1:stateDimN[s]) {
+        ssb[s,y]<- ssb[s,y] + exp(logN[[s]][a,y])*propMat[[s]][y,q,a]*stockMeanWeight[[s]][y,q,a]  
+      } 
     }
-  }  
+  }
   
   logssb <- log(ssb)
   
@@ -104,22 +119,22 @@ func <- function(parameters) {
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
     predN <- numeric(stateDimN[s])
     
-    for(i in 2:timeSteps) {
+    for(i in (recAge+1L):timeSteps) {  
       if(stockRecruitmentModelCode[s]==0){ ## straight RW
-        predN[recAge] = logN[[s]][recAge, i]
+        predN[1] = logN[[s]][1, i]
       } else {
         if (stockRecruitmentModelCode[s]==1){ ## Ricker
-          predN[recAge] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
+          predN[1] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
         }else{
           if(stockRecruitmentModelCode[s]==2){  ## B&H
-            predN[recAge]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
+            predN[1]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
           }else{
             stop("SR model code not recognized");
           }
         }
-        
       }
-      
+    }
+    for(i in 2:timeSteps) {
       for(j in 2:stateDimN[s]) {
         if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
           predN[j]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
@@ -135,12 +150,13 @@ func <- function(parameters) {
       if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logN[[s]][,i], predN, nvar, log=TRUE) 
     }
   } #end species loop
+  #We have now calculated logN (1 quarter)
   
   for (s in 1:nSpecies) {
     for(i in 1:timeSteps) {
       for(j in 1:stateDimN[s]) {
         
-        #first season
+        #first season (q=fq)
         if (j >1 | recSeason==1 ) {  # first age might not have enter the model yet
           logNq[[s]][i,fq,j]<-logN[[s]][j,i]
           if((keyLogFsta[s,j])>0) {
@@ -148,7 +164,7 @@ func <- function(parameters) {
           } else {
             Zq[[s]][i,fq,j] <- natMor[[s]][i,fq,j]
           }
-          logNbarq[[s]][i,fq,j] <- logNq[[s]][i,fq,j]-log(Zq[[s]][i,fq,j]) +log(1.0 -exp(-Zq[[s]][i,fq,j]))
+          logNbarq[[s]][i,fq,j] <- logNq[[s]][i,fq,j]-log(Zq[[s]][i,fq,j]) + log(1.0 -exp(-Zq[[s]][i,fq,j]))
           if (keyLogFsta[s,j]>0) Chat[[s]][j,i] <- exp(logNbarq[[s]][i,fq,j]+logF[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,fq,j]))
         } else Chat[[s]][j,i] = 0.1; #SNYD for at undgå log(0), værdien bruges ikke, så OK
         

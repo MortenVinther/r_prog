@@ -316,7 +316,7 @@ stockMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WSEA,list(x$y,x$q,x$a),sum) 
 catchMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WCATCH,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 natMor          <-by(b,b$s,function(x) {y<-tapply(x$M,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 seasFprop       <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
-
+catchNoSeason   <-by(b,b$s,function(x) {y<-tapply(x$CATCHN,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 
 zero<-propMat; for (s in 1:nSpecies) {zero[[s]][,,]<-0}
 
@@ -421,6 +421,7 @@ list(
      propF=zero,
      propM=zero,
      keyCatch=keyCatch,
+     catchNoSeason=catchNoSeason,
      logCatchObs=logCatchObs,
      #nCatchObs=length(logCatchObs),
      keySurvey=keySurvey,

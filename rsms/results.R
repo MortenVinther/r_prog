@@ -1,7 +1,9 @@
 
 rep<-obj$report()
 
-#lapply(rep$logNq,function(x) (exp(x[,1,])))
+lapply(rep$logNq,function(x) (exp(x[,1,])))
+lapply(rep$logNq,function(x) (exp(x[,3,])))
+check  lapply(rep$predNN,function(x) (exp(x[,])))
 #if (data$nSeasons==4)lapply(rep$logNq,function(x) (exp(x[,3,])))
 
 #lapply(rep$Zq,function(x) round(exp(x[,1,]),2))

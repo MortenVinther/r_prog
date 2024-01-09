@@ -66,7 +66,7 @@ if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
 obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE,map=my.map)
 
 #obj$simulate()
-checkConsistency(obj)
+#checkConsistency(obj)
                  
 lower <- obj$par*0-Inf
 upper <- obj$par*0+Inf

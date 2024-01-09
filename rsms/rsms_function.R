@@ -37,6 +37,7 @@ func <- function(parameters) {
   maxAgePlusGroup <-info[,'+group']
   
   varLogObsSurvey = exp(logSdLogObsSurvey*2)
+  
   makeVar2<-function() {
     d<-lapply(1:nSpecies,function(x) {
       matrix(0,nrow=info[x,'la'],ncol=timeSteps,dimnames=list(a=paste0("a",1:info[x,'la']),y=years))
@@ -58,6 +59,7 @@ func <- function(parameters) {
   Zq<-makeVar3()
   Cq<-makeVar3()
   Chat<-makeVar2()
+  predNN<-makeVar2()
   ssb<-matrix(0,nrow=nSpecies,ncol=nYears)
   fq<-1L;     # first season (e.g. quarter)
   lq<-nSeasons
@@ -119,33 +121,34 @@ func <- function(parameters) {
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
     predN <- numeric(stateDimN[s])
     
-    for(i in (recAge+1L):timeSteps) {  
-      if(stockRecruitmentModelCode[s]==0){ ## straight RW
-        predN[1] = logN[[s]][1, i]
+   for(i in 2:timeSteps) {  
+      j<-1L;
+      if(stockRecruitmentModelCode[s]==0){    ## straight RW
+        predN[1] = logN[[s]][j, i-1]
       } else {
         if (stockRecruitmentModelCode[s]==1){ ## Ricker
-          predN[1] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
+          predN[j] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
         }else{
           if(stockRecruitmentModelCode[s]==2){  ## B&H
-            predN[1]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
+            predN[j]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
           }else{
             stop("SR model code not recognized");
           }
         }
       }
-    }
-    for(i in 2:timeSteps) {
+   
       for(j in 2:stateDimN[s]) {
-        if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
-          predN[j]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
-        } else { 
-          predN[j]=logN[[s]][j-1,i-1]-sum(natMor[[s]][i-1,,j-1]) 
+          if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
+            predN[j]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
+          } else { 
+            predN[j]=logN[[s]][j-1,i-1]-sum(natMor[[s]][i-1,,j-1]) 
+          }
         }
-      }
-      if(maxAgePlusGroup[s]==1){
-        predN[stateDimN[s]] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-exp(logF[[s]][keyLogFsta[s,stateDimN[s]-1],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
-                                     exp(logN[[s]][stateDimN[s],i-1]  -exp(logF[[s]][keyLogFsta[s,stateDimN[s]],i-1])  -sum(natMor[[s]][i-1,,stateDimN[s]]))  )
-      }
+        if(maxAgePlusGroup[s]==1){
+          predN[stateDimN[s]] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-exp(logF[[s]][keyLogFsta[s,stateDimN[s]-1],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
+                                       exp(logN[[s]][stateDimN[s],i-1]  -exp(logF[[s]][keyLogFsta[s,stateDimN[s]],i-1])  -sum(natMor[[s]][i-1,,stateDimN[s]]))  )
+        }
+      predNN[[s]][,i]<-predN # just debugging
       ans <- ans - dmvnorm(logN[[s]][,i], predN, nvar, log=TRUE) ## N-Process likelihood
       if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logN[[s]][,i], predN, nvar, log=TRUE) 
     }
@@ -250,6 +253,7 @@ func <- function(parameters) {
   
   ADREPORT(ssb)
   REPORT(logNq)
+  REPORT(predNN)
   REPORT(Zq)
   REPORT(Chat)
   REPORT(nlls)

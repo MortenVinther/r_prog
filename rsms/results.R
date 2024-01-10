@@ -3,7 +3,7 @@ rep<-obj$report()
 
 lapply(rep$logNq,function(x) (exp(x[,1,])))
 lapply(rep$logNq,function(x) (exp(x[,3,])))
-check  lapply(rep$predNN,function(x) (exp(x[,])))
+lapply(rep$predNN,function(x) (exp(x[,])))
 #if (data$nSeasons==4)lapply(rep$logNq,function(x) (exp(x[,3,])))
 
 #lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
@@ -57,7 +57,7 @@ if (data$nSeasons==1) N<-lapply(rep$logNq,function(x) (exp(x[,1,])))
 if (data$nSeasons>1) N<-lapply(rep$logNq,function(x) (exp(x[,3,])))
 Recruit<-convert_var(N) %>% filter(Age==0) %>% rename(Species=species,Year=year)
 
-sdrep <- sdreport(obj)
+#sdrep <- sdreport(obj)
 x<-as.list(sdrep, "Est", report=TRUE)
 
 ssb<-x$ssb
@@ -82,7 +82,7 @@ for (s in (1:data$nSpecies)) {
 
 rsms<-left_join(left_join(ssb,Recruit),avg_F) %>% select(Species, Year, SSB, N, mean.F) %>% rename(Rec=N) %>% mutate(source='rsms')
 
-SMSenv<-"ns_2023_ss_input"
+SMSenv<-"ns_2023_rsms_input"
 sms<-Read.summary.table(dir=file.path(root,SMSenv),read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
 sms$source='sms'
 

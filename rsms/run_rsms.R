@@ -7,7 +7,7 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 ### Extract data from SMS
 
 if (FALSE) {  # transform  SMS data into RSMS format 
-  inp_all<-make_rsms_data(dir="ns_2023_ss_input",outDir=rsms.root)
+  inp_all<-make_rsms_data(dir="ns_2023_rsms_input",outDir=rsms.root)
   save(inp_all,file=file.path(rsms.root,"rsms_input_all.Rdata"))
   load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 }
@@ -17,9 +17,9 @@ load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 # inp<-make_rsms_data(dir="S21",outDir=rsms.root)
 
 # select a combination of species from the (full) data set
-inp<-pick_species(ps=c(2L), inp=inp_all) 
+inp<-pick_species(ps=c(3L), inp=inp_all) 
 
-# inp=inp_all
+#inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
 if (FALSE) inp<-into_annual(inp)
@@ -66,7 +66,7 @@ if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
 obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE,map=my.map)
 
 #obj$simulate()
-#checkConsistency(obj)
+# checkConsistency(obj)
                  
 lower <- obj$par*0-Inf
 upper <- obj$par*0+Inf

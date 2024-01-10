@@ -1,7 +1,7 @@
 # First you have to run: run ini.r in SMS dir, and  _init_rsms.R
 #
 
-testSp<-1L:12L   #species combinations
+testSp<-1L:12L  #species combinations
 #testSp<-c(2L,6L)
 Annual<- FALSE  # annual or quarterly data
 
@@ -12,9 +12,11 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 
 
 ### Extract data from SMS
-SMSenv<-"ns_2023_ss_input"
+SMSenv<-"ns_2023_rsms_input"
+
 # transform  SMS data into RSMS format 
-inp_all<-make_rsms_data(dir=SMSenv,outDir=rsms.root)
+#inp_all<-make_rsms_data(dir=SMSenv,outDir=rsms.root)
+load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 
 for (sp in testSp) {
   # select a combination of species from the (full) data set
@@ -27,6 +29,7 @@ for (sp in testSp) {
   #### prepare to run
   
   data<-inp[['data']]
+  cat(data$spNames,'\n')
   parameters<-inp[['parameters']]
   
   data$stockRecruitmentModelCode[]<-1L
@@ -100,6 +103,7 @@ sms$source='sms'
 tab<-NULL
 for (sp in testSp) {
   load(file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
+  cat(sp,data$spNames,"objective:",opt$objective,"  convergence:",opt$convergence, "\n")
   rep<-obj$report()
   tab<-rbind(tab,cbind(rep$nlls,all=rowSums(rep$nlls)))
 }  
@@ -110,7 +114,7 @@ for (sp in testSp) {
   load(file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
   
   cat("SP :",sp,data$spNames,'\n')
-  cat("objective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
+  cat("objective:",opt$objective,"  convergence:",opt$convergence, "\n")
   
   rep<-obj$report()
   

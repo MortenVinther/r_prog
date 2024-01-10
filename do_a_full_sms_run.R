@@ -14,7 +14,7 @@ do.a.full.SMS.run(label="run_",                   # label for output
                   do.multi.2=F,                   # Run the full model, with simultaneously estimation of all parameters except the stomach variance parameter
                   do.multi.2.redo=F,              # Run the full model, with simultaneously estimation of all parameters
                   do.multi.2.redo.Nbar=F,         # Run the full model, with simultaneously estimation of all parameters except the stomach variance parameter, Use mean stock numbers (Nbar) for predation
-                  do.hessian=T,                   # Make the Hessian matrix and estimate uncertainties
+                  do.hessian=F,                   # Make the Hessian matrix and estimate uncertainties
                   shake.ms2.par=F,
                   SSB.R.seperate=F,               # Estimate S/R parameters in a separate step  
                   do.MCMC=F,                      # Prepare for MCMC analysis
@@ -22,7 +22,7 @@ do.a.full.SMS.run(label="run_",                   # label for output
                   do.prediction=F,                # Make a prediction
                   pause=F,                        # Make a confirm between each stage
                   Screen.show=F,                  # show the output on screen (TRUE), or save it in files "*.lg" (FALSE)
-                  do.run=T,                       # Make the run immediately, or just make the batch file for the run
+                  do.run=F,                       # Make the run immediately, or just make the batch file for the run
                   deleteFiles=deleteFiles,        # clean up in files before the run is made
                   HPC=F)                          # run it as batch program on the UNIX High Performance Computer 
  

@@ -20,6 +20,9 @@ x<-as.list(sdrep, "Est")
 round(exp(x$Uf),3)
 round(exp(x$Un),0)
 
+x$rec_loga; exp(x$rec_loga)
+x$rec_logb; exp(x$rec_logb)
+
 make_tab<-function(d,key,printIt=TRUE,roundIt=2) {
   d<-exp(d)
   tab<-key

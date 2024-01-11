@@ -17,7 +17,7 @@ load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 # inp<-make_rsms_data(dir="S21",outDir=rsms.root)
 
 # select a combination of species from the (full) data set
-inp<-pick_species(ps=c(3L), inp=inp_all) 
+inp<-pick_species(ps=c(2L), inp=inp_all) 
 
 #inp=inp_all
 
@@ -33,7 +33,7 @@ inp$data$spNames
 data<-inp[['data']]
 parameters<-inp[['parameters']]
 
-data$stockRecruitmentModelCode[]<-1L
+data$stockRecruitmentModelCode[]<-0L
 data$Debug<-1L
 
 
@@ -62,11 +62,14 @@ if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
   # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
   #rho =factor(rep(NA,length(parameters$rho)))
 
+#obj <- MakeADFun(func, parameters,silent=FALSE,map=my.map); obj$simulate()
+#obj <- MakeADFun(func, parameters, random=c("Uf"),silent=FALSE,map=my.map); obj$simulate()
+#obj <- MakeADFun(func, parameters, random=c("Un"),silent=FALSE,map=my.map); obj$simulate()  # problems ?
 
 obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE,map=my.map)
 
 #obj$simulate()
-# checkConsistency(obj)
+# checkConsistency(obj);
                  
 lower <- obj$par*0-Inf
 upper <- obj$par*0+Inf
@@ -87,7 +90,7 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 #upper[nl=="logSdLogN"]<-log(c(20,0.3))
 
 #t(rbind(lower,upper))    
-opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper)
+opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
 
-cat("\nobjective:",opt$objective,"  convergence:",opt$convergence) # 0 indicates successful convergence.
+cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message) 
 

@@ -11,7 +11,6 @@ pick_species<-function(ps=c(1), inp) {
   
   d$info<-data$info[ps,,drop=FALSE]
   d$nSpecies<-length(ps)
-  d$doSpecies <-ps
   
   d$nAges<-max(d$info[,'last-age'])-data$minAge+1 
   ages<-1:d$nAges
@@ -75,16 +74,17 @@ pick_species<-function(ps=c(1), inp) {
     names(kk)<-k
     d$keyCatch[,'s']<-kk[as.character(d$keyCatch[,'s'])]
     
-#  summary(d$keyCatch)
   d$logCatchObs<-data$logCatchObs[d$keyCatch[,'obs.no']]
   d$keyCatch[,'obs.no']<-1:dim(d$keyCatch)[[1]]
   
  
+  # survey
   d$keySurvey.overview<-data$keySurvey.overview[data$keySurvey.overview[,'s'] %in% ps,]
   if (sum(data$keySurvey.overview[,'s'] %in% ps) ==1) {
     d$keySurvey.overview<-matrix(d$keySurvey.overview,nrow=1)
     colnames(d$keySurvey.overview)<- colnames(data$keySurvey.overview)
   }
+  d$sampleTimeWithinSurvey<-data$sampleTimeWithinSurvey[d$keySurvey.overview[,'f']]
   
   d$keySurvey<-data$keySurvey[data$keySurvey[,'s'] %in% ps,,drop=FALSE]
   k<-sort(unique(d$keySurvey[,'keyVarObsSurvey']))

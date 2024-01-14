@@ -1,6 +1,6 @@
-Init.function<-function(dir=data.path)
+Init.function<-function(dir=data.path,sms.dat='sms.dat')
 {
-  SMS.control<<-read.FLSMS.control(dir=dir,file='sms.dat')
+  SMS.control<<-read.FLSMS.control(dir=dir,file=sms.dat)
   sp.names<<-SMS.control@species.names
   nsp<<-SMS.control@no.species
   for (ii in (1:nsp)) if (SMS.control@species.info[ii,'predator']!=2) {first.VPA<<-ii; break;} #first VPA  species number

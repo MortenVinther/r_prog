@@ -29,10 +29,10 @@ for (sp in testSp) {
   #### prepare to run
   
   data<-inp[['data']]
-  cat(data$spNames,'\n')
+  cat(data$spNames)
   parameters<-inp[['parameters']]
   
-  data$stockRecruitmentModelCode[]<-1L
+  #data$stockRecruitmentModelCode[]<-1L
   data$Debug<-1L
   
   
@@ -81,7 +81,7 @@ for (sp in testSp) {
   opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper)
   save(obj,opt,data,file=file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
   
-  cat("\nspecies comb:",sp," objective:",opt$objective,"  convergence:",opt$convergence) # 0 indicates successful convergence.
+  cat("\nspecies comb:",sp," objective:",opt$objective,"  convergence:",opt$convergence,'\n\n') 
 } 
 
 
@@ -103,7 +103,8 @@ sms$source='sms'
 tab<-NULL
 for (sp in testSp) {
   load(file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
-  cat(sp,data$spNames,"objective:",opt$objective,"  convergence:",opt$convergence, "\n")
+  sdrep <- sdreport(obj); 
+  cat(sp,data$spNames,"objective:",opt$objective,"  convergence:",opt$convergence, " Hessian: ",sdrep$pdHess,'\n')
   rep<-obj$report()
   tab<-rbind(tab,cbind(rep$nlls,all=rowSums(rep$nlls)))
 }  
@@ -113,10 +114,7 @@ tab
 for (sp in testSp) {
   load(file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
   
-  cat("SP :",sp,data$spNames,'\n')
-  cat("objective:",opt$objective,"  convergence:",opt$convergence, "\n")
-  
-  rep<-obj$report()
+   rep<-obj$report()
   
 
   if (data$nSeasons==1) N<-lapply(rep$logNq,function(x) (exp(x[,1,])))
@@ -124,6 +122,10 @@ for (sp in testSp) {
   Recruit<-convert_var(N) %>% filter(Age==0) %>% rename(Species=species,Year=year)
   
   sdrep <- sdreport(obj)
+  cat("SP :",sp,data$spNames,'\n')
+  cat("objective:",opt$objective,"  convergence:",opt$convergence, " Hessian:",sdrep$pdHess ,"\n")
+  
+  
   x<-as.list(sdrep, "Est", report=TRUE)
   
   ssb<-x$ssb

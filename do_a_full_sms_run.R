@@ -8,11 +8,11 @@ if (F) {
   file.copy(file.path(data.path,"SMS_org.dat"),file.path(data.path,"SMS.dat"),overwrite=TRUE)
 }
 do.a.full.SMS.run(label="run_",                   # label for output
-                  cleanup=F,                      # delete files in the deleteFiles variable?
+                  cleanup=T,                      # delete files in the deleteFiles variable?
                   do.single=T,                    # run SMS in single species mode
-                  do.multi.1=F,                   # Make preliminary estimate of "predation parameters"
-                  do.multi.2=F,                   # Run the full model, with simultaneously estimation of all parameters except the stomach variance parameter
-                  do.multi.2.redo=F,              # Run the full model, with simultaneously estimation of all parameters
+                  do.multi.1=T,                   # Make preliminary estimate of "predation parameters"
+                  do.multi.2=T,                   # Run the full model, with simultaneously estimation of all parameters except the stomach variance parameter
+                  do.multi.2.redo=T,              # Run the full model, with simultaneously estimation of all parameters
                   do.multi.2.redo.Nbar=F,         # Run the full model, with simultaneously estimation of all parameters except the stomach variance parameter, Use mean stock numbers (Nbar) for predation
                   do.hessian=F,                   # Make the Hessian matrix and estimate uncertainties
                   shake.ms2.par=F,

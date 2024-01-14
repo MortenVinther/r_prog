@@ -29,7 +29,7 @@ into_annual<-function(inp) {
     x<-tapply(x$Value,list(x$Var1,x$q,x$Var2),sum)
   })
   
-  x<-cbind(data$sampleTimeWithinSurvey,q=data$keySurvey.overview[,'q'])
+  x<-cbind(sampleTimeWithin=data$sampleTimeWithinSurvey,q=data$keySurvey.overview[,'q'])
   x[,"sampleTimeWithin"]<-x[,"sampleTimeWithin"]/4+(x[,"q"]-1)*0.25
   data$sampleTimeWithinSurvey<-x[,1]
   data$keySurvey[,'q']<-1L

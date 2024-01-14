@@ -1,13 +1,12 @@
-make_rsms_data<-function(dir,outDir=dir) {
-# dir=c("S16_S17_S21");  dir="S21" ;dir="ns_2023_ss_input"
+make_rsms_data<-function(dir,outDir=dir,sms.dat='sms.dat',adj_san=TRUE) {
+# dir="ns_2023_rsms_input"; sms.dat='rsms.dat'
  
-Init.function(dir=file.path(root,dir)) # initialize SMS environment
+Init.function(dir=file.path(root,dir),sms.dat=sms.dat) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
-  
-#rsms.root<-file.path("~","cod","RSMS");
-#sam.root<-file.path("~","cod");
 
 sms<-SMS.control  # just shorter name
+
+
 multi<-!(sms@VPA.mode==0)
 
 info<-sms@species.info
@@ -25,12 +24,8 @@ spNames<-dimnames(info)[[1]]
 othspNames<-dimnames(info)[[1]][1:(first.VPA-1)]
 off.age<- as.integer(1-sms@first.age)
 off.year<- - as.integer(sms@first.year.model-1)
-stockRecruitmentModelCode<-if_else (info[,"SSB/R"] >100,4L,info[,"SSB/R"])
+stockRecruitmentModelCode<-as.integer(info[,"SSB/R"])   ####%%%%%%% MIDLERTIDIG
 # SKAL RETTES
-stockRecruitmentModelCode[stockRecruitmentModelCode==4]<-2
-stockRecruitmentModelCode[stockRecruitmentModelCode==3]<-1
-stockRecruitmentModelCode[1]<-0
-stockRecruitmentModelCode<-as.integer(stockRecruitmentModelCode)
 names(stockRecruitmentModelCode)<-spNames
 
 rec_loga <- rep(1,nSpecies)
@@ -91,10 +86,27 @@ logSdLogFsta<-rep(-0.7,max(keyLogFstaSd))
 
 nlogN<-as.integer(info[,"last-age"]-sms@first.age+1L)
 
-keyVarLogN<-keyLogFsta  # no suitable SMS structure available
-keyVarLogN[,]<- -1
-keyVarLogN[,1:2]<-c(seq(from=1,by=2,length.out=length(nlogN)),seq(from=2,by=2,length.out=length(nlogN)))   
-for (s in (1:nSpecies)) keyVarLogN[s,3:(info[s,"last-age"]+off.age)] <-keyVarLogN[s,2] 
+#### sd at age for F random walk,
+# use sms@catch.sep.year
+
+x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nSpecies,dimnames=list(spNames,paste('age',ages)))
+i<-1L
+xx<-NULL
+for (s in 1:nSpecies) {
+  #i<-1L
+  la<-info[s,"last-age-likelihood"]
+  aa<-sort(unique(c(sms@catch.sep.year[[s]],la+1)))
+  for (j in (1:(length(aa)-1))) {
+    for (age in aa[j]:(aa[j+1]-1)) {
+      x[s,age+off.age ]<-i;
+      xx<-rbind(xx,data.frame(s=s,age=age,a=age+off.age,keyVarLogN=i))
+    }
+    i<-i+1L
+  }
+}
+
+keyVarLogN<-x
+keyVarLogN.df<-xx
 # keyVarLogN
 
 logSdLogN<-rep( c(0.35,-0.35),nSpecies)
@@ -315,7 +327,14 @@ propMat         <-by(b,b$s,function(x) {y<-tapply(x$PROPMAT,list(x$y,x$q,x$a),su
 stockMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WSEA,list(x$y,x$q,x$a),sum) ; y[is.na(y)]<-0; y})
 catchMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WCATCH,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 natMor          <-by(b,b$s,function(x) {y<-tapply(x$M,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
-seasFprop       <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+
+#seasFprop <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+seasFprop <-by(b,b$s,function(x) {y<-tapply(x$propF,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+if (adj_san) {
+  seasFprop[[7]][,,1]<-rep(c(0,0,0.98,0.02),each=nYears)
+  seasFprop[[8]][,,1]<-rep(c(0,0,0.98,0.02),each=nYears)
+}
+
 catchNoSeason   <-by(b,b$s,function(x) {y<-tapply(x$CATCHN,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 
 zero<-propMat; for (s in 1:nSpecies) {zero[[s]][,,]<-0}
@@ -327,13 +346,11 @@ zero<-propMat; for (s in 1:nSpecies) {zero[[s]][,,]<-0}
 zy<-data.frame(s=1:nSpecies,y=0L)
 if (sms@zero.catch.year.season==1) {
   fname<-'zero_catch_year_season.in'
-  z<-head(scan(file.path(root,dir,fname),comment.char='#'),-1)
+  z<-head(scan(file.path(root,dir,fname),comment.char='#',quiet = TRUE),-1)
   bz<-expand.grid(s=(first.VPA:nsp) +off.species,y=1:nYears,q=1:nSeasons)
   bz<-bz[order(bz$s,bz$y,bz$q),]
   bz$z<-z 
-  head(bz)
   zeroCatchYear<-bz %>%group_by(s,y) %>% summarize(z=sum(z)) %>%  filter(z==0) %>% mutate(z=NULL)
-  zeroCatchYear 
 } else zeroCatchYear<-NULL
 zy<-rbind(zy,zeroCatchYear)
 
@@ -351,7 +368,6 @@ catch<-left_join(catch,zy,by = join_by(y, s)) %>% filter(is.na(zero)) %>% mutate
 
 catch<-catch %>% arrange(s,y,a)
 catch$obs.no<-1:dim(catch)[[1]]
-head(catch)
 logCatchObs<-log(catch$CATCHN)
 
 keyCatch<-catch %>% mutate(CATCHN=NULL) %>% mutate_if(is.numeric,as.integer)

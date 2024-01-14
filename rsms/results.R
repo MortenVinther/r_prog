@@ -1,10 +1,31 @@
 
 rep<-obj$report()
 
-lapply(rep$logNq,function(x) (exp(x[,1,])))
-lapply(rep$logNq,function(x) (exp(x[,3,])))
-lapply(rep$predNN,function(x) (exp(x[,])))
-#if (data$nSeasons==4)lapply(rep$logNq,function(x) (exp(x[,3,])))
+N<-lapply(rep$logNq,function(x) (cbind(a1=x[,data$recSeason,1],x[,1,-1]))) # N in recruiting season for the first age and age 1 jan for the rest
+N
+resid<-lapply(data$spNames,function(x) t(N[[x]])-rep$predN[[x]]); names(resid)<-data$spNames
+resid[[1]]; rownames(resid[[1]])<-(1:data$nlogN[1])-data$off.age
+
+resid<-resid[[1]][,-1]
+
+theme_set(
+  theme_bw() + 
+   # theme(legend.position = "top")+
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+)
+as.data.frame(resid) %>%
+  rownames_to_column(var = "Age") %>%
+  gather(key, Residual, -Age) %>% as_tibble() %>%
+  mutate(Age=factor(as.integer(Age)),cols=if_else(Residual<0,'negativ','positiv')) %>% #mutate(cols=factor(cols)) %>%
+  ggplot(aes(key, Age,color= cols,fill=cols,size = sqrt(abs(Residual)))) +
+  geom_point(shape = 21,alpha=0.75) +
+  scale_color_manual(values = c("blue", "red")) +
+  labs(x = "", y = "Age") 
+  
+
+lapply(rep$predN,function(x) (exp(x[,])))
+
 
 #lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
 #lapply(rep$Chat,function(x) round(exp(x)))
@@ -14,8 +35,23 @@ cbind(rep$nlls,all=rowSums(rep$nlls))
 Est<-as.list(rep, "Est", report=TRUE)
 
 sdrep <- sdreport(obj)
+
+sdrep$pdHess 
 # obj$fn()  #  value er den samme som sum af min nnls
-x<-as.list(sdrep, "Est")
+
+#summary(sdrep, "random")                      ## Only random effects
+#summary(sdrep, "fixed", p.value = TRUE)       ## Only non-random effects
+#summary(sdrep, "fixed", p.value = FALSE    ## Only non-random effects
+#summary(sdrep, "report")                      ## Only report
+# 
+# ssb<-summary(sdrep, "report") 
+# plot(ssb[,"Estimate"],type='l')
+# lines(ssb[,"Estimate"]+2*ssb[,"Std. Error"],type='l',col='red')
+# lines(ssb[,"Estimate"]-2*ssb[,"Std. Error"],type='l',col='red')
+
+
+x<-as.list(sdrep, what="Est")
+
 
 round(exp(x$Uf),3)
 round(exp(x$Un),0)
@@ -111,6 +147,21 @@ for (s in (rsp)) {
 }
 
 
+if (FALSE) for (s in (rsp)) {
+  bb=filter(b,Species==s & source=='rsms')
+  
+  p<-ggplot(data=bb, aes(x=Year, y=value, group=source)) +
+    geom_line(aes(linetype=source,col=source))+
+    geom_point(aes(shape=source,col=source))+
+    facet_grid(variable ~ ., scales="free_y")+
+    ggtitle(unlist(bb[1,'Species']))
+  print(p)
+  cat('press return to see the next plot:')
+  readLines(n=1)
+  cat('\n')
+}
+
+
 
 #############################
 #Once obj has been constructed successfully, you should evaluate it
@@ -135,7 +186,5 @@ if (FALSE) {
   chk <- checkConsistency(obj)
   chk
 }
-
-cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  # 0 indicates successful convergence\n")
 
 

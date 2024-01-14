@@ -2,12 +2,13 @@
 ### init: Run: init.R in the SMS directory and _init_rsms.R
 source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
 source(file.path(rsms.root.prog,"pick_species.R"))
+source(file.path(rsms.root.prog,"quarter2annual.R"))
 source(file.path(rsms.root.prog,"rsms_function.R"))
 
 ### Extract data from SMS
 
 if (FALSE) {  # transform  SMS data into RSMS format 
-  inp_all<-make_rsms_data(dir="ns_2023_rsms_input",outDir=rsms.root)
+  inp_all<-make_rsms_data(dir="ns_2023_rsms_input",outDir=rsms.root,sms.dat='rsms.dat')
   save(inp_all,file=file.path(rsms.root,"rsms_input_all.Rdata"))
   load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 }
@@ -15,15 +16,15 @@ load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 
 # read a data set on SMS format
 # inp<-make_rsms_data(dir="S21",outDir=rsms.root)
+annualData<-F
 
 # select a combination of species from the (full) data set
-inp<-pick_species(ps=c(2L), inp=inp_all) 
+inp<-pick_species(ps=c(4L), inp=inp_all) 
 
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
-if (FALSE) inp<-into_annual(inp)
-
+if (annualData) inp<-into_annual(inp)
 
 
 inp$data$spNames
@@ -33,7 +34,7 @@ inp$data$spNames
 data<-inp[['data']]
 parameters<-inp[['parameters']]
 
-data$stockRecruitmentModelCode[]<-0L
+#data$stockRecruitmentModelCode[]<-1L
 data$Debug<-1L
 
 
@@ -58,6 +59,15 @@ if (data$zeroCatchYearExists==1) {
 
 if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
 
+if (any(data$stockRecruitmentModelCode==0)) { #random walk recruitment, no need for recruitment parameters
+  aMap<-1L:length(parameters$rec_loga)
+  bMap<-1L:length(parameters$rec_logb)
+  aMap[data$stockRecruitmentModelCode==0]<-NA
+  bMap[data$stockRecruitmentModelCode==0]<-NA
+  aMap<-factor(aMap)
+  bMap<-factor(bMap)
+  my.map<-c(my.map,list(rec_loga=aMap),list(rec_logb=bMap))
+}
   #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
   # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
   #rho =factor(rep(NA,length(parameters$rho)))
@@ -66,7 +76,7 @@ if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
 #obj <- MakeADFun(func, parameters, random=c("Uf"),silent=FALSE,map=my.map); obj$simulate()
 #obj <- MakeADFun(func, parameters, random=c("Un"),silent=FALSE,map=my.map); obj$simulate()  # problems ?
 
-obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE,map=my.map)
+obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=T,map=my.map)
 
 #obj$simulate()
 # checkConsistency(obj);
@@ -92,5 +102,5 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 #t(rbind(lower,upper))    
 opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
 
-cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message) 
-
+cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations) 
+sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')

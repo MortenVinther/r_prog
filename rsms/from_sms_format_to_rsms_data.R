@@ -1,4 +1,4 @@
-From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path) {
+From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path,sms.dat="rsms.dat") {
 la<-SMS.control@max.age.all
 fa<-SMS.control@first.age
 rec.season <-SMS.control@rec.season
@@ -27,11 +27,19 @@ b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
 b<-data.frame(b,CATCHN=CATCHN,WCATCH=WCATCH,PROP_CAT=Prop.landed)
 b<-subset(b,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT))
 b$CATCHN<-catchMultiplier*b$CATCHN
+pf<-Read.summary.data(dir=dir) %>%  filter((Age>0 |Quarter>2) & Species.n>=first.VPA) %>% select(Species.n,Year,Quarter,Age,"F") %>% rename(FF="F") %>%
+  group_by(Species.n, Year,Age)%>%  mutate(propF=FF/sum(FF),FF=NULL) %>% as_tibble() %>% mutate(propF=if_else(is.na(propF),0,propF)) %>%
+  rename(year=Year,species.n=Species.n,age=Age,quarter=Quarter)
+
+b<-left_join(b,pf,by = join_by(year, species.n, quarter, age))
+b[is.na(b$propF),'propF']<-0
+
 out<-list(catch=b)
 ############## bio data
 WSEA<-scanData('west.in');WSEA<-WSEA[((first.VPA-1)*noAreas*ny*(la-fa+1)*nq+1):length(WSEA)]
 PROPMAT<-scanData('propmat.in')
-M<-scanData('natmor.in')
+#M<-scanData('natmor.in')
+M<-scanData('natmorm1m2.out')
 M1<-scanData('natmor1.in')
 PROP_M2<-scanData('n_proportion_m2.in')
 

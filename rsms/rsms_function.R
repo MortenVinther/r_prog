@@ -70,7 +70,6 @@ func <- function(parameters) {
 
   ##########################################################################################
   ###################  now we begin 
-  s<-1 # test
   
   for (s in 1:nSpecies) {
    # cat('Species: ',s,'\n')
@@ -88,9 +87,8 @@ func <- function(parameters) {
     }
     
     if (Debug) nlls[s,"F"]<-  -sum(dmvnorm( diff( t(logF[[s]])) , 0, Sigma=fvar, log=TRUE))
-
-  
-  # Spawning Stock Biomass
+    
+   # Spawning Stock Biomass
 
   # # SSB 1. January !!   
   # for (s in 1:nSpecies) { 
@@ -107,7 +105,6 @@ func <- function(parameters) {
       }
     }
 
-    
     ## Now take care of N
     nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
@@ -222,7 +219,6 @@ func <- function(parameters) {
     predObs<-Chat[[s]][ay]
     for (i in 1:length(predObs)) {
       var <- varLogObsCatch[key.v[i]]
-      #cat(obs[i],predObs[i],var,'\n')
       ans <- ans - dnorm(obs[i],predObs[i],sqrt(var),log=TRUE)
       
       if (Debug==1)  nlls[s,'catch']<- nlls[s,'catch']   - dnorm(obs[i],predObs[i],sqrt(var),log=TRUE)
@@ -231,8 +227,7 @@ func <- function(parameters) {
     #    var <- varLogObsCatch[key.v]
     #    nlls[s,'catch']<- nlls[s,'catch']   - sum(dnorm(obs,predObs,sqrt(var),log=TRUE))
     #  }
-    
-  
+
   # and now surveys
   fleets<-keySurvey.overview[keySurvey.overview[,'s']==s,'f']
    for (fl in  fleets) {
@@ -257,7 +252,6 @@ func <- function(parameters) {
       }
     }
   } # end fleet loop
-  
   } #end species loop
 
   ADREPORT(ssb)

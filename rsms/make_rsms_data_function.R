@@ -107,13 +107,13 @@ for (s in 1:nSpecies) {
 
 keyVarLogN<-x
 keyVarLogN.df<-xx
-# keyVarLogN
 
-logSdLogN<-rep( c(0.35,-0.35),nSpecies)
+x<-NULL
+for (s in 1:nSpecies) {
+  for (a in sms@catch.sep.year[[s]]) if (a==fa) x<-c(x,0.35) else x<-c(x,-0.35) 
+}
+logSdLogN<-x
 # logSdLogN
-
-#keyVarLogN<-lapply(1:nSpecies,function(s) y<-keyVarLogN[s,keyVarLogN[s,]>0])
- 
 
 
 nlogNto<-cumsum(nlogN)  

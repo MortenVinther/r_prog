@@ -41,7 +41,7 @@ sdrep$pdHess
 
 #summary(sdrep, "random")                      ## Only random effects
 #summary(sdrep, "fixed", p.value = TRUE)       ## Only non-random effects
-#summary(sdrep, "fixed", p.value = FALSE    ## Only non-random effects
+#summary(sdrep, "fixed", p.value = FALSE)    ## Only non-random effects
 #summary(sdrep, "report")                      ## Only report
 # 
 # ssb<-summary(sdrep, "report") 
@@ -51,7 +51,6 @@ sdrep$pdHess
 
 
 x<-as.list(sdrep, what="Est")
-
 
 round(exp(x$Uf),3)
 round(exp(x$Un),0)

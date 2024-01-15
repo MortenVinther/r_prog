@@ -56,12 +56,7 @@ for (sp in testSp) {
   }
   
   if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
-  
-  #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
-  # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
-  #rho =factor(rep(NA,length(parameters$rho)))
-  
-  
+
   obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=TRUE,map=my.map)
   
   lower <- obj$par*0-Inf

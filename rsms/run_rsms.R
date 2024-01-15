@@ -19,9 +19,10 @@ load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 annualData<-F
 
 # select a combination of species from the (full) data set
-inp<-pick_species(ps=c(4L), inp=inp_all) 
+#inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
+inp<-pick_species(ps=c(12L), inp=inp_all)
 
-#inp=inp_all
+inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
 if (annualData) inp<-into_annual(inp)
@@ -75,8 +76,8 @@ if (any(data$stockRecruitmentModelCode==0)) { #random walk recruitment, no need 
 #obj <- MakeADFun(func, parameters,silent=FALSE,map=my.map); obj$simulate()
 #obj <- MakeADFun(func, parameters, random=c("Uf"),silent=FALSE,map=my.map); obj$simulate()
 #obj <- MakeADFun(func, parameters, random=c("Un"),silent=FALSE,map=my.map); obj$simulate()  # problems ?
-
-obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=T,map=my.map)
+random=c("Un","Uf")
+obj <- MakeADFun(func, parameters, random,silent=F,map=my.map)
 
 #obj$simulate()
 # checkConsistency(obj);
@@ -102,5 +103,23 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 #t(rbind(lower,upper))    
 opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
 
-cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations) 
+cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations, "  evaluations:",opt$evaluations) 
 sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
+
+
+####  Re-run with estimated parameters
+if (FALSE) {
+  x<-as.list(sdrep, what="Est")
+  newPar<-parameters
+  for (i in names(newPar)) {
+    newPar[[i]]<-x[[i]]
+  }
+  for (i in random) {
+    data[[i]]<-x[[i]]
+  }
+  obj <- MakeADFun(func, newPar, random,silent=F,map=my.map)
+  opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
+  cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations, "  evaluations:",opt$evaluations) 
+}  
+
+

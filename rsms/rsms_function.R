@@ -64,8 +64,8 @@ func <- function(parameters) {
   
   # needed for simulation  and consistencyCheck ? does not work
   # i<-1;
-  # for (s in 1:nSpecies) for (a in nlogFfromTo[s,1]:nlogFfromTo[s,2]) ans<- ans -dnorm(logF[[s]][a,i],  log=TRUE)
-  # for (s in 1:nSpecies) for (a in nlogNfromTo[s,1]:nlogNfromTo[s,2]) ans<- ans -dnorm(logN[[s]][a,i]-predN[[s]][a,i],  log=TRUE)
+  # for (s in 1:nSpecies) {faf=info[s,'faf']; for (a in nlogFfromTo[s,1]:nlogFfromTo[s,2]) ans<- ans -dnorm(logF[[s]][a,i], sdLogFsta[keyLogFstaSd[s,a+faf-1L]], log=TRUE)}
+  # for (s in 1:nSpecies) {for (a in nlogNfromTo[s,1]:nlogNfromTo[s,2]) ans<- ans -dnorm(logN[[s]][a,i]-predN[[s]][a,i],  log=TRUE)}
   
 
   ##########################################################################################
@@ -105,43 +105,39 @@ func <- function(parameters) {
       }
     }
 
-    ## Now take care of N
-    nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
-                  function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
-   
-    # kan måske undværes
-    j<-1L; i<-1L #recruits first year given recruitment at age 0 (later in the year)
-    if(stockRecruitmentModelCode[s] >=1 & recAge==0){
-      if (stockRecruitmentModelCode[s]==1){ ## Ricker
-        predN[[s]][j,i]= rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
-      }else{
-        if(stockRecruitmentModelCode[s]==2){  ## B&H
-          predN[[s]][j,i]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
-        }else{
-          stop("SR model code not recognized");
-        }
-      }
-      ans <- ans - dmvnorm(logN[[s]][j,i], predN[[s]][j,i], nvar[j,j], log=TRUE) ## N-Process likelihood
-    }
-    
-   for(i in 2:timeSteps) { 
-      j<-1; #recruits
+    SSB_R<-function(s,y,a=1) {
       if(stockRecruitmentModelCode[s]==0){    ## straight RW
-        predN[[s]][j,i] = logN[[s]][j, i-1]
+        rec = logN[[s]][a, y-1]
       } 
       else {
         if (stockRecruitmentModelCode[s]==1){ ## Ricker
-          predN[[s]][j,i]= rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
+          rec= rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
         }else{
           if(stockRecruitmentModelCode[s]==2){  ## B&H
-            predN[[s]][j,i]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
+            rec=rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
           }else{
             stop("SR model code not recognized");
           }
         }
       }
-
-
+    }
+    
+  
+    
+    ## Now take care of N
+    nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
+                  function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
+   
+    # kan måske undværes
+    #recruits first year given recruitment at age 0 (later in the same year)
+    if(stockRecruitmentModelCode[s] >=1 & recAge==0){
+      predN[[s]][1,1]<-SSB_R(s,y=1);
+      ans <- ans - dmvnorm(logN[[s]][1,1], predN[[s]][1,1], nvar[1,1], log=TRUE) ## N-Process likelihood
+    }
+    
+   for(i in 2:timeSteps) { 
+      predN[[s]][1,i]<-SSB_R(s,y=i);
+  
       for(j in 2:stateDimN[s]) {
           if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
             predN[[s]][j,i]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 

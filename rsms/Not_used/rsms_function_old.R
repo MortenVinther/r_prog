@@ -3,8 +3,7 @@ func <- function(parameters) {
   square <- function(x){x*x}
   ### Parameter transform
   # f <- function(x) {2/(1 + exp(-2 * x)) - 1}
-  
-  
+ 
   getAll(data, parameters,warn=FALSE)
   
   ## Optional (enables extra RTMB features) 
@@ -15,8 +14,7 @@ func <- function(parameters) {
   # first we have all the N states
   logN<-list()
   for (s in 1:nSpecies) logN<-c(logN, list(Un[(nlogNfromTo[s,1]:nlogNfromTo[s,2]),,drop=FALSE]))
-  
-  
+
   # and then the F states
   # with seasonal data, logF is redefined as the sum of seasonal F values (which is not the same as the annual F)
   
@@ -54,7 +52,7 @@ func <- function(parameters) {
   Zq<-makeVar3()
   Cq<-makeVar3()
   Chat<-makeVar2()
-  predNN<-makeVar2()
+  predN<-makeVar2()
   ssb<-matrix(0,nrow=nSpecies,ncol=nYears)
   fq<-1L;     # first season (e.g. quarter)
   lq<-nSeasons
@@ -64,15 +62,14 @@ func <- function(parameters) {
   ## Initialize joint negative log likelihood
   ans <- 0
   
-  # needed for simulation  and consistencyCheck C? 
-  #  RESULTATET AFHÆNGER AF DE TO LINIER !!!! (liklihoodene gør)
-  #for (s in 1:nSpecies) for (a in nlogFfromTo[s,1]:nlogFfromTo[s,2]) ans<- ans -dnorm(logF[[s]][a,1],  log=TRUE)
-  #for (s in 1:nSpecies) for (a in nlogNfromTo[s,1]:nlogNfromTo[s,2]) ans<- ans -dnorm(logN[[s]][a,1],  log=TRUE)
+  # needed for simulation  and consistencyCheck ? does not work
+  # i<-1;
+  # for (s in 1:nSpecies) for (a in nlogFfromTo[s,1]:nlogFfromTo[s,2]) ans<- ans -dnorm(logF[[s]][a,i],  log=TRUE)
+  # for (s in 1:nSpecies) for (a in nlogNfromTo[s,1]:nlogNfromTo[s,2]) ans<- ans -dnorm(logN[[s]][a,i]-predN[[s]][a,i],  log=TRUE)
   
 
   ##########################################################################################
   ###################  now we begin 
-  s<-1 # test
   
   for (s in 1:nSpecies) {
    # cat('Species: ',s,'\n')
@@ -84,17 +81,14 @@ func <- function(parameters) {
     fvar <- outer(1:stateDimF[s],
                   1:stateDimF[s],
                   function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])
-    
-    
      
     if (zeroCatchYearExistsSp[s]==1)  ans <- ans - sum(dmvnorm( diff( t(logF[[s]][,-zeroCatchYear[[s]]])),mu=0, Sigma=fvar, log=TRUE)) else {
       ans <- ans - sum(dmvnorm( diff( t(logF[[s]])),mu=0, Sigma=fvar, log=TRUE))
     }
     
     if (Debug) nlls[s,"F"]<-  -sum(dmvnorm( diff( t(logF[[s]])) , 0, Sigma=fvar, log=TRUE))
-
-  
-  # Spawning Stock Biomass
+    
+   # Spawning Stock Biomass
 
   # # SSB 1. January !!   
   # for (s in 1:nSpecies) { 
@@ -111,39 +105,36 @@ func <- function(parameters) {
       }
     }
 
-    
     ## Now take care of N
     nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
-    predN <- numeric(stateDimN[s])
    
     # kan måske undværes
     j<-1L; i<-1L #recruits first year given recruitment at age 0 (later in the year)
     if(stockRecruitmentModelCode[s] >=1 & recAge==0){
       if (stockRecruitmentModelCode[s]==1){ ## Ricker
-        predN[j] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
+        predN[[s]][j,i]= rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
       }else{
         if(stockRecruitmentModelCode[s]==2){  ## B&H
-          predN[j]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
+          predN[[s]][j,i]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
         }else{
           stop("SR model code not recognized");
         }
       }
-      predNN[[s]][j,i]<-predN[j] # just debugging
-      ans <- ans - dmvnorm(logN[[s]][j,i], predN[1], nvar[j,j], log=TRUE) ## N-Process likelihood
+      ans <- ans - dmvnorm(logN[[s]][j,i], predN[[s]][j,i], nvar[j,j], log=TRUE) ## N-Process likelihood
     }
     
    for(i in 2:timeSteps) { 
       j<-1; #recruits
       if(stockRecruitmentModelCode[s]==0){    ## straight RW
-        predN[j] = logN[[s]][j, i-1]
+        predN[[s]][j,i] = logN[[s]][j, i-1]
       } 
       else {
         if (stockRecruitmentModelCode[s]==1){ ## Ricker
-          predN[j] = rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
+          predN[[s]][j,i]= rec_loga[s]+log(ssb[s,i-recAge])-exp(rec_logb[s])*ssb[s,i-recAge]
         }else{
           if(stockRecruitmentModelCode[s]==2){  ## B&H
-            predN[j]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
+            predN[[s]][j,i]=rec_loga[s]+log(ssb[s,i-recAge])-log(1+exp(rec_logb[s])*ssb[s,i-recAge])
           }else{
             stop("SR model code not recognized");
           }
@@ -153,18 +144,17 @@ func <- function(parameters) {
 
       for(j in 2:stateDimN[s]) {
           if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
-            predN[j]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
+            predN[[s]][j,i]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
           } else { 
-            predN[j]=logN[[s]][j-1,i-1]-sum(natMor[[s]][i-1,,j-1]) 
+            predN[[s]][j,i]=logN[[s]][j-1,i-1]-sum(natMor[[s]][i-1,,j-1]) 
           }
        }
        if(maxAgePlusGroup[s]==1){
-          predN[stateDimN[s]] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-exp(logF[[s]][keyLogFsta[s,stateDimN[s]-1],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
+          predN[[s]][stateDimN[s],i] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-exp(logF[[s]][keyLogFsta[s,stateDimN[s]-1],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
                                        exp(logN[[s]][stateDimN[s],i-1]  -exp(logF[[s]][keyLogFsta[s,stateDimN[s]],i-1])  -sum(natMor[[s]][i-1,,stateDimN[s]]))  )
        }
-      predNN[[s]][,i]<-predN # just debugging
-      ans <- ans - dmvnorm(logN[[s]][,i], predN, nvar, log=TRUE) ## N-Process likelihood
-      if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logN[[s]][,i], predN, nvar, log=TRUE) 
+      ans <- ans - dmvnorm(logN[[s]][,i], predN[[s]][,i], nvar, log=TRUE) ## N-Process likelihood
+      if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logN[[s]][,i], predN[[s]][,i], nvar, log=TRUE) 
     }
 
   #We have now calculated logN (1 quarter)
@@ -229,7 +219,6 @@ func <- function(parameters) {
     predObs<-Chat[[s]][ay]
     for (i in 1:length(predObs)) {
       var <- varLogObsCatch[key.v[i]]
-      #cat(obs[i],predObs[i],var,'\n')
       ans <- ans - dnorm(obs[i],predObs[i],sqrt(var),log=TRUE)
       
       if (Debug==1)  nlls[s,'catch']<- nlls[s,'catch']   - dnorm(obs[i],predObs[i],sqrt(var),log=TRUE)
@@ -238,8 +227,7 @@ func <- function(parameters) {
     #    var <- varLogObsCatch[key.v]
     #    nlls[s,'catch']<- nlls[s,'catch']   - sum(dnorm(obs,predObs,sqrt(var),log=TRUE))
     #  }
-    
-  
+
   # and now surveys
   fleets<-keySurvey.overview[keySurvey.overview[,'s']==s,'f']
    for (fl in  fleets) {
@@ -264,12 +252,11 @@ func <- function(parameters) {
       }
     }
   } # end fleet loop
-  
   } #end species loop
 
   ADREPORT(ssb)
   REPORT(logNq)
-  REPORT(predNN)
+  REPORT(predN)
   REPORT(Zq)
   REPORT(Chat)
   REPORT(nlls)

@@ -1,8 +1,21 @@
 # First you have to run: run ini.r in SMS dir, and  _init_rsms.R
 #
-
+collectData<-TRUE
 testSp<-1L:12L  #species combinations
 #testSp<-c(2L,6L)
+
+
+load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
+
+
+if (collectData) {
+  inp<-pick_species(ps=testSp, inp=inp_all)
+  allPars<-inp[['parameters']]
+  allData<-inp[['data']]
+}
+
+
+
 Annual<- FALSE  # annual or quarterly data
 
 ### init
@@ -14,9 +27,6 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 ### Extract data from SMS
 SMSenv<-"ns_2023_rsms_input"
 
-# transform  SMS data into RSMS format 
-#inp_all<-make_rsms_data(dir=SMSenv,outDir=rsms.root)
-load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 
 for (sp in testSp) {
   # select a combination of species from the (full) data set
@@ -56,8 +66,8 @@ for (sp in testSp) {
   }
   
   if (data$zeroCatchYearExists==1) my.map<-list(Uf=UfMap) else my.map=list()
-
-  obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=TRUE,map=my.map)
+  random=c("Un","Uf")
+  obj <- MakeADFun(func, parameters, random,silent=TRUE,map=my.map)
   
   lower <- obj$par*0-Inf
   upper <- obj$par*0+Inf
@@ -77,8 +87,26 @@ for (sp in testSp) {
   save(obj,opt,data,file=file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
   
   cat("\nspecies comb:",sp," objective:",opt$objective,"  convergence:",opt$convergence,'\n\n') 
+  
+  if (collectData) {
+    sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
+    x<-as.list(sdrep, what="Est")
+    if (sp == testSp[1]) newPar<-x else {
+      for (i in names(newPar)) {
+        if (i %in% random) newPar[[i]]<-rbind(newPar[[i]],x[[i]]) else newPar[[i]]<-c(newPar[[i]],x[[i]])
+      }
+    }
+  }
+  
 } 
 
+if (collectData) {
+  inp[['parameters']]<-newPar
+  str(newPar)
+  inp[['data']]<-allData
+  
+  # you can now re-run all species in the same run
+}
 
 convert_var<-function(x) {
   xx<-lapply(x,function(x) {

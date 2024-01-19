@@ -22,7 +22,7 @@ annualData<-F
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
 inp<-pick_species(ps=c(12L), inp=inp_all)
 
-inp=inp_all
+#inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
 if (annualData) inp<-into_annual(inp)
@@ -104,20 +104,20 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
 
 cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations, "  evaluations:",opt$evaluations) 
+
+
+#rep<-obj$report()
+#rep$predN[[1]][1,]
+
 sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
 
 
 ####  Re-run with estimated parameters
 if (FALSE) {
-  x<-as.list(sdrep, what="Est")
-  newPar<-parameters
-  for (i in names(newPar)) {
-    newPar[[i]]<-x[[i]]
-  }
-  for (i in random) {
-    data[[i]]<-x[[i]]
-  }
+  newPar<-as.list(sdrep, what="Est")
   obj <- MakeADFun(func, newPar, random,silent=F,map=my.map)
+   #obj$simulate()
+  
   opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
   cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations, "  evaluations:",opt$evaluations) 
 }  

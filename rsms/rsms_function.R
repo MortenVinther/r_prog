@@ -270,7 +270,7 @@ func <- function(parameters) {
       }
     } else if (surveyType[fl]==3) {  # SSB index
       flYears<-keys[,'y']
-      faf<-info[s,'faf']; laf<-info[s,'lalike']
+      faf<-1L; laf<-info[s,'la']
       obs.no<-keys[,'obs.no']
       keyCatchability<-keys[1,"keyCatchability"]
       keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]

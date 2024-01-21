@@ -85,7 +85,7 @@ obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
 source(file.path(rsms.root.prog,"lowerUpper.R"))
 #t(rbind(lower,upper)) 
 
-opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=500))
+system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=500)))
 
 announce(opt)
 

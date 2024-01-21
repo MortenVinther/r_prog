@@ -14,3 +14,5 @@ rsms.root<-file.path(home,"RSMS")
 #rsms.root.prog<-file.path(home,'SMS','r_prog','rsms')
 rsms.root.prog<-file.path(root.prog,'r_prog','rsms')
 
+
+source(file.path(rsms.root.prog,"various_functions.R"))

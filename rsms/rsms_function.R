@@ -72,7 +72,7 @@ func <- function(parameters) {
   ###################  now we begin 
   
   for (s in 1:nSpecies) {
-   # cat('Species: ',s,'\n')
+    cat('Species: ',s,'\n')
     ## First take care of F
     fcor <- outer(1:stateDimF[s],
                   1:stateDimF[s],
@@ -193,7 +193,7 @@ func <- function(parameters) {
             Zq[[s]][i,q,j] <- natMor[[s]][i,q,j]
           }
           logNbarq[[s]][i,q,j] <- logNq[[s]][i,q,j]-log(Zq[[s]][i,q,j]) +log(1.0 -exp(-Zq[[s]][i,q,j]))
-          if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <- Chat[[s]][j,i]+ exp(logNbarq[[s]][i,q,j]+logF[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,q,j]))}
+          if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <- Chat[[s]][j,i]+ exp(logNbarq[[s]][i,q,j]+logF[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,q,j]))}  else { Chat[[s]][j,i]<-0.1  }
         }
       }
     }
@@ -226,26 +226,49 @@ func <- function(parameters) {
 
   # and now surveys
   fleets<-keySurvey.overview[keySurvey.overview[,'s']==s,'f']
-   for (fl in  fleets) {
+  surveyType<-keySurvey.overview[,'type']
+
+  for (fl in  fleets)  {
     #cat("survey: ",fl,'\n')
     keys<-keySurvey[keySurvey[,"f"]==fl,]
     q<-keys[1,"q"]
-    for (i in 1:dim(keys)[[1]]) {
-      y<-keys[i,'y']
-      a<-keys[i,'a']
-      keyPowerQ<-keys[i,"keyPowerQ"]
-      keyCatchability<-keys[i,"keyCatchability"]
-      keyVarObsSurvey<-keys[i,"keyVarObsSurvey"]
-      obs.no<-keys[i,'obs.no']
-      predObs<-logNq[[s]][y,q,a] - Zq[[s]][y,q,a]*sampleTimeWithinSurvey[fl]
-      if(keyPowerQ>0) predObs <- predObs*exp(logQpow[keyPowerQ])
-      predObs <- predObs+logCatchability[keyCatchability]
+    if (surveyType[fl]==1) {
+      for (i in 1:dim(keys)[[1]]) {
+        y<-keys[i,'y']
+        a<-keys[i,'a']
+        keyPowerQ<-keys[i,"keyPowerQ"]
+        keyCatchability<-keys[i,"keyCatchability"]
+        keyVarObsSurvey<-keys[i,"keyVarObsSurvey"]
+        obs.no<-keys[i,'obs.no']
+        predObs<-logNq[[s]][y,q,a] - Zq[[s]][y,q,a]*sampleTimeWithinSurvey[fl]
+        if(keyPowerQ>0) predObs <- predObs*exp(logQpow[keyPowerQ])
+        predObs <- predObs+logCatchability[keyCatchability]
+        var <- varLogObsSurvey[keyVarObsSurvey]
+        ans <- ans - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+        if (Debug==1)  {  
+          nlls[s,'survey']<- nlls[s,'survey']   - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+        }
+       } 
+    } else if (surveyType[fl]==2) {  # exploitable biomass (assumed all age with F>0)
+      flYears<-keys[,'y']
+      faf<-info[s,'faf']; laf<-info[s,'lalike']
+      obs.no<-keys[,'obs.no']
+      keyCatchability<-keys[1,"keyCatchability"]
+      keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
+# does not work     predObs<-sapply(flYears,function(y) log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] )
+      predObs<-numeric(length(obs.no))
+      n<-0L
+      for (y in flYears)  {
+        n<-n+1L
+       predObs[n]<- log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] 
+      }
       
       var <- varLogObsSurvey[keyVarObsSurvey]
-      ans <- ans - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+      ans <- ans - sum(dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE))
       if (Debug==1)  {  
-        nlls[s,'survey']<- nlls[s,'survey']   - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+        nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE))
       }
+      
     }
   } # end fleet loop
   } #end species loop

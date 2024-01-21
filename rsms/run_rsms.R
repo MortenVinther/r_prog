@@ -20,8 +20,8 @@ annualData<-F
 
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
-inp<-pick_species(ps=c(12L), inp=inp_all)
-
+inp<-pick_species(ps=c(1L,2L,3L,4L,6L), inp=inp_all)
+#inp<-pick_species(ps=c(4L), inp=inp_all)  
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
@@ -77,49 +77,40 @@ if (any(data$stockRecruitmentModelCode==0)) { #random walk recruitment, no need 
 #obj <- MakeADFun(func, parameters, random=c("Uf"),silent=FALSE,map=my.map); obj$simulate()
 #obj <- MakeADFun(func, parameters, random=c("Un"),silent=FALSE,map=my.map); obj$simulate()  # problems ?
 random=c("Un","Uf")
-obj <- MakeADFun(func, parameters, random,silent=F,map=my.map)
+obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
 
 #obj$simulate()
 # checkConsistency(obj);
-                 
-lower <- obj$par*0-Inf
-upper <- obj$par*0+Inf
-lower["rho"] <- 0.01
-upper["rho"] <- 0.99
+ 
+source(file.path(rsms.root.prog,"lowerUpper.R"))                
+source(file.path(rsms.root.prog,"lowerUpper.R"))
+#t(rbind(lower,upper)) 
 
-nl<-names(lower)
+opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=500))
 
-lower[nl=="logSdLogObsSurvey"]<-rep(log(0.15),length(parameters$logSdLogObsSurvey))
-upper[nl=="logSdLogObsSurvey"]<-rep(log(2.0),length(parameters$logSdLogObsSurvey))
+announce(opt)
 
-lower[nl=="logSdLogObsCatch"]<-rep(log(0.1),length(parameters$logSdLogObsCatch))
-upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
-
-
-# N.sandeel
-#lower[nl=="logSdLogN"]<-log(c(0.1,0.1))
-#upper[nl=="logSdLogN"]<-log(c(20,0.3))
-
-#t(rbind(lower,upper))    
-opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
-
-cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations, "  evaluations:",opt$evaluations) 
-
-
-#rep<-obj$report()
-#rep$predN[[1]][1,]
-
-sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
-
+sdrep <- sdreport(obj); 
+cat('Hesssian:',sdrep$pdHess,'\n')
 
 ####  Re-run with estimated parameters
 if (FALSE) {
-  newPar<-as.list(sdrep, what="Est")
-  obj <- MakeADFun(func, newPar, random,silent=F,map=my.map)
-   #obj$simulate()
-  
-  opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300))
-  cat("\nobjective:",opt$objective,"  convergence:",opt$convergence, "  ", opt$message, "  iterations:",opt$iterations, "  evaluations:",opt$evaluations) 
-}  
+  # using opt$par(with the estimated parameters) instead of  obj$par
+  system.time(opt1 <- nlminb(opt$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300)))
+  announce(opt1)
+  sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
 
+  if (FALSE) { # another way of doing the same, requires call to MakeADFun, but faster optimization
+     # no need to repeat if sdreport done already
+    system.time(sdrep<-sdreport(obj,ignore.parm.uncertainty=TRUE))
+    
+    newPar<-as.list(sdrep, what="Est")  #parameters and random effects
+    system.time(obj2 <- MakeADFun(func, newPar, random,silent=T,map=my.map))
+     #obj2$simulate()
+    system.time(opt2 <- nlminb(obj2$par, obj2$fn, obj2$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300)))
+    announce(opt2)
+    data.frame(name=names(obj$par),ini=obj$par,opt=opt$par,exp_opt=exp(opt$par),opt1=opt1$par,opt2=opt2$par)
+    
+  }
+}  
 

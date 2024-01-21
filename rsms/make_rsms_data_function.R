@@ -30,7 +30,7 @@ names(stockRecruitmentModelCode)<-spNames
 
 rec_loga <- rep(1,nSpecies)
 rec_loga[stockRecruitmentModelCode==1] <- log(200)  # Ricker
-rec_loga[stockRecruitmentModelCode==2] <- 1         # B&W
+rec_loga[stockRecruitmentModelCode==2] <- 4         # B&W
 
 rec_logb <- rep(1,nSpecies)
 rec_logb[stockRecruitmentModelCode==1] <- -12  # Ricker
@@ -176,8 +176,10 @@ sampleTimeWithin<-x
 
 a<- a%>% mutate_if(is.numeric,as.integer)
 a<-t(a)[,c('f','s','minyear',"miny","maxyear","maxy","minage","mina","maxage","maxa","q.age","plusgroup","PowerAge","q","startf","endf")]
+a<-cbind(a,type=1L)
 if (is.vector(a)) {lena<-length(a); nama=names(a); a<-matrix(a,nrow=1,ncol=lena); colnames(a)<-nama}
 rownames(a)<-paste(1:nFleets,fleetNames)
+if ("POK Biomass Q3" %in% fleetNames) a[grep("POK Biomass Q3",fleetNames),'type']<-2L   #%%%%%%%%%%%%%%  midlertidig
 keySurvey<-a
 keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
 

@@ -1,5 +1,5 @@
 make_rsms_data<-function(dir,outDir=dir,sms.dat='sms.dat',adj_san=TRUE) {
-# dir="ns_2023_rsms_input"; sms.dat='rsms.dat'
+# dir="rsms_input"; sms.dat='rsms.dat'
  
 Init.function(dir=file.path(root,dir),sms.dat=sms.dat) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
@@ -179,7 +179,10 @@ a<-t(a)[,c('f','s','minyear',"miny","maxyear","maxy","minage","mina","maxage","m
 a<-cbind(a,type=1L)
 if (is.vector(a)) {lena<-length(a); nama=names(a); a<-matrix(a,nrow=1,ncol=lena); colnames(a)<-nama}
 rownames(a)<-paste(1:nFleets,fleetNames)
+
 if ("POK Biomass Q3" %in% fleetNames) a[grep("POK Biomass Q3",fleetNames),'type']<-2L   #%%%%%%%%%%%%%%  midlertidig
+if ("MAC SSB-egg" %in% fleetNames) a[grep("MAC SSB-egg",fleetNames),'type']<-3L   #%%%%%%%%%%%%%%  midlertidig
+
 keySurvey<-a
 keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
 

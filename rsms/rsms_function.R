@@ -255,7 +255,7 @@ func <- function(parameters) {
       obs.no<-keys[,'obs.no']
       keyCatchability<-keys[1,"keyCatchability"]
       keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
-# does not work     predObs<-sapply(flYears,function(y) log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] )
+      # does not work     predObs<-sapply(flYears,function(y) log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] )
       predObs<-numeric(length(obs.no))
       n<-0L
       for (y in flYears)  {
@@ -268,8 +268,26 @@ func <- function(parameters) {
       if (Debug==1)  {  
         nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE))
       }
+    } else if (surveyType[fl]==3) {  # SSB index
+      flYears<-keys[,'y']
+      faf<-info[s,'faf']; laf<-info[s,'lalike']
+      obs.no<-keys[,'obs.no']
+      keyCatchability<-keys[1,"keyCatchability"]
+      keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
+      # does not work     predObs<-sapply(flYears,function(y) log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] )
+      predObs<-numeric(length(obs.no))
+      n<-0L
+      for (y in flYears)  {
+        n<-n+1L
+        predObs[n]<- log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]*propMat[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] 
+      }
       
-    }
+      var <- varLogObsSurvey[keyVarObsSurvey]
+      ans <- ans - sum(dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE))
+      if (Debug==1)  {  
+        nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE))
+      } 
+    }  else stop(paste("s:",s,"  fleet:",fl,'  fleet type:',surveyType[fl],' is not known\n'))
   } # end fleet loop
   } #end species loop
 

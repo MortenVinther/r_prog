@@ -26,7 +26,7 @@ root.copy<-root
 #my.stock.dir<-"NorthSeaKeyRun_2023"
 #my.stock.dir<-"NS_2023_key_run_directors_cut"
 
-my.stock.dir<-"ns_2023_rsms_input"
+my.stock.dir<-"rsms_input"
 
 #my.stock.dir<-"S16"
 #my.stock.dir<-"S16_S21"

@@ -21,7 +21,7 @@ annualData<-F
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
 inp<-pick_species(ps=c(1L,2L,3L,4L,6L), inp=inp_all)
-inp<-pick_species(ps=c(5L), inp=inp_all)  
+inp<-pick_species(ps=c(4L,5L), inp=inp_all)  
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
@@ -69,6 +69,7 @@ if (any(data$stockRecruitmentModelCode==0)) { #random walk recruitment, no need 
   bMap<-factor(bMap)
   my.map<-c(my.map,list(rec_loga=aMap),list(rec_logb=bMap))
 }
+
   #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
   # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
   #rho =factor(rep(NA,length(parameters$rho)))

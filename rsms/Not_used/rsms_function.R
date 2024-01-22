@@ -11,6 +11,7 @@ func <- function(parameters) {
   logCatchObs<-OBS(logCatchObs)
   logSurveyObs<-OBS(logSurveyObs)
  
+  predSurveyObs<-numeric(length(logSurveyObs))
   # first we have all the N states
   logN<-list()
   for (s in 1:nSpecies) logN<-c(logN, list(Un[(nlogNfromTo[s,1]:nlogNfromTo[s,2]),,drop=FALSE]))
@@ -57,14 +58,6 @@ func <- function(parameters) {
   fq<-1L;     # first season (e.g. quarter)
   lq<-nSeasons
   nlls<-matrix(0,ncol=4,nrow=nSpecies,dimnames=list(species=spNames,nll=c("catch","F","N","survey")))
-  
-  
-  # survey initialization
-  predSurveyObs<-numeric(length(logSurveyObs))
-  surveyType<-keySurvey.overview[,'type']
-  mina<-keySurvey.overview[,'mina']
-  maxa<-keySurvey.overview[,'maxa']
-  
   
   
   ## Initialize joint negative log likelihood
@@ -234,26 +227,27 @@ func <- function(parameters) {
 
   # and now surveys
   fleets<-keySurvey.overview[keySurvey.overview[,'s']==s,'f']
-  
+  surveyType<-keySurvey.overview[,'type']
+
   for (fl in  fleets)  {
     #cat("survey: ",fl,'\n')
-    keys<-keySurvey[keySurvey[,"f"]==fl ,]
+    keys<-keySurvey[keySurvey[,"f"]==fl,]
     q<-keys[1,"q"]
     if (surveyType[fl]==1) {
-      for (a in mina[fl]:maxa[fl]) {
-         keysA<-keys[keys[,"a"]==a  ,]
-         flYears<-keysA[,'y']
-         keyPowerQ<-keysA[1,"keyPowerQ"]
-         keyCatchability<-keysA[1,"keyCatchability"]
-         keyVarObsSurvey<-keysA[1,"keyVarObsSurvey"]
-         obs.no<-keysA[,'obs.no']
-         predSurveyObs[obs.no]<- logNq[[s]][flYears,q,a] - Zq[[s]][flYears,q,a]*sampleTimeWithinSurvey[fl]
-         if(keyPowerQ>0) predSurveyObs[obs.no] <- predSurveyObs[obs.no]*exp(logQpow[keyPowerQ])
-         predSurveyObs[obs.no]<- predSurveyObs[obs.no]+logCatchability[keyCatchability]
-         var <- varLogObsSurvey[keyVarObsSurvey]
-         ans <- ans - sum(dnorm(logSurveyObs[obs.no], predSurveyObs[obs.no],sqrt(var),log=TRUE))
-         if (Debug==1)  {  
-          nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no], predSurveyObs[obs.no],sqrt(var),log=TRUE))
+      for (i in 1:dim(keys)[[1]]) {
+        y<-keys[i,'y']
+        a<-keys[i,'a']
+        keyPowerQ<-keys[i,"keyPowerQ"]
+        keyCatchability<-keys[i,"keyCatchability"]
+        keyVarObsSurvey<-keys[i,"keyVarObsSurvey"]
+        obs.no<-keys[i,'obs.no']
+        predObs<-logNq[[s]][y,q,a] - Zq[[s]][y,q,a]*sampleTimeWithinSurvey[fl]
+        if(keyPowerQ>0) predObs <- predObs*exp(logQpow[keyPowerQ])
+        predObs <- predObs+logCatchability[keyCatchability]
+        var <- varLogObsSurvey[keyVarObsSurvey]
+        ans <- ans - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
+        if (Debug==1)  {  
+          nlls[s,'survey']<- nlls[s,'survey']   - dnorm(logSurveyObs[obs.no],predObs,sqrt(var),log=TRUE)
         }
        } 
     } else if (surveyType[fl]==2) {  # exploitable biomass (assumed all age with F>0)
@@ -296,7 +290,6 @@ func <- function(parameters) {
   REPORT(predN)
   REPORT(Zq)
   REPORT(Chat)
-  REPORT(predSurveyObs)
   REPORT(nlls)
   
   ans

@@ -7,7 +7,7 @@ upper[nl=='rho'] <- 0.99
 
 grep('rho',nl)
 
-lower[nl=="logSdLogObsSurvey"]<-rep(log(0.15),length(parameters$logSdLogObsSurvey))
+lower[nl=="logSdLogObsSurvey"]<-rep(log(0.1),length(parameters$logSdLogObsSurvey))
 upper[nl=="logSdLogObsSurvey"]<-rep(log(2.0),length(parameters$logSdLogObsSurvey))
 
 lower[nl=="logSdLogObsCatch"]<-rep(log(0.15),length(parameters$logSdLogObsCatch))
@@ -19,4 +19,4 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 
 
 # mac
-#upper[nl=="logSdLogN"]<-log(c(20,0.01,0.01))
+#upper[nl=="logSdLogN"]<-log(c(0.10))

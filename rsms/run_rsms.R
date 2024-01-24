@@ -10,7 +10,6 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 if (FALSE) {  # transform  SMS data into RSMS format 
   inp_all<-make_rsms_data(dir="rsms_input",outDir=rsms.root,sms.dat='rsms.dat')
   save(inp_all,file=file.path(rsms.root,"rsms_input_all.Rdata"))
-  load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 }
 load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
 
@@ -21,7 +20,7 @@ annualData<-F
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
 inp<-pick_species(ps=c(1L,2L,3L,4L,6L), inp=inp_all)
-inp<-pick_species(ps=c(4L), inp=inp_all)  
+inp<-pick_species(ps=c(5L), inp=inp_all)  
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)

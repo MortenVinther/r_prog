@@ -27,7 +27,7 @@ root.copy<-root
 #my.stock.dir<-"NS_2023_key_run_directors_cut"
 
 my.stock.dir<-"rsms_input"
-my.stock.dir<-"NS_2023_key_run_JAMBAY"
+#my.stock.dir<-"NS_2023_key_run_JAMBAY"
 
 # make a backup of the SMS source code
 # file.copy(file.path(root.prog,"program","sms.tpl"),file.path(root.prog,"program",paste("sms_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)

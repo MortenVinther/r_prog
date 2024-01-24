@@ -267,20 +267,30 @@ who_eats_whom<-function(
   if (dev %in% c('png','print')) cleanup()
   
   # biomass eaten by predator
-  if (FALSE) {
+  if (TRUE) {
     cleanup()
-    for (Pred in c('Cod','Hake')){
-      X11()
+    sort(unique(a$Predator))
+    for (Pred in sort(unique(a$Predator))){
+      nox<-1;noy=2
+      filename<-paste0("WhatEats_",Pred)
+      if (makeAllGraphs) filename=file.path(whoEatsWhom.dir,filename)
+      newplot(dev,nox,noy,w8=12,w11=11,Portrait=TRUE,pointsize=12,filename=filename);
+      par(mar=c(3,4,2,1))  #  c(bottom, left, top, right)
+      
       aaa<-subset(a,Predator==Pred)
       aa<-droplevels(aggregate(eatenW~Prey+Year,data=aaa,sum,na.rm=T))
       tot<-tapply(aa$eatenW,list(aa$Prey,aa$Year),sum)
       tot[is.na(tot)]<-0
+      
+      trend<-colSums(tot)
+      trend<-data.frame(year=as.numeric(names(trend)),trend=trend)
+      trend<-lm(trend~year,data=trend)$coefficients['year']
+      if (trend >1) posi='topleft' else posi='topright'
       barplot(tot,
         #col=rainbow(dim(tot)[1]),
         col=my.colors,
         ylab='biomass eaten (1000 t)',
-        legend =rownames(tot),args.legend=list(x="topright",ncol=2,title=paste('Preys eaten by',Pred)))
-      X11()
+        legend =rownames(tot),args.legend=list(x=posi,ncol=2,title=paste('Preys eaten by',Pred)))
       tot<-tot/rep(colSums(tot),each=dim(tot)[1])
       barplot(tot, col=my.colors,ylab='Proportion eaten')
     }
@@ -289,6 +299,8 @@ who_eats_whom<-function(
   if (dev %in% c('png','print')) cleanup()
   
 }
+
+
 
 if (FALSE) {
   

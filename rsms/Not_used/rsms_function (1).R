@@ -287,21 +287,6 @@ func <- function(parameters) {
       if (Debug==1)  {  
         nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no],predSurveyObs,sqrt(var),log=TRUE))
       } 
-    } else if (surveyType[fl]==4) {  # effort index
-        flYears<-keys[,'y']
-        faf<-1L; laf<-info[s,'la']
-        obs.no<-keys[,'obs.no']
-        keyCatchability<-keys[1,"keyCatchability"]
-        keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
-        for (f in 1:length(obs.no))  {
-          y<-flYears[f]
-          predSurveyObs[obs.no[f]]<- log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]*propMat[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] 
-        }
-        var <- varLogObsSurvey[keyVarObsSurvey]
-        ans <- ans - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
-        if (Debug==1)  {  
-          nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no],predSurveyObs,sqrt(var),log=TRUE))
-        } 
     }  else stop(paste("s:",s,"  fleet:",fl,'  fleet type:',surveyType[fl],' is not known\n'))
   } # end fleet loop
   } #end species loop

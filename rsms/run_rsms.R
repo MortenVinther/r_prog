@@ -20,7 +20,7 @@ annualData<-F
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
 inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no hess
-inp<-pick_species(ps=c(1L,2,3), inp=inp_all)  
+inp<-pick_species(ps=c(8L), inp=inp_all)  
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)

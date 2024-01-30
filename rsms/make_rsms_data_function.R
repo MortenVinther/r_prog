@@ -183,6 +183,15 @@ rownames(a)<-paste(1:nFleets,fleetNames)
 if ("POK Biomass Q3" %in% fleetNames) a[grep("POK Biomass Q3",fleetNames),'type']<-2L   #%%%%%%%%%%%%%%  midlertidig
 if ("MAC SSB-egg" %in% fleetNames) a[grep("MAC SSB-egg",fleetNames),'type']<-3L   #%%%%%%%%%%%%%%  midlertidig
 
+sandComm<-c("NSA Commercial 1983-1998","NSA Commercial 1999-2022", "SSA Commercial 1983-2002","SSA Commercial 2003-2022")   
+found<-fleetNames %in% sandComm 
+a[found,'type']<-4L   #%%%%%%%%%%%%%%  midlertidig
+a[found,]
+
+
+a[found,'maxa']<-a[found,'mina']
+a[found,'maxage']<-a[found,'minage']
+
 keySurvey<-a
 keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
 
@@ -239,7 +248,6 @@ for (f in (1:nFleets)) {
     xx<-rbind(xx,data.frame(f=f,s=s,species.n=s,age=j-off.age,a=j,keyPowerQ=i))
   }
 }
-x
 keyQpow<-x
 keyQpow.df<-xx
 if (max(keyQpow) >0) logQpow<-rep(0.0,max(keyQpow)) else  logQpow<-rep(0.0,0)
@@ -247,8 +255,13 @@ if (max(keyQpow) >0) logQpow<-rep(0.0,max(keyQpow)) else  logQpow<-rep(0.0,0)
 ### survey observations
 
 cpue<-lapply(indices,function(x){
-  nage<-x@range["max"]-x@range["min"]+1L
-  a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))
+  sp.fl<-unlist(x@range.SMS['sp.fl'])
+  if (keySurvey[sp.fl,'type']==4L)  { # %%%%%%%%%%%%%%%%%%%%%% midlertidig
+    a<-as.data.frame(x@catch.n[1,,,,,]/x@catch.n[1,,,,,]* as.vector(x@effort))  # to maintain format
+  } else {
+    nage<-x@range["max"]-x@range["min"]+1L
+    a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))
+  }
   a$species.n<-unlist(x@range.SMS["species"])
   a$fleet.no<-unlist(x@range.SMS["fleet.no"])
   a$f<-unlist(x@range.SMS["sp.fl"])

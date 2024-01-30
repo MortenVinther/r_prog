@@ -143,6 +143,7 @@ for (s in (rsp)) {
     geom_line(aes(linetype=source,col=source))+
     geom_point(aes(shape=source,col=source))+
     facet_grid(variable ~ ., scales="free_y")+
+    ylim(0,NA)+
     ggtitle(unlist(bb[1,'Species']))
   print(p)
   cat('press return to see the next plot:')

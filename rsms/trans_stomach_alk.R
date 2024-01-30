@@ -303,323 +303,50 @@ RSMS.stom.transform<-function( list.data.path=" ",stomMark=NULL,trans.bio=FALSE,
     
     
     tot<-stom
-    tot<- tot %>% arrange(year,quarter,SMS_area,pred.no,pred.size.class,prey.no,prey.size.class) %>% as_tibble()
+    tot<- tot %>% arrange(SMS_area,year,quarter,pred.no,pred.size.class,prey.no,prey.size.class) %>% as_tibble() %>% rename(area=SMS_area)
     
     #test
-    tot<-select(tot, -samp.eff, -samp.eff.scaled, -calc.prey.number,-pred.size, -pred.mean.length,-prey.mean.length,-used.prey.number,-prey.size,-pred.size,-phi)
-    tot$obs_no<- 1:dim(tot)[[1]]
+    #tot<-select(tot, -samp.eff, -samp.eff.scaled, -calc.prey.number,-pred.size, -pred.mean.length,-prey.mean.length,-used.prey.number,-prey.size,-pred.size,-phi)
+    nobs<-dim(tot)[[1]]
+    tot$obs_no<- 1:nobs
   
-    tst<-    tot %>% group_by(year,quarter,SMS_area,pred.no,pred.size.class,prey.no) %>% mutate(f_prey.no=if_else(!duplicated(prey.no),obs_no,NA)) %>%
-                group_by(year,quarter,SMS_area,pred.no,pred.size.class) %>% mutate(f_pred.size.class=if_else(!duplicated(pred.size.class),obs_no,NA)) %>%
-                group_by(year,quarter,SMS_area,pred.no) %>% mutate(f_pred.no=if_else(!duplicated(pred.no),obs_no,NA)) %>%
-                group_by(year,quarter,SMS_area) %>% mutate(f_SMS_area=if_else(!duplicated(SMS_area),obs_no,NA)) %>% 
-                group_by(year,quarter) %>% mutate(f_quarter=if_else(!duplicated(quarter),obs_no,NA)) %>% 
-                group_by(year) %>% mutate(f_year=if_else(!duplicated(year),obs_no,NA)) %>%
+    s<-    tot %>% group_by(area,year,quarter,pred.no,pred.size.class,prey.no) %>% mutate(f_prey.no=if_else(!duplicated(prey.no),obs_no,NA)) %>%
+                group_by(area,year,quarter,pred.no,pred.size.class) %>% mutate(f_pred.size.class=if_else(!duplicated(pred.size.class),obs_no,NA)) %>%
+                group_by(area,year,quarter,pred.no) %>% mutate(f_pred.no=if_else(!duplicated(pred.no),obs_no,NA)) %>%
+                group_by(area,year,quarter) %>% mutate(f_quarter=if_else(!duplicated(quarter),obs_no,NA)) %>% 
+                group_by(area,year) %>% mutate(f_year=if_else(!duplicated(year),obs_no,NA)) %>% 
+                group_by(area) %>% mutate(f_area=if_else(!duplicated(area),obs_no,NA)) %>%
                 ungroup()
  
-    tst %>%print(n=20)
-    filter(tst,!is.na(f_year))
-    filter(tst,!is.na(f_prey.no))
-    
-    tot$year.quarter<-paste(tot$year,tot$quarter)
-    tot$year.quarter.area<-paste(tot$year.quarter,formatC(tot$SMS_area,wid = 2, flag = "0"))
-    tot$year.quarter.area.pred<-paste(tot$year.quarter.area,formatC(tot$pred.no,wid = 2, flag = "0"))
-    tot$year.quarter.area.pred.predL<-paste(tot$year.quarter.area.pred,formatC(tot$pred.size.class,wid = 2, flag = "0"))
-    tot$year.quarter.area.pred.predL.prey<-paste(tot$year.quarter.area.pred.predL,formatC(tot$prey.no,wid = 2, flag = "0"))
-    tot$year.quarter.area.pred.predL.prey.preyL<-paste(tot$year.quarter.area.pred.predL.prey,formatC(tot$prey.size.class,wid = 2, flag = "0"))
-    
-    b<-subset(tot,select=c(year,pred.size,pred.size.class))
-    a<-paste(b$year,formatC(b$pred.size.class,wid = 2, flag = "0"),formatC(b$pred.size,wid = 4, flag = "0"))
-    
-    bb1<-subset(b[!duplicated(a),],select=c(year,pred.size,pred.size.class))
-    names(bb1)<-c('year','size','size.no')
-    
-    
-    b<-subset(tot,prey.no!=0,select=c(year,pred.size,pred.size.class,prey.size,prey.size.class))
-    
-    a<-paste(b$year,formatC(b$prey.size.class,wid = 2, flag = "0"),formatC(b$prey.size,wid = 4, flag = "0"))
-    
-    bb2<-subset(b[!duplicated(a),],select=c(year,prey.size,prey.size.class))
-    names(bb2)<-c('year','size','size.no')
-    bb<-rbind(bb1,bb2)
-    key<-paste(bb$year,formatC(bb$size,wid = 4, flag = "0"),formatC(bb$size.no,wid = 2, flag = "0"))
-    bb<-bb[!duplicated(key),]
-    key<-order(paste(bb$year,formatC(bb$size,wid = 4, flag = "0"),formatC(bb$size.no,wid = 2, flag = "0")))
-    bb<-bb[key,]
-    
-    key<-order(tot$year.quarter.area.pred.predL.prey.preyL)
-    tot<-tot[key,]
-    tot$first.year<-!duplicated(tot$year)
-    tot$first.year.quarter<-!duplicated(tot$year.quarter)
-    tot$first.year.quarter.area<-!duplicated(tot$year.quarter.area)
-    tot$first.year.quarter.area.pred<-!duplicated(tot$year.quarter.area.pred)
-    tot$first.year.quarter.area.pred.predL<-!duplicated(tot$year.quarter.area.pred.predL)
-    tot$first.year.quarter.area.pred.predL.prey<-!duplicated(tot$year.quarter.area.pred.predL.prey)
-    tot$first.year.quarter.area.pred.predL.prey.preyL<-!duplicated(tot$year.quarter.area.pred.predL.prey.preyL)
-    tot$last.prey<-c(tot$first.year.quarter.area.pred.predL.prey[2:dim(tot)[1]],TRUE)
-    
-    pred.size.class.format<-subset(tot, first.year.quarter.area.pred.predL==T,select=c(year, quarter, SMS_area, pred.no,pred.size.class, pred.size))
-    # cat('\ntest 20:\n') ;print(pred.size.class.format)
-    
-    line<-'##############################################################\n'
-    
-    out<-file.path(data.path,'stom_struc_at_length.in')
-    unlink(out)
-    cat(line,file=out,append=TRUE)
-    cat(paste("#Data extracted from file ",out,"\n"),file=out,append=TRUE)
-    cat(paste("#Date ", date(), '\n'),file=out,append=TRUE)
-    cat(paste("#stom.first ",stom.first,"  #  stomcon for inserted (first length class) values\n"),file=out,append=TRUE)
-    cat(paste("#stom.mid ",stom.mid," # stomcon for inserted (mid length class) values\n"),file=out,append=TRUE)
-    cat(paste("#stom.last ",stom.last,"  # stomcon for inserted (last length class) values\n"),file=out,append=TRUE)
-    cat(paste("#stom.exp ",stom.exp,"  # stomcon for inserted (expanded species and length class) values\n"),file=out,append=TRUE)
-    cat(paste("#stom.min.abs",stom.min.abs, "   # absolut minimum value for stom con for inserted values\n"),file=out,append=TRUE)
-    cat(paste("#delete.tails",delete.tails, "   # artifictal data deleted or not\n"),file=out,append=TRUE)
-    cat(paste("#inserted.haul.no.propor ",inserted.haul.no.propor," # proportion of number hauls in case of invented values (first, mid and last values)\n"),file=out,append=TRUE)
-    
-    cat(line,file=out,append=TRUE)
-    cat(paste("# File for stomach contents data by length groups of predators and preys\n"),file=out,append=TRUE)
-    cat(line,file=out,append=TRUE)
-    cat(paste("# n_stl_y:  number of years with stomach data\n",length(unique(tot$year)),"\n"),file=out,append=TRUE)
-    
-    cat(paste("# n_stl_yq:  number of year, quarter combinations with stomach data\n"),file=out,append=TRUE)
-    cat(paste(length(unique(tot$year.quarter)),"\n"),file=out,append=TRUE)
-    
-    cat(paste("# n_stl_yqd:  number of year, quarter, area combinations with stomach data\n"),file=out,append=TRUE)
-    cat(paste(length(unique(tot$year.quarter.area)),"\n"),file=out,append=TRUE)
-    
-    cat(paste("# n_stl_yqdp:  number of year, quarter, area, predator combinations with stomach data\n"),file=out,append=TRUE)
-    cat(paste(length(unique(tot$year.quarter.area.pred)),"\n"),file=out,append=TRUE)
-    
-    cat(paste("# n_stl_yqdpl:  number of year, quarter, area, predator, predator length combinations with stomach data\n"),file=out,append=TRUE)
-    cat(paste(length(unique(tot$year.quarter.area.pred.predL)),"\n"),file=out,append=TRUE)
-    
-    cat(paste("# n_stl_yqdplp:  number of year, quarter, area, predator, predator length, prey  combinations with stomach data\n"),file=out,append=TRUE)
-    cat(paste(length(unique(tot$year.quarter.area.pred.predL.prey)),"\n"),file=out,append=TRUE)
-    
-    aa<-tot[!duplicated(tot$year.quarter),]
-    aa$index<-seq(1,dim(aa)[1])
-    minn<-tapply(aa$index,list(aa$year),min)
-    maxx<-tapply(aa$index,list(aa$year),max)
-    
-    cat(line,file=out,append=TRUE)
-    cat(paste("# stl_Y: year name, first and last year-quarter index\n"),file=out,append=TRUE)
-    yy<-as.numeric(unlist(dimnames(minn)))
-    for (i in (1:dim(minn))) cat(paste(yy[i],minn[i],maxx[i],"\n"),file=out,append=TRUE)
-    
-    
-    aa<-tot[!duplicated(tot$year.quarter.area),]
-    aa$index<-seq(1,dim(aa)[1])
-    aa<-subset(aa,select=c(index,year,quarter,SMS_area))
-    minn<-tapply(aa$index,list(aa$year,aa$quarter),min)
-    maxx<-tapply(aa$index,list(aa$year,aa$quarter),max)
-    yy<-as.numeric(unlist(dimnames(minn)[1]))
-    qq<-as.numeric(unlist(dimnames(minn)[2]))
-    cat(paste("# stl_yq: quarter name, first and last quarter-area index\n"),file=out,append=TRUE)
-    for (j in (1:length(yy))) for(i in (1:length(qq))) if (!is.na(minn[j,i]) & !is.na(maxx[j,i])) cat(paste(qq[i],minn[j,i],maxx[j,i],"\n"),file=out,append=TRUE)
-    
-    cat(paste("# stl_yqd: area name, and first and last year-quarter-species-age index\n"),file=out,append=TRUE)
-    aa<-tot[!duplicated(tot$year.quarter.area.pred),]
-    aa$index<-seq(1,dim(aa)[1])
-    minn<-tapply(aa$index,list(aa$year,aa$quarter,aa$SMS_area),min)
-    maxx<-tapply(aa$index,list(aa$year,aa$quarter,aa$SMS_area),max)
-    
-    yy<-as.numeric(unlist(dimnames(minn)[1]))
-    qq<-as.numeric(unlist(dimnames(minn)[2]))
-    pp<-as.numeric(unlist(dimnames(minn)[3]))
-    
-    for (j in (1:length(yy))) for(i in (1:length(qq))) for(k in (1:length(pp))) {
-      if (!is.na(minn[j,i,k]) & !is.na(maxx[j,i,k])) cat(paste(pp[k],minn[j,i,k],maxx[j,i,k],"\n"),file=out,append=TRUE)
-    }
-    
-    cat(line,file=out,append=TRUE)
-    cat(paste("# stl_yqdp: predator name, and first and last area-pred index\n"),file=out,append=TRUE)
-    aa<-tot[!duplicated(tot$year.quarter.area.pred.predL),]
-    aa$index<-seq(1,dim(aa)[1])
-    aa<-subset(aa,select=c(index,year,quarter,SMS_area,pred.no))
-    minn<-tapply(aa$index,list(aa$year,aa$quarter,aa$SMS_area,aa$pred.no),min)
-    maxx<-tapply(aa$index,list(aa$year,aa$quarter,aa$SMS_area,aa$pred.no),max)
-    
-    yy<-as.numeric(unlist(dimnames(minn)[1]))
-    qq<-as.numeric(unlist(dimnames(minn)[2]))
-    dd<-as.numeric(unlist(dimnames(minn)[3]))
-    pp<-as.numeric(unlist(dimnames(minn)[4]))
-    
-    for (j in (1:length(yy))) for(i in (1:length(qq))) for(k in (1:length(dd))) for(l in (1:length(pp))) {
-      if (!is.na(minn[j,i,k,l]) & !is.na(maxx[j,i,k,l])) cat(paste(pp[l],minn[j,i,k,l],maxx[j,i,k,l],"\n"),file=out,append=TRUE)
-    }
-    
-    
-    cat(line,file=out,append=TRUE)
-    cat(paste("# stl_yqdpl: predator length name, first and last predator-length-prey index, and predator length\n"),file=out,append=TRUE)
-    aa<-tot[!duplicated(tot$year.quarter.area.pred.predL.prey),]
-    #cat ('\ntest 7:\n'); summary(aa);print(head(aa))
-    aa$index<-seq(1,dim(aa)[1])
-    minn<-tapply(aa$index,list(aa$year,aa$quarter,aa$SMS_area,aa$pred.no,aa$pred.size.class),min)
-    maxx<-tapply(aa$index,list(aa$year,aa$quarter,aa$SMS_area,aa$pred.no,aa$pred.size.class),max)
-    
-    b<-cbind(expand.grid(dimnames(minn)),as.vector(minn),as.vector(maxx))
-    colnames(b)<-c('year','quarter','SMS_area','pred.no','size.no','min.index','max.index')
-    b<-as.data.frame(b)
-    b<-subset(b,!is.na(max.index))
-    
-    
-    pred.size.class.format$size.no<-pred.size.class.format$pred.size.class; pred.size.class.format$pred.size.class<-NULL
-    pred.size.class.format$size<-pred.size.class.format$pred.size; pred.size.class.format$pred.size<-NULL
-    #print(head(b))
-    #print(head(pred.size.class.format))
-    b<-merge(b,pred.size.class.format,all.x=TRUE,sort=FALSE)
-    
-    key<-order(paste(b$year,b$quarter,b$SMS_area,formatC(as.numeric(b$pred.no),wid=2,flag='0'),formatC(as.numeric(b$size.no),wid=2,flag='0')))
-    b<-b[key,]
-    
-    b<-subset(b,select=c('size.no','min.index','max.index','size'))
-    #cat ('\ntest 8:\n'); print(head(b,15))
-    write.table(b,file=out,append=TRUE, quote = FALSE, row.names = FALSE,col.names = FALSE)
-    
-    cat(line,file=out,append=TRUE)
-    cat(paste("# stl_yqdplp: prey name, first and last year-quarter-predator-length-prey-length\n"),file=out,append=TRUE)
-    aa<-tot[!duplicated(tot$year.quarter.area.pred.predL.prey.preyL),]
-    aa<-subset(aa,select=c('year','quarter','SMS_area','pred','pred.no','pred.size','pred.size.class','prey','prey.no','prey.size','prey.size.class'))
-    minn<-tapply(aa$prey.size.class,list(aa$year,aa$quarter,aa$SMS_area,aa$pred.no,aa$pred.size.class,aa$prey.no),min)
-    maxx<-tapply(aa$prey.size.class,list(aa$year,aa$quarter,aa$SMS_area,aa$pred.no,aa$pred.size.class,aa$prey.no),max)
-    
-    b<-cbind(expand.grid(dimnames(minn)),as.vector(minn),as.vector(maxx))
-    colnames(b)<-c('year','quarter','SMS_area','pred.no','pred.size','prey','min.index','max.index')
-    b<-as.data.frame(b)
-    b<-subset(b,!is.na(max.index))
-    key<-order(paste(b$year,b$quarter,b$SMS_area,formatC(as.numeric(b$pred.no),wid = 2, flag = "0"),formatC(as.numeric(b$pred.size),wid = 2, flag = "0"),formatC(as.numeric(b$prey),wid = 2, flag = "0")))
-    b<-b[key,]
-    b<-subset(b,select=c('prey','min.index','max.index'))
-    write.table(b,file=out,append=TRUE, quote = FALSE, row.names = FALSE,col.names = FALSE)
-    cat(paste("#\n -999.0 # Check sum \n"),file=out,append=TRUE)
-    
-    nfiles<-9
-    out<-c(
-      file.path(data.path,'stomcon_at_length.in'),            # 1
-      file.path(data.path,'stomlen_at_length.in'),            # 2
-      file.path(data.path,'stomweight_at_length.in'),         # 3
-      file.path(data.path,'N_haul_at_length.in'),             # 4
-      file.path(data.path,'N_haul_at_length_scaled.in'),      # 5
-      file.path(data.path,'stomnumber_at_length.in'),         # 6
-      file.path(data.path,'stomtype_at_length.in'),           # 7
-      file.path(data.path,'stom_pred_length_at_sizecl.in'),    # 8
-      file.path(data.path,'stom_pred_dirchlet.in')             # 9
-    )
-    for (i in 1:nfiles) unlink(out[i])
-    for (i in 1:nfiles) cat(line,file=out[i])
-    cat(paste("# relative stomach contents weight  by year, quarter, area, predator, predator length, prey and prey length\n"),file=out[1],append=TRUE)
-    cat(paste("# Length of preys by year, quarter, area, predator, predator length, prey and prey length\n"),file=out[2],append=TRUE)
-    cat(paste("# Mean weight at length of  preys by year, quarter, area, predator, predator length, prey and prey length\n"),file=out[3],append=TRUE)
-    cat(paste("# Number of samples by year, quarter, area, predator, predator length, prey and prey length\n"),file=out[4],append=TRUE)
-    cat(paste("# SCALED Number of samples by year, quarter, area, predator, predator length, prey and prey length\n"),file=out[5],append=TRUE)
-    cat(paste("# Number at length of preys by year, quarter, area, predator, predator length, prey and prey length\n"),file=out[6],append=TRUE)
-    cat(paste("# Type of data of preys by year, quarter, area, predator, predator length, prey and prey length\n",
-              "# 1=Observed data\n",
-              "# 2=(not observed) data within the observed size range (=fill in)\n",
-              "# 3=(not observed) data outside an observed size range. One obs below and one above (=tails)\n",
-              "# 4=(not observed) data for the full size range of a prey species irrespective of predator size (=expansion) \n"),file=out[7],append=TRUE)
-    cat(paste("# Mean length per predator size class\n"),file=out[8],append=TRUE)
-    cat(paste("# Dirichlet alfa0 (or phi)  per predator size class\n"),file=out[9],append=TRUE)
-    for (i in 1:nfiles) cat(paste("# Date ", date(), '\n'),file=out[i],append=TRUE)
-    
-    code.slow.but.formatted.output<-function() {
-      for (i in (1:dim(tot)[1])) {
-        if (tot$first.year[i]) {
-          for (j in 1:nfiles) cat(line,file=out[j],append=TRUE)
-          for (j in (1:nfiles)) cat(paste("# year:",tot$year[i],"\n"),file=out[j],append=TRUE)
-          cat(paste(' stom year:',tot$year[i],'\n'))
-        }
-        if (tot$first.year.quarter[i]) {
-          for (j in 1:nfiles) cat(line,file=out[j],append=TRUE)
-          for (j in (1:nfiles))cat(paste("# ",tot$year[i]," quarter:",tot$quarter[i],"\n"),file=out[j],append=TRUE)
-        }
-        if (tot$first.year.quarter.area[i]) {
-          for (j in 1:nfiles) cat(line,file=out[j],append=TRUE)
-          for (j in (1:nfiles))cat(paste("# ",tot$year[i]," quarter:",tot$quarter[i]," area:",tot$SMS_area[i],"\n"),file=out[j],append=TRUE)
-        }
-        if (tot$first.year.quarter.area.pred[i]){
-          for (j in 1:nfiles) cat(line,file=out[j],append=TRUE)
-          for (j in (1:nfiles)) cat(paste("# predator:",tot$pred[i]," no:",tot$pred.no[i],"\n"),file=out[j],append=TRUE)
-        }
-        if (tot$first.year.quarter.area.pred.predL[i]) {
-          for (j in (1:7)) cat(paste("# predator size:",tot$pred.size[i]," class:",tot$pred.size.class[i],"\n"),file=out[j],append=TRUE)
-          cat(paste(formatC(tot$pred.mean.length[i],format="d",width=6),'\n'),file=out[8],append=TRUE)
-          cat(paste(formatC(tot$phi[i],format="f",dig=2,width=7),'\n'),file=out[9],append=TRUE)
-        }
-        
-        if (tot$first.year.quarter.area.pred.predL.prey[i]){
-          for (j in (1:7)) cat(paste("# prey:",tot$prey[i]," no:",tot$prey.no[i]," first size:",tot$prey.size[i],"\n"),file=out[j],append=TRUE)
-        }
-        cat(formatC(tot$stomcon[i],format="f",dig=8,width=12),file=out[1],append=TRUE)
-        cat(formatC(tot$prey.mean.length[i],format="d",width=6),file=out[2],append=TRUE)
-        cat(formatC(tot$mean.weight[i],format="f",dig=5,width=9),file=out[3],append=TRUE)
-        cat(formatC(tot$samp.eff[i],format="d",width=5),file=out[4],append=TRUE)
-        cat(formatC(tot$samp.eff.scaled[i],format="d",width=5),file=out[5],append=TRUE)
-        cat(formatC(tot$used.prey.number[i],format="d",width=6),file=out[6],append=TRUE)
-        cat(formatC(tot$type.no[i],format="d",width=6),file=out[7],append=TRUE)
-        
-        if (tot$last.prey[i])for (j in (1:7)) cat('\n',file=out[j],append=TRUE)
-      }
-      for (j in (1:nfiles)) cat(paste("#\n -999.0 # Check sum \n"),file=out[j],append=TRUE)
-    } # end code.slow.but.formatted.output
-    
-    
-    execution.effective<-function() {
-      write.table(formatC(tot$stomcon,format="f",dig=8,width=12),file=out[1],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot$prey.mean.length,format="d",width=6),file=out[2],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot$mean.weight,format="f",dig=5,width=9),file=out[3],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot$samp.eff,format="d",width=5),file=out[4],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot$samp.eff.scaled,format="d",width=5),file=out[5],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot$used.prey.number,format="d",width=5),file=out[6],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot$type.no,format="d",width=5),file=out[7],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot[tot$first.year.quarter.area.pred.predL,'pred.mean.length'],format="d",width=6),file=out[8],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      write.table(formatC(tot[tot$first.year.quarter.area.pred.predL,'phi'],format="f",width=7,dig=2),file=out[9],append=TRUE,quote = FALSE,row.names = FALSE,col.names = FALSE)
-      
-      for (j in (1:nfiles)) cat(paste("#\n -999.0 # Check sum \n"),file=out[j],append=TRUE)
-    }
-    
-    if (formatted.output) code.slow.but.formatted.output() else execution.effective()
-    
-    write_stom_incl(tot)
-  }
+   s %>%print(n=20)
+ 
+   key<-filter(s, !is.na(f_area)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,area);  key[dim(key)[1],'last']<-nobs
+   keySA<-key
+   
+
+   key<-filter(s, !is.na(f_year)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,year);  key[dim(key)[1],'last']<-nobs
+   keySAY<-key
+ 
+   key<-filter(s, !is.na(f_quarter)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,year);  key[dim(key)[1],'last']<-nobs
+   keySAYQ<-key
+ 
+   key<-filter(s, !is.na(f_pred.no)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,pred.no,pred);  key[dim(key)[1],'last']<-nobs
+   keySAYQP<-key
+ 
+   key<-filter(s, !is.na(f_pred.size.class)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,pred.size.class,pred.size,pred.mean.length,samp.eff,samp.eff.scaled,phi);  key[dim(key)[1],'last']<-nobs
+   keySAYQPL<-key
+   
+   key<-filter(s, !is.na(f_prey.no)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,prey.no,prey);  key[dim(key)[1],'last']<-nobs
+   keySAYQPLP<-key
+   
+   key<-filter(s, !is.na(f_prey.no)) %>% mutate(last=lead(obs_no)-1L) %>% transmute(first=obs_no,last,prey.no,prey);  key[dim(key)[1],'last']<-nobs
+   keySAYQPLP<-key
+   
+   stomObs<- s %>% transmute(obs_no,stomcon,meanWeight=mean.weight,preySizeClass=prey.size.class,preyMeanL=prey.mean.length,type=type.no) 
   
-  if (trans.stomach) trans.4M.SMS.stomach()
-  
-  #######################################################################################
-  
-  trans.4M.SMS.ALK<-function(){
-    cat("trans.4M.SMS.ALK\n")
-    if (is.null(stomMark)) filen<-'ALK_stom_list.dat' else  filen<-paste0('ALK_stom_list',stomMark,'.dat')
-    file<-file.path(list.data.path,filen)
-    
-    lak<-read.table(file,header=TRUE)
-    used_ages<-data.frame(prey=tail(code.name,-1),plusage=SMS.control@species.info[,'last-age'])
-    lak<-full_join(lak,used_ages,by = join_by(prey)) %>% filter(prey.age<=plusage)
-    #filter(lak,prey=='WHG')
-    
-    
-    lak<-select.ALK(lak)
-    
-    lak$ALK=lak$ALK/100
-    
-    tot<-lak
-    tot$year.quarter<-paste(tot$year,tot$quarter)
-    tot$year.quarter.area<-paste(tot$year,tot$quarter,formatC(tot$SMS_area,wid = 2, flag = "0"))
-    tot$year.quarter.area.prey<-paste(tot$year.quarter.area,formatC(tot$prey.no,wid = 2, flag = "0"))
-    tot$year.quarter.area.prey.age<-paste(tot$year.quarter.area.prey,formatC(tot$prey.age,wid = 2, flag = "0"))
-    tot$year.quarter.area.prey.age.size<-paste(tot$year.quarter.area.prey.age,formatC(tot$prey.size.class,wid = 2, flag = "0"))
-    
-    key<-order(tot$year.quarter.area.prey.age.size)
-    tot<-tot[key,]
-    tot$first.year.quarter              <-!duplicated(tot$year.quarter)
-    tot$first.year.quarter.area         <-!duplicated(tot$year.quarter.area)
-    tot$first.year.quarter.area.prey    <-!duplicated(tot$year.quarter.area.prey)
-    tot$first.year.quarter.area.prey.age<-!duplicated(tot$year.quarter.area.prey.age)
-    tot$last.age<-c(tot$first.year.quarter.area.prey.age[2:dim(tot)[1]],TRUE)
-    
-    
-    line<-'##############################################################\n'
-    
+   
+   
+   
     ############## Print ALK ##############
     out<-file.path(data.path,'alk_stom.in')
     unlink(out)

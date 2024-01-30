@@ -25,7 +25,7 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 
 
 ### Extract data from SMS
-SMSenv<-"ns_2023_rsms_input"
+SMSenv<-"rsms_input"
 
 
 for (sp in testSp) {
@@ -69,20 +69,8 @@ for (sp in testSp) {
   random=c("Un","Uf")
   obj <- MakeADFun(func, parameters, random,silent=TRUE,map=my.map)
   
-  lower <- obj$par*0-Inf
-  upper <- obj$par*0+Inf
-  lower["rho"] <- 0.01
-  upper["rho"] <- 0.99
+  source(file.path(rsms.root.prog,"lowerUpper.R"))
   
-  nl<-names(lower)
-  
-  lower[nl=="logSdLogObsSurvey"]<-rep(log(0.15),length(parameters$logSdLogObsSurvey))
-  upper[nl=="logSdLogObsSurvey"]<-rep(log(2.0),length(parameters$logSdLogObsSurvey))
-  
-  lower[nl=="logSdLogObsCatch"]<-rep(log(0.1),length(parameters$logSdLogObsCatch))
-  upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
-  
-  #t(rbind(lower,upper))    
   opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper)
   save(obj,opt,data,file=file.path(rsms.root,paste0('B',sp,Annual,'.Rdata')))
   

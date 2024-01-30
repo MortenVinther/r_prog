@@ -80,7 +80,7 @@ func <- function(parameters) {
   ###################  now we begin 
   
   for (s in 1:nSpecies) {
-    cat('Species: ',s,'\n')
+    cat('Species:',s,spNames[s],'\n')
     ## First take care of F
     fcor <- outer(1:stateDimF[s],
                   1:stateDimF[s],

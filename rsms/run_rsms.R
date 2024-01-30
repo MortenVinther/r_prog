@@ -19,8 +19,8 @@ annualData<-F
 
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
-inp<-pick_species(ps=c(1L,2L,3L,4L,6L), inp=inp_all)
-inp<-pick_species(ps=c(5L), inp=inp_all)  
+inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no hess
+inp<-pick_species(ps=c(1L,2,3), inp=inp_all)  
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
@@ -85,7 +85,7 @@ obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
 source(file.path(rsms.root.prog,"lowerUpper.R"))
 #t(rbind(lower,upper)) 
 
-system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=500,eval.max=500)))
+system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=1000,eval.max=1000)))
 
 announce(opt)
 
@@ -95,7 +95,7 @@ cat('Hesssian:',sdrep$pdHess,'\n')
 ####  Re-run with estimated parameters
 if (FALSE) {
   # using opt$par(with the estimated parameters) instead of  obj$par
-  system.time(opt1 <- nlminb(opt$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=300,eval.max=300)))
+  system.time(opt1 <- nlminb(opt$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=2000,eval.max=2000)))
   announce(opt1)
   sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
 
@@ -110,7 +110,6 @@ if (FALSE) {
     announce(opt2)
     sdrep <- sdreport(obj2); cat('Hesssian:',sdrep$pdHess,'\n')
     data.frame(name=names(obj$par),ini=obj$par,opt=opt$par,exp_opt=exp(opt$par),opt1=opt1$par,opt2=opt2$par)
-    
   }
 }  
 

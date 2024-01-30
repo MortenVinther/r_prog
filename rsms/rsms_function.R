@@ -289,13 +289,13 @@ func <- function(parameters) {
       } 
     } else if (surveyType[fl]==4) {  # effort index
         flYears<-keys[,'y']
-        faf<-1L; laf<-info[s,'la']
+        faf<-fbarRange[s,1]; laf<-fbarRange[s,2]; naf<-laf-faf+1
         obs.no<-keys[,'obs.no']
         keyCatchability<-keys[1,"keyCatchability"]
         keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
         for (f in 1:length(obs.no))  {
           y<-flYears[f]
-          predSurveyObs[obs.no[f]]<- log(sum(exp(logNq[[s]][y,q,faf:laf] - Zq[[s]][y,q,faf:laf]*sampleTimeWithinSurvey[fl])*stockMeanWeight[[s]][y,q,faf:laf]*propMat[[s]][y,q,faf:laf]))+ logCatchability[keyCatchability] 
+          predSurveyObs[obs.no[f]]<- log(sum(exp(logF[[s]][faf:laf,y]))/naf) + logCatchability[keyCatchability] 
         }
         var <- varLogObsSurvey[keyVarObsSurvey]
         ans <- ans - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))

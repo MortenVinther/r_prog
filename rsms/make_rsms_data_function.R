@@ -42,7 +42,7 @@ info<-cbind(info,s=(first.VPA:sms@no.species)+off.species)
 off.oths<-0L #other species offset (for now)
 off.season<-0L # not used 
 
-fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages));
+fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages))+off.age;
 
 ## configuration of parameter keys
 
@@ -257,7 +257,9 @@ if (max(keyQpow) >0) logQpow<-rep(0.0,max(keyQpow)) else  logQpow<-rep(0.0,0)
 cpue<-lapply(indices,function(x){
   sp.fl<-unlist(x@range.SMS['sp.fl'])
   if (keySurvey[sp.fl,'type']==4L)  { # %%%%%%%%%%%%%%%%%%%%%% midlertidig
-    a<-as.data.frame(x@catch.n[1,,,,,]/x@catch.n[1,,,,,]* as.vector(x@effort))  # to maintain format
+    a<-as.data.frame(x@catch.n[1,,,,,]/x@catch.n[1,,,,,]* as.vector(x@effort))  # to maintain format, and get effort
+    a$data<-a$data/mean(a$data)
+    print(summary(a$data))
   } else {
     nage<-x@range["max"]-x@range["min"]+1L
     a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))

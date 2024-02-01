@@ -8,7 +8,7 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 ### Extract data from SMS
 
 if (FALSE) {  # transform  SMS data into RSMS format 
-  inp_all<-make_rsms_data(dir="rsms_input",outDir=rsms.root,sms.dat='rsms.dat')
+  inp_all<-make_rsms_data(dir="rsms_input",outDir=rsms.root,sms.dat='rsms.dat',adj_san=TRUE)
   save(inp_all,file=file.path(rsms.root,"rsms_input_all.Rdata"))
 }
 load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
@@ -19,7 +19,7 @@ annualData<-F
 
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
-inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no hess
+inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no hessian
 inp<-pick_species(ps=c(7,8L), inp=inp_all)  
 #inp=inp_all
 
@@ -77,7 +77,7 @@ if (any(data$stockRecruitmentModelCode==0)) { #random walk recruitment, no need 
 #obj <- MakeADFun(func, parameters, random=c("Uf"),silent=FALSE,map=my.map); obj$simulate()
 #obj <- MakeADFun(func, parameters, random=c("Un"),silent=FALSE,map=my.map); obj$simulate()  # problems ?
 random=c("Un","Uf")
-obj <- MakeADFun(func, parameters, random,silent=F,map=my.map)
+obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
 
 #obj$simulate()
 # checkConsistency(obj);

@@ -259,7 +259,6 @@ cpue<-lapply(indices,function(x){
   if (keySurvey[sp.fl,'type']==4L)  { # %%%%%%%%%%%%%%%%%%%%%% midlertidig
     a<-as.data.frame(x@catch.n[1,,,,,]/x@catch.n[1,,,,,]* as.vector(x@effort))  # to maintain format, and get effort
     a$data<-a$data/mean(a$data)
-    print(summary(a$data))
   } else {
     nage<-x@range["max"]-x@range["min"]+1L
     a<-as.data.frame(x@catch.n /  rep(as.vector(x@effort),each=nage))

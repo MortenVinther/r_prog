@@ -77,25 +77,6 @@ func <- function(parameters) {
   
 
   ##########################################################################################
-  
-  SSB_R<-function(s,y,a=1) {
-    if(stockRecruitmentModelCode[s]==0){    ## straight RW
-      rec = logN[[s]][a, y-1]
-    } 
-    else {
-      if (stockRecruitmentModelCode[s]==1){ ## Ricker
-        rec= rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
-      }else{
-        if(stockRecruitmentModelCode[s]==2){  ## B&H
-          rec=rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
-        }else{
-          stop("SR model code not recognized");
-        }
-      }
-    }
-  }
-  
-  
   ###################  now we begin 
   
   for (s in 1:nSpecies) {
@@ -132,6 +113,23 @@ func <- function(parameters) {
       }
     }
 
+    SSB_R<-function(s,y,a=1) {
+      if(stockRecruitmentModelCode[s]==0){    ## straight RW
+        rec = logN[[s]][a, y-1]
+      } 
+      else {
+        if (stockRecruitmentModelCode[s]==1){ ## Ricker
+          rec= rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
+        }else{
+          if(stockRecruitmentModelCode[s]==2){  ## B&H
+            rec=rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
+          }else{
+            stop("SR model code not recognized");
+          }
+        }
+      }
+    }
+    
   
     
     ## Now take care of N
@@ -310,7 +308,6 @@ func <- function(parameters) {
 
   ADREPORT(ssb)
   REPORT(logNq)
-  #REPORT(logF)
   REPORT(predN)
   REPORT(Zq)
   REPORT(Chat)

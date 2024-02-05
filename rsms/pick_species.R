@@ -18,7 +18,8 @@ pick_species<-function(ps=c(1), inp) {
   d$fbarRange<-data$fbarRange[ps,,drop=FALSE]     
   
   d$stockRecruitmentModelCode<-data$stockRecruitmentModelCode[ps]
-  d$zeroCatchYearExistsSp<-data$zeroCatchYearExistsSp[ps]   
+  d$zeroCatchYearExistsSp<-data$zeroCatchYearExistsSp[ps]
+  d$combinedCatches<-data$combinedCatches[ps]
   d$zeroCatchYearExists<-any(d$zeroCatchYearExistsSp==1)  
   d$zeroCatchYear<-data$zeroCatchYear[ps]
   
@@ -55,13 +56,15 @@ pick_species<-function(ps=c(1), inp) {
   d$keyVarObsSurvey<-cut_tab(data$keyVarObsSurvey,reNumber=TRUE,surv=TRUE)
   d$keyCatchability<-cut_tab(data$keyCatchability,reNumber=TRUE,surv=TRUE)
  
-  d$propMat<-data$propMat[ps]
-  d$stockMeanWeight<-data$stockMeanWeight[ps]
-  d$catchMeanWeight<-data$catchMeanWeight[ps]
-  d$seasFprop<-data$seasFprop[ps]
-  d$natMor<-data$natMor[ps]
-  d$propF<-data$propF[ps]
-  d$propM<-data$propM[ps]
+  d$propMat<-data$propMat[ps]; names(d$propMat)<-1:nps
+  d$stockMeanWeight<-data$stockMeanWeight[ps]; names(d$stockMeanWeight)<-1:nps
+  d$catchMeanWeight<-data$catchMeanWeight[ps]; names(d$catchMeanWeight)<-1:nps
+  d$catchNumber<-data$catchNumber[ps]; names(d$catchNumber)<-1:nps
+  
+  d$seasFprop<-data$seasFprop[ps]; names(d$seasFprop)<-1:nps
+  d$natMor<-data$natMor[ps]; names(d$natMor)<-1:nps
+  d$propF<-data$propF[ps]; names(d$propF)<-1:nps
+  d$propM<-data$propM[ps]; names(d$propM)<-1:nps
   
   d$keyCatch<-data$keyCatch[data$keyCatch[,'s'] %in% ps,]
     k<-sort(unique(d$keyCatch[,'keyVarObsCatch']))

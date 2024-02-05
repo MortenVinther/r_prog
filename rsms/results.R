@@ -1,33 +1,50 @@
 t(t(opt$par))
 rep<-obj$report()
 
+overw<-as.data.frame(data$keySurvey.overview) %>%  rownames_to_column(var = "fleet") %>% select(f,fleet,s,type)
+
+survResid<-as.data.frame(data$keySurvey) %>% as_tibble()  %>% 
+  mutate(predict=rep$predSurveyObs,obs=data$logSurveyObs,Residual=predict-obs,year=y-data$off.year,Age=factor(a-data$off.age),species=data$spNames[s]) %>% 
+  left_join(.,overw,by = join_by(f, s)) %>% select(s,species,f,fleet,type,year,q,Age,s,predict,obs,Residual) %>%
+  mutate(cols=if_else(Residual<0,'negativ','positiv')) 
+
+plt<-by(survResid,survResid$s,function(x){
+  plt<-x %>% ggplot(aes(year, Age,color= cols,fill=cols,size = sqrt(abs(Residual)))) +
+    geom_point(shape = 21,alpha=0.75) +
+    scale_color_manual(values = c("blue", "red")) +
+    labs(x = "", y = "Age",title=x[1,'species']) +
+   # facet_grid(rows =vars(fleet), scales="free_y")
+  facet_wrap(vars(fleet),ncol=1)+
+    theme_bw() + 
+    theme(strip.text = element_text(size = 10,margin = margin(0.01,0,0.01,0, "cm")))
+  print(plt)
+})
+plt
+
 
 N<-lapply(rep$logNq,function(x) (cbind(a1=x[,data$recSeason,1],x[,1,-1]))) # N in recruiting season for the first age and age 1 jan for the rest
-N
-resid<-lapply(data$spNames,function(x) t(N[[x]])-rep$predN[[x]]); names(resid)<-data$spNames
-resid[[1]]; rownames(resid[[1]])<-(1:data$nlogN[1])-data$off.age
+# Process N
+resid<-lapply(data$spNames,function(x) {
+  y<-t(N[[x]])-rep$predN[[x]]; 
+  rownames(y)<-(1:dim(y)[[1]])-data$off.age
+  y<-y[,-1]
+  attr(y,'species')<-x; 
+  y
+})
 
-resid<-resid[[1]][,-1]
-
-theme_set(
-  theme_bw() + 
-   # theme(legend.position = "top")+
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-
-)
-as.data.frame(resid) %>%
-  rownames_to_column(var = "Age") %>%
-  gather(key, Residual, -Age) %>% as_tibble() %>%
-  mutate(Age=factor(as.integer(Age)),cols=if_else(Residual<0,'negativ','positiv')) %>% #mutate(cols=factor(cols)) %>%
-  ggplot(aes(key, Age,color= cols,fill=cols,size = sqrt(abs(Residual)))) +
-  geom_point(shape = 21,alpha=0.75) +
-  scale_color_manual(values = c("blue", "red")) +
-  labs(x = "", y = "Age") 
+lapply(resid,function(x) {
+  as.data.frame(x) %>%
+    rownames_to_column(var = "Age") %>%
+    gather(key, Residual, -Age) %>% as_tibble() %>%
+    mutate(Age=factor(as.integer(Age)),year=as.integer(key),cols=if_else(Residual<0,'negativ','positiv')) %>% #mutate(cols=factor(cols)) %>%
+    ggplot(aes(year, Age,color= cols,fill=cols,size = sqrt(abs(Residual)))) +
+    geom_point(shape = 21,alpha=0.75) +
+    scale_color_manual(values = c("blue", "red")) +
+    labs(x = "", y = "Age",title=attr(x,'species')) +
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5))
+})
   
-
-lapply(rep$predN,function(x) (exp(x[,])))
-
-
 #lapply(rep$Zq,function(x) round(exp(x[,1,]),2))
 #lapply(rep$Chat,function(x) round(exp(x)))
 
@@ -40,6 +57,9 @@ sdrep <- sdreport(obj)
 sdrep$pdHess 
 # obj$fn()  #  value er den samme som sum af min nnls
 
+
+x<-as.list(sdrep, what="Est")
+
 #summary(sdrep, "random")                      ## Only random effects
 #summary(sdrep, "fixed", p.value = TRUE)       ## Only non-random effects
 #summary(sdrep, "fixed", p.value = FALSE)    ## Only non-random effects
@@ -51,10 +71,43 @@ sdrep$pdHess
 # lines(ssb[,"Estimate"]-2*ssb[,"Std. Error"],type='l',col='red')
 
 
-x<-as.list(sdrep, what="Est")
+parVal<-as.list(sdrep, what="Est")
+parSd<-as.list(sdrep, what="Std")
 
-round(exp(x$Uf),3)
-round(exp(x$Un),0)
+make_tab<-function(d,key,printIt=TRUE,roundIt=2,addSd=TRUE,expIt=TRUE) {
+  cat(d,'\n')
+  dd<-parVal[[d]]
+  if (expIt) dd<-exp(dd)
+  tab<-key
+  for (i in 1:length(dd)) tab[tab[,]==i]<- dd[i]
+  if (addSd) {
+    dd<-parSd[[d]]
+    if (expIt) dd<-exp(dd)
+    tabSd<-key
+    for (i in 1:length(dd)) tabSd[tabSd[,]==i]<- dd[i]
+    tabSd
+  }
+  
+  if (printIt) {
+    ptab<-tab
+    ptab[ptab== -1] <-NA
+    print(round(ptab,roundIt),na.print='.')
+    if (addSd) {
+      ptab<-tabSd
+      ptab[ptab== -1] <-NA
+      print(round(ptab,roundIt),na.print='.')
+    }
+    
+  } 
+  invisible(tab)
+}
+
+addSd<-TRUE;expIt<-T
+make_tab(d="logSdLogN",key=data$keyVarLogN,roundIt=2,addSd=addSd,expIt=expIt)
+
+
+#round(exp(x$Uf),3)
+#round(exp(x$Un),0)
 
 x$rec_loga; exp(x$rec_loga)
 x$rec_logb; exp(x$rec_logb)
@@ -72,7 +125,7 @@ make_tab<-function(d,key,printIt=TRUE,roundIt=2) {
   invisible(tab)
 }
 
-
+addSd<-TRUE
 make_tab(d=x$logSdLogN,key=data$keyVarLogN,roundIt=2)
 make_tab(d=x$logSdLogFsta,key=data$keyLogFstaSd,roundIt=2)
 make_tab(d=x$logSdLogObsCatch,key=data$keyVarObsCatch)  
@@ -185,11 +238,3 @@ if (FALSE) {
   debug(func)
   obj <- MakeADFun(func, parameters, random=c("Un","Uf"),silent=FALSE)
 }
-
-if (FALSE) {
-  set.seed(1)
-  chk <- checkConsistency(obj)
-  chk
-}
-
-

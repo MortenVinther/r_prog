@@ -182,15 +182,16 @@ rownames(a)<-paste(1:nFleets,fleetNames)
 
 if ("POK Biomass Q3" %in% fleetNames) a[grep("POK Biomass Q3",fleetNames),'type']<-2L   #%%%%%%%%%%%%%%  midlertidig
 if ("MAC SSB-egg" %in% fleetNames) a[grep("MAC SSB-egg",fleetNames),'type']<-3L   #%%%%%%%%%%%%%%  midlertidig
+if (TRUE) {
+  sandComm<-c("NSA Commercial 1983-1998","NSA Commercial 1999-2022", "SSA Commercial 1983-2002","SSA Commercial 2003-2022")   
+  found<-fleetNames %in% sandComm 
+  a[found,'type']<-4L   #%%%%%%%%%%%%%%  midlertidig
+  a[found,]
+  
+  a[found,'maxa']<-a[found,'mina']
+  a[found,'maxage']<-a[found,'minage']
+}  
 
-sandComm<-c("NSA Commercial 1983-1998","NSA Commercial 1999-2022", "SSA Commercial 1983-2002","SSA Commercial 2003-2022")   
-found<-fleetNames %in% sandComm 
-a[found,'type']<-4L   #%%%%%%%%%%%%%%  midlertidig
-a[found,]
-
-
-a[found,'maxa']<-a[found,'mina']
-a[found,'maxage']<-a[found,'minage']
 
 keySurvey<-a
 keySurvey.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName")
@@ -346,11 +347,13 @@ propMat         <-by(b,b$s,function(x) {y<-tapply(x$PROPMAT,list(x$y,x$q,x$a),su
 stockMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WSEA,list(x$y,x$q,x$a),sum) ; y[is.na(y)]<-0; y})
 catchMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WCATCH,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 natMor          <-by(b,b$s,function(x) {y<-tapply(x$M,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+catchNumber     <-by(b,b$s,function(x) {y<-tapply(x$CATCHN,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+
 
 #seasFprop <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 seasFprop <-by(b,b$s,function(x) {y<-tapply(x$propF,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 if (adj_san) {
-  seasFprop[[7]][,,1]<-rep(c(0,0,0.98,0.02),each=nYears)
+  seasFprop[[7]][,,1]<-rep(c(0,0,0.97,0.03),each=nYears)
   seasFprop[[8]][,,1]<-rep(c(0,0,0.98,0.02),each=nYears)
 }
 
@@ -433,6 +436,7 @@ list(
      #off.season=off.season,
      #off.species=off.species,
      #off.oths=off.oths,
+     combinedCatches=sms@combined.catches,
      stockRecruitmentModelCode=stockRecruitmentModelCode,
      zeroCatchYearExists=zeroCatchYearExists,
      zeroCatchYearExistsSp=zeroCatchYearExistsSp,
@@ -451,6 +455,7 @@ list(
      propMat=  propMat,      
      stockMeanWeight=stockMeanWeight,
      catchMeanWeight=catchMeanWeight,
+     catchNumber=catchNumber,
      seasFprop=seasFprop,
      natMor= natMor,
      propF=zero,

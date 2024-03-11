@@ -27,6 +27,11 @@ root.copy<-root
 #my.stock.dir<-"NS_2023_key_run_directors_cut"
 
 my.stock.dir<-"rsms_input"
+
+#my.stock.dir<-"rsms_SAN-area-1r"
+#my.stock.dir<-"NorthSeaKeyRun_2023_NS_herring"
+#my.stock.dir<-"SAN-area-1r"
+
 #my.stock.dir<-"NS_2023_key_run_JAMBAY"
 
 # make a backup of the SMS source code

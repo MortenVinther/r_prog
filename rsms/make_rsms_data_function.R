@@ -1,5 +1,5 @@
-make_rsms_data<-function(dir,outDir=dir,sms.dat='sms.dat',adj_san=TRUE) {
-# dir="rsms_input"; sms.dat='rsms.dat'
+make_rsms_data<-function(dir,outDir=dir,sms.dat='sms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[1], effort_fl='none'  ) {
+# dir=my.stock.dir; sms.dat='rsms.dat'; seasFfrom<-'catch'; adj_san0=TRUE;
  
 Init.function(dir=file.path(root,dir),sms.dat=sms.dat) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
@@ -19,7 +19,7 @@ nAges<-length(ages)
 recSeason<-as.integer(sms@rec.season)
 nSeasons<-as.integer(sms@last.season)
 years<-sms@first.year.model:sms@last.year.model; nYears<-length(years)
-info<-sms@species.info[first.VPA:sms@no.species,c("last-age", "first-age F>0", "last-age-selec", "last-age-likelihood", "+group", "SSB/R"),drop=FALSE]
+info<-sms@species.info[first.VPA:sms@no.species,c("last-age", "first-age F>0", "last-age-selec", "last-age-likelihood", "+group", "SSB/R","RecAdd2"),drop=FALSE]
 spNames<-dimnames(info)[[1]]
 othspNames<-dimnames(info)[[1]][1:(first.VPA-1)]
 off.age<- as.integer(1-sms@first.age)
@@ -27,7 +27,7 @@ off.year<- - as.integer(sms@first.year.model-1)
 stockRecruitmentModelCode<-as.integer(info[,"SSB/R"])   ####%%%%%%% MIDLERTIDIG
 # SKAL RETTES
 names(stockRecruitmentModelCode)<-spNames
-
+use_rho<-info[,"RecAdd2"]==1
 rec_loga <- rep(1,nSpecies)
 rec_loga[stockRecruitmentModelCode==1] <- log(200)  # Ricker
 rec_loga[stockRecruitmentModelCode==2] <- 4         # B&W
@@ -45,6 +45,9 @@ off.season<-0L # not used
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages))+off.age;
 
 ## configuration of parameter keys
+
+
+rho<-rep(0.7,nSpecies)
 
 ##### states at age for F random walk,
 # use sms@catch.season.age for now
@@ -176,20 +179,25 @@ sampleTimeWithin<-x
 
 a<- a%>% mutate_if(is.numeric,as.integer)
 a<-t(a)[,c('f','s','minyear',"miny","maxyear","maxy","minage","mina","maxage","maxa","q.age","plusgroup","PowerAge","q","startf","endf")]
-a<-cbind(a,type=1L)
+a<-cbind(a,type=1L,techCreep=0L)
 if (is.vector(a)) {lena<-length(a); nama=names(a); a<-matrix(a,nrow=1,ncol=lena); colnames(a)<-nama}
 rownames(a)<-paste(1:nFleets,fleetNames)
 
 if ("POK Biomass Q3" %in% fleetNames) a[grep("POK Biomass Q3",fleetNames),'type']<-2L   #%%%%%%%%%%%%%%  midlertidig
 if ("MAC SSB-egg" %in% fleetNames) a[grep("MAC SSB-egg",fleetNames),'type']<-3L   #%%%%%%%%%%%%%%  midlertidig
-if (TRUE) {
-  sandComm<-c("NSA Commercial 1983-1998","NSA Commercial 1999-2022", "SSA Commercial 1983-2002","SSA Commercial 2003-2022")   
-  found<-fleetNames %in% sandComm 
-  a[found,'type']<-4L   #%%%%%%%%%%%%%%  midlertidig
-  a[found,]
-  
+logTechCreep<-numeric(0)
+if (!(effort_fl[1]=='none')) {
+  found<-fleetNames %in% effort_fl 
+  fleetNames[found]<-paste('effort',effort_fl)
+  a[found,'type']<-4L   
+  rownames(a)<-fleetNames
   a[found,'maxa']<-a[found,'mina']
   a[found,'maxage']<-a[found,'minage']
+  a[found,]
+  doCreep<-a[,"PowerAge"] >=0
+  both<-found &doCreep
+  if (sum(both) >0) a[both,'techCreep']<-1:sum(both)
+  logTechCreep<-rep(0.0,sum(found))
 }  
 
 
@@ -218,6 +226,7 @@ for (f in (1:nFleets)) {
 keyVarObsSurvey<-x
 keyVarObsSurvey.df<-xx
 logSdLogObsSurvey<-rep(-0.35,max(keyVarObsSurvey))
+
 
 
 ## survey catchability
@@ -318,7 +327,7 @@ if (multi) {
 
 a<-data.frame(species.n=first.VPA:nsp,annualC=sms@combined.catches)
 b<-left_join(b,a,by = join_by(species.n))
-head(b)
+#head(b)
 
 x<-b$age==fa & b$quarter < recSeason & b$annualC==0
 b[x,'CATCHN']<-0
@@ -349,13 +358,26 @@ catchMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WCATCH,list(x$y,x$q,x$a),sum
 natMor          <-by(b,b$s,function(x) {y<-tapply(x$M,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 catchNumber     <-by(b,b$s,function(x) {y<-tapply(x$CATCHN,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 
+# round(ftable(catchNumber[[1]][,,]/1000),1)
 
-#seasFprop <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
-seasFprop <-by(b,b$s,function(x) {y<-tapply(x$propF,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
-if (adj_san) {
-  seasFprop[[7]][,,1]<-rep(c(0,0,0.97,0.03),each=nYears)
-  seasFprop[[8]][,,1]<-rep(c(0,0,0.98,0.02),each=nYears)
+
+
+if (seasFfrom==c('F','catch')[2]) seasFprop <-by(b,b$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y}) else {
+    seasFprop <-by(b,b$s,function(x) {y<-tapply(x$propF,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 }
+
+
+# round(seasFprop[[1]][,,3],2) # cod age 3-1
+# round(seasFprop[[7]][,,3],2) #age 3-1=2
+
+if (adj_san0 & nSpecies==1) {
+  seasFprop[[1]][,,1]<-rep(c(0,1),each=nYears)  # age 0
+}
+if (adj_san0 & nSpecies>5) {
+  seasFprop[[7]][,,1]<-rep(c(0,0,0.97,0.03),each=nYears)  # age 0
+  seasFprop[[8]][,,1]<-rep(c(0,0,0.98,0.02),each=nYears)  # age 0
+}
+# round(ftable(seasFprop[[1]][,,]),2)
 
 catchNoSeason   <-by(b,b$s,function(x) {y<-tapply(x$CATCHN,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 
@@ -408,7 +430,7 @@ info<-cbind(info,
     lalike=info[,"last-age-likelihood"]+off.age)
 
 
-rho<-rep(0.7,nSpecies)
+
 Un<-matrix(0.0, nrow=sum(info[,"last-age"]-sms@first.age+1L),ncol=nYears )
 Uf<-matrix(0.0, nrow=length(unlist(sms@catch.season.age)),ncol=nYears)
 
@@ -437,6 +459,7 @@ list(
      #off.species=off.species,
      #off.oths=off.oths,
      combinedCatches=sms@combined.catches,
+     useRho=use_rho,                                   # use correlation in F at age
      stockRecruitmentModelCode=stockRecruitmentModelCode,
      zeroCatchYearExists=zeroCatchYearExists,
      zeroCatchYearExistsSp=zeroCatchYearExistsSp,
@@ -476,6 +499,7 @@ list(
       logCatchability=logCatchability,
       logSdLogObsSurvey=logSdLogObsSurvey,
       logQpow=logQpow,
+      logTechCreep=logTechCreep,
       logSdLogFsta=logSdLogFsta,
       logSdLogN=logSdLogN,
       rho=rho,

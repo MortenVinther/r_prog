@@ -16,8 +16,9 @@ nlSp<-spLimit(nlSp,key=data$keyLogFstaSd,param="logSdLogFsta")
 nlSp<-spLimit(nlSp,key=data$keyVarLogN,param="logSdLogN") 
 
 nlSp  
+
 found<-nlSp=='rho'
-nlSp[found]<-paste(nlSp[found],data$spNames,sep='_')
+nlSp[found]<-paste(nlSp[found],data$spNames[data$useRho],sep='_')
 
 found<-nlSp=='rec_loga'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0],sep='_')
 found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0],sep='_')

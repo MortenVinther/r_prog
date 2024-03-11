@@ -1,10 +1,10 @@
-useLog<-1  # 0= no log N and no log F, 1=log N and (no log) F, 2=log N and log F
+useLog<-0  # 0= no log N and no log F, 1=log N and (no log) F, 2=log N and log F
 
 # extract covariance or correlation matrix
 
 fit<-read.fit()
 #str(fit)
-
+sort(unique(fit$names))
 getCorCov<-function(vname,fit){
     idx<-which(fit$names %in% vname)
     COR<-fit$cor[idx,idx]
@@ -16,6 +16,14 @@ getCorCov<-function(vname,fit){
     return(list(cov=COV,cor=COR,val=val,species=fit$species[idx],age=fit$age[idx],vari=fit$names[idx]))
 }
 
+a<-getCorCov(vname=c("herring_avgM2sd"),fit=fit)
+str(a)
+round(a$cor,3)
+
+ a<-getCorCov(vname=c("herring_M2sd"),fit=fit)
+ a
+ 
+ 
  a<-getCorCov(vname=c("term_N_next","term_N_next"),fit=fit)
  a
  

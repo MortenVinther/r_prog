@@ -1,5 +1,5 @@
 pick_species<-function(ps=c(1), inp) {
- #test  ps<-c(2L,9L); inp=inp_all
+ #test  ps<-c(7L,8L); inp=inp_all
   
   ps<-sort(unique(ps))
   nps<-length(ps)
@@ -16,7 +16,7 @@ pick_species<-function(ps=c(1), inp) {
   ages<-1:d$nAges
   d$spNames=rownames(d$info)                
   d$fbarRange<-data$fbarRange[ps,,drop=FALSE]     
-  
+  d$useRho<-data$useRho[ps]
   d$stockRecruitmentModelCode<-data$stockRecruitmentModelCode[ps]
   d$zeroCatchYearExistsSp<-data$zeroCatchYearExistsSp[ps]
   d$combinedCatches<-data$combinedCatches[ps]
@@ -53,7 +53,7 @@ pick_species<-function(ps=c(1), inp) {
   
   d$keyVarLogN<-cut_tab(data$keyVarLogN,reNumber=TRUE)
   d$keyVarObsCatch<-cut_tab(data$keyVarObsCatch,reNumber=TRUE)
-  d$keyVarObsSurvey<-cut_tab(data$keyVarObsSurvey,reNumber=TRUE,surv=TRUE)
+  d$keyVarObsSurvey<-cut_tab(tab=data$keyVarObsSurvey,reNumber=TRUE,surv=TRUE)
   d$keyCatchability<-cut_tab(data$keyCatchability,reNumber=TRUE,surv=TRUE)
  
   d$propMat<-data$propMat[ps]; names(d$propMat)<-1:nps
@@ -83,6 +83,8 @@ pick_species<-function(ps=c(1), inp) {
  
   # survey
   d$keySurvey.overview<-data$keySurvey.overview[data$keySurvey.overview[,'s'] %in% ps,]
+  foundTC<-d$keySurvey.overview[,'techCreep']>0
+  d$keySurvey.overview[foundTC,'techCreep']<-1:sum(foundTC)
   if (sum(data$keySurvey.overview[,'s'] %in% ps) ==1) {
     d$keySurvey.overview<-matrix(d$keySurvey.overview,nrow=1)
     colnames(d$keySurvey.overview)<- colnames(data$keySurvey.overview)
@@ -130,7 +132,8 @@ pick_species<-function(ps=c(1), inp) {
   p$logSdLogN<-parameters$logSdLogN[1:max(d$keyVarLogN)]      
   p$rho<-parameters$rho[ps]
   p$rec_loga<-parameters$rec_loga[ps]         
-  p$rec_logb<-parameters$rec_logb[ps]         
+  p$rec_logb<-parameters$rec_logb[ps] 
+  if (sum(foundTC)>0) p$logTechCreep<-parameters$logTechCreep[1:sum(foundTC)] else p$logTechCreep<-numeric(0)
   p$Un<-parameters$Un[1:sum(d$nlogN),,drop=FALSE]   
   p$Uf<-parameters$Uf[1:sum(d$nlogF),,drop=FALSE]  
   

@@ -27,6 +27,7 @@ b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
 b<-data.frame(b,CATCHN=CATCHN,WCATCH=WCATCH,PROP_CAT=Prop.landed)
 b<-subset(b,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT))
 b$CATCHN<-catchMultiplier*b$CATCHN
+
 pf<-Read.summary.data(dir=dir) %>%  filter((Age>0 |Quarter>2) & Species.n>=first.VPA) %>% select(Species.n,Year,Quarter,Age,"F") %>% rename(FF="F") %>%
   group_by(Species.n, Year,Age)%>%  mutate(propF=FF/sum(FF),FF=NULL) %>% as_tibble() %>% mutate(propF=if_else(is.na(propF),0,propF)) %>%
   rename(year=Year,species.n=Species.n,age=Age,quarter=Quarter)
@@ -45,7 +46,7 @@ PROP_M2<-scanData('n_proportion_m2.in')
 
 b<-expand.grid(sub_area=1:noAreas,species.n=first.VPA:nsp,year=years[1]:(years[2]),quarter=1:nq,age=fa:la)
 b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
-
+length(WSEA);length(PROPMAT);length(M);length(PROP_M2)
 b<-data.frame(b,WSEA=WSEA, PROPMAT=PROPMAT,M=M,M1=M1,PROP_M2=PROP_M2)
 b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,quarter,age,sub_area,WSEA,PROPMAT,M,M1,PROP_M2))
 

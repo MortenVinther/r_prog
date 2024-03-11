@@ -3,6 +3,78 @@
 a<-Read.SMS.std()
 gw<-1200
 gh<-800
+
+
+aa<-subset(a,name=='her_M2')
+head(aa)
+round(tapply(aa$CV.round,list(aa$year,paste(aa$species,sp.names[aa$species],sep='.')),sum,na.rm=T),1)
+trellis.device(device='png',file=file.path(data.path,paste0('CV_M2','.png')),width = gw, height = gh)
+print(xyplot(CV.round~year|paste0('Age:', aa$age),data=aa,type=c('a','g'),
+             panel = function(x,y,...){
+               #   panel.refline(h = seq(10,50,10))
+               panel.xyplot(x,y,...)
+             },
+             scales = list(x=list(relation="same"),
+                           y=list(relation='same')),
+             xlab='year', ylab='CV of M2 (%)',lwd=2,
+             auto.key =   list(space = "right", points = FALSE, lines = TRUE)))
+
+cleanup() 
+
+aa<-subset(a,name=='her_M2')
+
+aaa<-rbind(aa %>% transmute(species,year,age,value,source='mean'),
+      aa %>% transmute(species,year,age,value=value+2*std,source='+2*std'),
+      aa %>% transmute(species,year,age,value=value-2*std,source='-2*std'))
+png(filename = 'M2_std.png',width = 900, height = 900, units = "px", pointsize = 18,)
+aaa<-aaa %>%  mutate(source=factor(source,levels=c('+2*std','mean','-2*std')))
+ap<-  ggplot(data=aaa, aes(x=year, y=value, group=source)) +
+  geom_line(aes(linetype=source))+
+    scale_linetype_manual(values=c("dotted","solid", "dotted"))+
+ 
+  facet_wrap(vars(paste0('Age:',age)),ncol=2,scales="free_y")+
+    ylim(0,NA)  +ylab('M2')+
+    theme_bw() 
+print(ap)
+cleanup()
+
+aa<-subset(a,name=='her_M2')
+aa<-filter(aa,year==2022)
+aaa<-rbind(aa %>% transmute(species,year,age,value,source='mean'),
+           aa %>% transmute(species,year,age,value=value+2*std,source='+2*std'),
+           aa %>% transmute(species,year,age,value=value-2*std,source='-2*std'))
+
+png(filename = 'M2_std_2022.png',width = 500, height = 500, units = "px", pointsize = 18,)
+aaa<-aaa %>%  mutate(source=factor(source,levels=c('+2*std','mean','-2*std')))
+ap<-  ggplot(data=aaa, aes(x=age, y=value, group=source)) +
+  geom_line(aes(linetype=source))+
+  scale_linetype_manual(values=c("dotted","solid", "dotted"))+
+  
+  ylim(0,NA)  +ylab('M2')+
+  theme_bw() 
+print(ap)
+cleanup()
+
+
+aa<-subset(a,name=='her_avgM2')
+
+aaa<-rbind(aa %>% transmute(species,age,value,source='mean'),
+           aa %>% transmute(species,age,value=value+2*std,source='+2*std'),
+           aa %>% transmute(species,age,value=value-2*std,source='-2*std'))
+png(filename = 'M2_std_avg.png',width = 500, height = 500, units = "px", pointsize = 18,)
+aaa<-aaa %>%  mutate(source=factor(source,levels=c('+2*std','mean','-2*std')))
+ap<-  ggplot(data=aaa, aes(x=age, y=value, group=source)) +
+  geom_line(aes(linetype=source))+
+  scale_linetype_manual(values=c("dotted","solid", "dotted"))+
+
+  ylim(0,NA)  +ylab('M2')+
+  theme_bw() 
+print(ap)
+cleanup()
+
+
+
+
 aa<-subset(a,name=='hist_SSB')
 round(tapply(aa$CV.round,list(aa$year,paste(aa$species,sp.names[aa$species],sep='.')),sum,na.rm=T),1)
 trellis.device(device='png',file=file.path(data.path,paste0('CV_SSB','.png')),width = gw, height = gh)

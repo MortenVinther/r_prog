@@ -64,7 +64,7 @@ func <- function(parameters) {
   surveyType<-keySurvey.overview[,'type']
   mina<-keySurvey.overview[,'mina']
   maxa<-keySurvey.overview[,'maxa']
-  
+  techCreepIdx<-keySurvey.overview[,'techCreep']
   
   
   ## Initialize joint negative log likelihood
@@ -81,34 +81,42 @@ func <- function(parameters) {
   SSB_R<-function(s,y,a=1) {
     if(stockRecruitmentModelCode[s]==0){    ## straight RW
       rec = logN[[s]][a, y-1]
-    } 
-    else {
+    } else {
       if (stockRecruitmentModelCode[s]==1){ ## Ricker
-        rec= rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
-      }else{
+        rec<-rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
+      } else {
         if(stockRecruitmentModelCode[s]==2){  ## B&H
-          rec=rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
-        }else{
-          stop("SR model code not recognized");
+          rec<-rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
+        } else {
+          if(stockRecruitmentModelCode[s]==3){  ## GM
+            rec<-rec_loga[s]
+          } else {
+            stop(paste0("SR model code ",stockRecruitmentModelCode[s]," not recognized"))
+          }
         }
       }
     }
   }
   
-  
   ###################  now we begin 
   
   for (s in 1:nSpecies) {
+  
     cat('Species:',s,spNames[s],'\n')
+    
     ## First take care of F
-    fcor <- outer(1:stateDimF[s],
-                  1:stateDimF[s],
-                  function(i,j)(i!=j)*rho[s] + (i==j))
     fsd <- sdLogFsta[keyLogFstaSd[s,keyLogFstaSd[s,]>0]]
-    fvar <- outer(1:stateDimF[s],
-                  1:stateDimF[s],
-                  function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])
-     
+    if (useRho[s]) {
+      fcor <- outer(1:stateDimF[s],
+                    1:stateDimF[s],
+                    function(i,j)(i!=j)*rho[s] + (i==j))
+      fvar <- outer(1:stateDimF[s],
+                    1:stateDimF[s],
+                    function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])
+    } else {
+      fvar <- diag(fsd[1:stateDimF[s]]*fsd[1:stateDimF[s]],ncol=stateDimF[s], nrow=stateDimF[s])
+    }
+    
     if (zeroCatchYearExistsSp[s]==1)  ans <- ans - sum(dmvnorm( diff( t(logF[[s]][,-zeroCatchYear[[s]]])),mu=0, Sigma=fvar, log=TRUE)) else {
       ans <- ans - sum(dmvnorm( diff( t(logF[[s]])),mu=0, Sigma=fvar, log=TRUE))
     }
@@ -238,7 +246,7 @@ func <- function(parameters) {
   fleets<-keySurvey.overview[keySurvey.overview[,'s']==s,'f']
   
   for (fl in  fleets)  {
-    #cat("survey: ",fl,'\n')
+    cat("survey: ",fl,'\n')
     keys<-keySurvey[keySurvey[,"f"]==fl ,]
     q<-keys[1,"q"]
     if (surveyType[fl]==1) {
@@ -295,9 +303,16 @@ func <- function(parameters) {
         obs.no<-keys[,'obs.no']
         keyCatchability<-keys[1,"keyCatchability"]
         keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
+        techCreepNo<-techCreepIdx[fl]
         for (n in 1:length(obs.no))  {
           y<-flYears[n]
-          predSurveyObs[obs.no[n]]<- log(sum(exp(logF[[s]][faf:laf,y]) *seasFprop[[s]][y,q,faf:laf])/naf) + logCatchability[keyCatchability] 
+          predSurveyObs[obs.no[n]]<-0.0;
+          for(j in faf:laf) {
+           # cat("n:",n," y:",y," q:",q," j:",j," F",logF[[s]][keyLogFsta[s,j],y]); cat( "seasFprop[[s]][y,q,j]",seasFprop[[s]][y,q,j],'\n')
+             predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ exp(logF[[s]][keyLogFsta[s,j],y]+log(seasFprop[[s]][y,q,j])) #sum F within Fbar range
+          }
+          predSurveyObs[obs.no[n]]<- log(predSurveyObs[obs.no[n]]/naf) + logCatchability[keyCatchability] 
+          if (techCreepNo>0) predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ n*logTechCreep[techCreepNo] 
         }
         var <- varLogObsSurvey[keyVarObsSurvey]
         ans <- ans - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))

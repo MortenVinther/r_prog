@@ -1,4 +1,5 @@
-t(t(opt$par))
+t(t(opt$par));
+exp(t(t(opt$par)))
 rep<-obj$report()
 
 overw<-as.data.frame(data$keySurvey.overview) %>%  rownames_to_column(var = "fleet") %>% select(f,fleet,s,type)
@@ -21,6 +22,7 @@ plt<-by(survResid,survResid$s,function(x){
 })
 plt
 
+round(ftable(data$catchNumber[[1]][,,]/1000))
 
 N<-lapply(rep$logNq,function(x) (cbind(a1=x[,data$recSeason,1],x[,1,-1]))) # N in recruiting season for the first age and age 1 jan for the rest
 # Process N
@@ -53,7 +55,7 @@ cbind(rep$nlls,all=rowSums(rep$nlls))
 Est<-as.list(rep, "Est", report=TRUE)
 
 sdrep <- sdreport(obj)
-
+sdrep
 sdrep$pdHess 
 # obj$fn()  #  value er den samme som sum af min nnls
 
@@ -128,6 +130,7 @@ make_tab<-function(d,key,printIt=TRUE,roundIt=2) {
 addSd<-TRUE
 make_tab(d=x$logSdLogN,key=data$keyVarLogN,roundIt=2)
 make_tab(d=x$logSdLogFsta,key=data$keyLogFstaSd,roundIt=2)
+
 make_tab(d=x$logSdLogObsCatch,key=data$keyVarObsCatch)  
 make_tab(d=x$logSdLogObsSurvey,key=data$keyVarObsSurvey) 
 make_tab(d=x$logCatchability,key=data$keyCatchability) 
@@ -146,7 +149,7 @@ convert_var<-function(x) {
 }
 
 if (data$nSeasons==1) N<-lapply(rep$logNq,function(x) (exp(x[,1,])))
-if (data$nSeasons>1) N<-lapply(rep$logNq,function(x) (exp(x[,3,])))
+if (data$nSeasons>1) N<-lapply(rep$logNq,function(x) (exp(x[,data$recSeason,])))
 Recruit<-convert_var(N) %>% filter(Age==0) %>% rename(Species=species,Year=year)
 
 #sdrep <- sdreport(obj)
@@ -174,7 +177,7 @@ for (s in (1:data$nSpecies)) {
 
 rsms<-left_join(left_join(ssb,Recruit),avg_F) %>% select(Species, Year, SSB, N, mean.F) %>% rename(Rec=N) %>% mutate(source='rsms')
 
-SMSenv<-"rsms_input"
+SMSenv<-my.stock.dir
 sms<-Read.summary.table(dir=file.path(root,SMSenv),read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
 sms$source='sms'
 
@@ -182,7 +185,7 @@ ices<-Read.summary.table(dir=file.path(root,SMSenv), infile="summary_table_raw_I
 ices$source='ICES'
 
 sms<-rbind(sms,ices)
-
+#xtabs(~Species+source,data=sms)
 rsp<-unique(rsms$Species)
 
 b<-rbind(rsms,filter(sms,Species %in% rsp )) %>% filter(Year %in% data$years) %>% mutate(Rec=Rec/1000)

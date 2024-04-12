@@ -19,9 +19,9 @@ pick_species<-function(ps=c(1), inp) {
   d$useRho<-data$useRho[ps]
   d$stockRecruitmentModelCode<-data$stockRecruitmentModelCode[ps]
   d$zeroCatchYearExistsSp<-data$zeroCatchYearExistsSp[ps]
-  d$combinedCatches<-data$combinedCatches[ps]
   d$zeroCatchYearExists<-any(d$zeroCatchYearExistsSp==1)  
   d$zeroCatchYear<-data$zeroCatchYear[ps]
+  d$seasonalCatches<-data$seasonalCatches[ps]
   
   cut_tab<-function(tab,reNumber=FALSE,surv=FALSE) {
    if (surv) tab<-tab[data$keySurvey.overview[,"s"] %in% ps,ages,drop=FALSE]  else tab<-tab[ps,ages,drop=FALSE] 
@@ -123,6 +123,7 @@ pick_species<-function(ps=c(1), inp) {
   d$keySurvey[,'f']<-kk[as.character(d$keySurvey[,'f'])]
   d$keySurvey.overview[,'f']<-kk[as.character(d$keySurvey.overview[,'f'])]
   
+  d$recruitYears<-data$recruitYears[ps,,drop=FALSE]
  
   p$logSdLogObsCatch<-parameters$logSdLogObsCatch[1:max(d$keyVarObsCatch)]
   

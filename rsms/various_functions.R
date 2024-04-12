@@ -27,9 +27,9 @@ outputToDF<-function(obj) {
     list_rbind(lapply(rep$logNq,array2DF),names_to='s') %>% mutate(var="N",Value=exp(Value)),
     list_rbind(lapply(rep$Zq,array2DF),names_to='s') %>% mutate(var="Z")
   )  
-  pivot_wider(a,names_from=var,values_from=Value)  %>%
+     pivot_wider(a,names_from=var,values_from=Value)  %>%
     mutate(species=s, year=as.integer(y),q=as.integer(q),age=parse_number(a)-data$off.age) %>% 
-    mutate(y=NULL,a=NULL,Var3=NULL,s=NULL)
+    mutate(y=NULL,a=NULL,Var3=NULL,s=NULL,deadZ=N*(1-exp(-Z)))
 } 
 #  b<-outputToDF(obj)
 

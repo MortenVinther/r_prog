@@ -50,7 +50,7 @@ func <- function(parameters) {
   logNq<-makeVar3()
   logNbarq<-makeVar3()
   Zq<-makeVar3()
-  Cq<-makeVar3()
+  #Cq<-makeVar3()
   Chat<-makeVar2()
   predN<-makeVar2()
   ssb<-matrix(0,nrow=nSpecies,ncol=nYears)
@@ -79,7 +79,9 @@ func <- function(parameters) {
   ##########################################################################################
   
   SSB_R<-function(s,y,a=1) {
-    if(stockRecruitmentModelCode[s]==0){    ## straight RW
+    # not used yet recruitYears[s,y]
+    
+    if(stockRecruitmentModelCode[s]==0 | !recruitYears[s,y]){    ## straight RW
       rec = logN[[s]][a, y-1]
     } else {
       if (stockRecruitmentModelCode[s]==1){ ## Ricker
@@ -148,9 +150,9 @@ func <- function(parameters) {
    
     # kan måske undværes
     #recruits first year given recruitment at age 0 (later in the same year)
-    if(stockRecruitmentModelCode[s] >=1 & recAge==0){
-      predN[[s]][1,1]<-SSB_R(s,y=1);
-      ans <- ans - dmvnorm(logN[[s]][1,1], predN[[s]][1,1], nvar[1,1], log=TRUE) ## N-Process likelihood
+    if(stockRecruitmentModelCode[s] >=1 & recAge==0 ){
+   #   predN[[s]][1,1]<-SSB_R(s,y=1);
+  #    ans <- ans - dmvnorm(logN[[s]][1,1], predN[[s]][1,1], nvar[1,1], log=TRUE) ## N-Process likelihood
     }
     
    for(i in 2:timeSteps) { 

@@ -23,6 +23,10 @@ if (FALSE) {
    labels<-c("default","alpha prey","alpha 0","alpha max")
    
    
+   dirs<-c("NorthSeaKeyRun_2023","NorthSeaKeyRun_2023_no_magic")
+   labels<-c("Key run","no magic M")
+   
+   
     
   }
 

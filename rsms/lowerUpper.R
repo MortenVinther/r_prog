@@ -21,9 +21,9 @@ found<-nlSp=='rho'
 nlSp[found]<-paste(nlSp[found],data$spNames[data$useRho],sep='_')
 
 found<-nlSp=='rec_loga'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0],sep='_')
-found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0],sep='_')
 
-nlSp
+found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0 & data$info[,'SSB/R']!=3],sep='_')
+
 
 
 lower <- obj$par*0-Inf

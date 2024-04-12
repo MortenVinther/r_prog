@@ -8,13 +8,20 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 ### Extract data from SMS
 
 if (FALSE) {  # transform  SMS data into RSMS format 
-  if (my.stock.dir=="rsms_input") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[1],
+  if (my.stock.dir=="rsms_input") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[2],
                           effort_fl=c("NSA Commercial 1983-1998","NSA Commercial 1999-2022", "SSA Commercial 1983-2002","SSA Commercial 2003-2022") )
                       #    effort_fl="none") 
+  
+
+  
   
   if (my.stock.dir=="rsms_SAN-area-1r") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=FALSE,
                         seasFfrom=c('F','catch')[2], effort_fl=c("Effort season 1","Effort season 2") )
   
+  if (my.stock.dir=="rsms_Sprat-div-4_plus_IIIa") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=FALSE,
+                                                                seasFfrom=c('F','catch')[2] )
+  
+ 
   save(inp_all,file=file.path(rsms.root,"rsms_input_all.Rdata"))
 }
 
@@ -25,6 +32,8 @@ annualData<-FALSE
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
 #inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no Hessian
+inp<-pick_species(ps=c(1L,2L,3L,4L,6L), inp=inp_all)  #ok
+
 inp<-pick_species(ps=c(7L), inp=inp_all)  
 #inp=inp_all
 
@@ -37,6 +46,7 @@ inp$data$spNames
 #### prepare to run
 
 data<-inp[['data']]
+
 parameters<-inp[['parameters']]
 
 #data$stockRecruitmentModelCode[]<-1L
@@ -77,10 +87,12 @@ announce(opt)
 
 sdrep <- sdreport(obj); 
 cat('Hesssian:',sdrep$pdHess,'\n')
-
 sdrep
 
+data.frame(name=attr(sdrep$par.fixed,'names'),value=sdrep$par.fixed,gradient=sdrep$gradient.fixed)
 
+
+attr(sdrep$par.fixed,'names')
 ####  Re-run with estimated parameters
 if (FALSE) {
   # using opt$par(with the estimated parameters) instead of  obj$par

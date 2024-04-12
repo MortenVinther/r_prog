@@ -1,3 +1,4 @@
+incl_ICES_plot<-FALSE
 t(t(opt$par));
 exp(t(t(opt$par)))
 rep<-obj$report()
@@ -181,10 +182,11 @@ SMSenv<-my.stock.dir
 sms<-Read.summary.table(dir=file.path(root,SMSenv),read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
 sms$source='sms'
 
-ices<-Read.summary.table(dir=file.path(root,SMSenv), infile="summary_table_raw_ICES.out",read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
-ices$source='ICES'
-
-sms<-rbind(sms,ices)
+if (incl_ICES_plot) {
+  ices<-Read.summary.table(dir=file.path(root,SMSenv), infile="summary_table_raw_ICES.out",read.init.function=TRUE) %>% select(Species,Year,Rec,SSB,mean.F)
+  ices$source='ICES'
+  sms<-rbind(sms,ices)
+}
 #xtabs(~Species+source,data=sms)
 rsp<-unique(rsms$Species)
 

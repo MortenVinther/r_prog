@@ -1,5 +1,5 @@
 make_rsms_data<-function(dir,outDir=dir,sms.dat='sms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[1], effort_fl='none'  ) {
-# dir=my.stock.dir; sms.dat='rsms.dat'; seasFfrom<-'catch'; adj_san0=TRUE;
+# dir=my.stock.dir; sms.dat='rsms.dat'; seasFfrom<-'catch'; adj_san0=TRUE;seasFfrom=c('F','catch')[2]; effort_fl='none'
  
 Init.function(dir=file.path(root,dir),sms.dat=sms.dat) # initialize SMS environment
 cat(SMS.control@species.names,'\n') # just cheking
@@ -43,9 +43,9 @@ off.oths<-0L #other species offset (for now)
 off.season<-0L # not used 
 
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages))+off.age;
+seasonalCatches<-as.integer(sms@combined.catches==0)
 
 ## configuration of parameter keys
-
 
 rho<-rep(0.7,nSpecies)
 
@@ -151,13 +151,14 @@ logSdLogObsCatch<-rep(-0.35,max(keyVarObsCatch)) # parameter
   
 # read survey data and options into FLR objects
 indices<-SMS2FLIndices(control=sms,path=file.path(root,dir))
-indices[[1]]@range.SMS
+#indices[[1]]@range.SMS
 
 nFleets<-length(indices)
 spNo<-unlist(lapply(indices,function(x) x@range.SMS["species"]))
 PowerAge<-unlist(lapply(indices,function(x) x@range.SMS["power.age"]))
 season<-unlist(lapply(indices,function(x) x@range.SMS["season"]))
 PowerAge[PowerAge<0]<- -9
+PowerAge[PowerAge>=0]<- PowerAge[PowerAge>=0] +1L
 fleetNames<-unlist(lapply(indices,function(x) x@name))
 q.age<-unlist(lapply(indices,function(x) x@range.SMS['q.age']))
 
@@ -248,16 +249,16 @@ logCatchability<-rep(0.0,max(keyCatchability))
 
 ## Catchability power age
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nFleets,dimnames=list(fleetNames,paste('age',ages)))
-i<- -1L
+i<- 0L
 xx<-NULL
 for (f in (1:nFleets)) {
   s<-keySurvey[f,'s']
   for (j in (keySurvey[f,'mina']:keySurvey[f,'maxa'])) {
-    if (j==keySurvey[f,'PowerAge']+off.age) i<-i+1L
-    x[f,j ]<-i
+    if (j==keySurvey[f,'PowerAge']) {i<-i+1L; x[f,j ]<-i} 
     xx<-rbind(xx,data.frame(f=f,s=s,species.n=s,age=j-off.age,a=j,keyPowerQ=i))
   }
 }
+x
 keyQpow<-x
 keyQpow.df<-xx
 if (max(keyQpow) >0) logQpow<-rep(0.0,max(keyQpow)) else  logQpow<-rep(0.0,0)
@@ -314,6 +315,10 @@ keySurvey<-as.matrix(keySurvey)
 logSurveyObs<-log(cpue$obs)
 
 
+x<-scan(file=file.path(root,dir,'recruitment_years.in'),comment.char='#',quiet=TRUE)
+stopifnot(tail(x,1)== -999)
+rec_years<-matrix(head(x,-1),nrow=nSpecies,byrow=TRUE)==1
+
 source(file.path(rsms.root.prog,"from_sms_format_to_rsms_data.R"))
 
 d<-From_SMS_format_to_rsms(otherPredExist=multi.environment,catchMultiplier=1,dir=file.path(root,dir))
@@ -368,6 +373,7 @@ if (seasFfrom==c('F','catch')[2]) seasFprop <-by(b,b$s,function(x) {y<-tapply(x$
 
 
 # round(seasFprop[[1]][,,3],2) # cod age 3-1
+# round(seasFprop[[6]][,,3],2) #her age 3-1
 # round(seasFprop[[7]][,,3],2) #age 3-1=2
 
 if (adj_san0 & nSpecies==1) {
@@ -457,8 +463,8 @@ list(
      off.year=off.year,                                # offset between year and the year index used in RSMS (where fist year index  have to be 1 )
      #off.season=off.season,
      #off.species=off.species,
-     #off.oths=off.oths,
-     combinedCatches=sms@combined.catches,
+     #off.oths=off.oths,                          
+     seasonalCatches=seasonalCatches,                  # are seasonal cataches available
      useRho=use_rho,                                   # use correlation in F at age
      stockRecruitmentModelCode=stockRecruitmentModelCode,
      zeroCatchYearExists=zeroCatchYearExists,
@@ -486,6 +492,7 @@ list(
      keyCatch=keyCatch,
      catchNoSeason=catchNoSeason,
      logCatchObs=logCatchObs,
+     recruitYears=rec_years,
      #nCatchObs=length(logCatchObs),
      keySurvey=keySurvey,
      keySurvey.overview=keySurvey.overview,  # not really used

@@ -17,12 +17,11 @@ nlSp<-spLimit(nlSp,key=data$keyVarLogN,param="logSdLogN")
 
 nlSp  
 
-found<-nlSp=='rho'
-nlSp[found]<-paste(nlSp[found],data$spNames[data$useRho],sep='_')
+found<-nlSp=='rho';      nlSp[found]<- paste(nlSp[found],data$spNames[data$useRho],sep='_')
 
-found<-nlSp=='rec_loga'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0],sep='_')
+found<-nlSp=='rec_loga'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0],sep='_')
 
-found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$info[,'SSB/R']>0 & data$info[,'SSB/R']!=3],sep='_')
+found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0 & data$stockRecruitmentModelCode!=3],sep='_')
 
 
 
@@ -31,13 +30,12 @@ upper <- obj$par*0+Inf
 lower[nl=='rho'] <- 0.01
 upper[nl=='rho'] <- 0.99
 
-grep('rho',nl)
-
 lower[nl=="logSdLogObsSurvey"]<-rep(log(0.15),length(parameters$logSdLogObsSurvey))
 upper[nl=="logSdLogObsSurvey"]<-rep(log(2.0),length(parameters$logSdLogObsSurvey))
 
 lower[nl=="logSdLogObsCatch"]<-rep(log(0.10),length(parameters$logSdLogObsCatch))
 upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
+
 
 
 # N.sandeel
@@ -46,3 +44,4 @@ upper[nl=="logSdLogObsCatch"]<-rep(log(2.0),length(parameters$logSdLogObsCatch))
 
 # mac
 #upper[nl=="logSdLogN"]<-log(c(0.10))
+

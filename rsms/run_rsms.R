@@ -7,70 +7,52 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 
 ### Extract data from SMS
 
-if (FALSE) {  # transform  SMS data into RSMS format 
-  if (my.stock.dir=="rsms_input") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[2],
-                          effort_fl=c("NSA Commercial 1983-1998","NSA Commercial 1999-2022", "SSA Commercial 1983-2002","SSA Commercial 2003-2022") )
-                      #    effort_fl="none") 
+if (TRUE) {  # transform  SMS data into RSMS format 
+  if (my.stock.dir=="rsms_input") inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[2],sepSan=TRUE)
   
-
+  # 
+  # if (my.stock.dir=="rsms_SAN-area-1r")  inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',adj_san0=FALSE,seasFfrom=c('F','catch')[2])
   
-  
-  if (my.stock.dir=="rsms_SAN-area-1r") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=FALSE,
-                        seasFfrom=c('F','catch')[2], effort_fl=c("Effort season 1","Effort season 2") )
-  
-  if (my.stock.dir=="rsms_Sprat-div-4_plus_IIIa") inp_all<-make_rsms_data(dir=my.stock.dir,outDir=rsms.root,sms.dat='rsms.dat',adj_san0=FALSE,
-                                                                seasFfrom=c('F','catch')[2] )
-  
+    #                       seasFfrom=c('F','catch')[2], effort_fl=c("Effort season 1","Effort season 2") )
+  # 
+  # if (my.stock.dir=="rsms_SAN-area-3r") inp_all<-make_rsms_data(dir=my.stock.dir,sms.dat='rsms.dat',adj_san0=FALSE,
+  #                                                               seasFfrom=c('F','catch')[2], effort_fl=c("Effort season 1","Effort season 2") )
+  # 
+  # 
+  # if (my.stock.dir=="rsms_Sprat-div-4_plus_IIIa") inp_all<-make_rsms_data(dir=my.stock.dir,sms.dat='rsms.dat',adj_san0=FALSE,
+  #                                                               seasFfrom=c('F','catch')[2] )
+  # 
  
-  save(inp_all,file=file.path(rsms.root,"rsms_input_all.Rdata"))
+  save(inp_all,file=file.path(data.path,"rsms_input_all.Rdata"))
 }
 
-load(file=file.path(rsms.root,"rsms_input_all.Rdata"),verbose=TRUE)
+load(file=file.path(data.path,"rsms_input_all.Rdata"),verbose=TRUE)
 
 annualData<-FALSE
 
 # select a combination of species from the (full) data set
 #inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
 #inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no Hessian
-inp<-pick_species(ps=c(1L,2L,3L,4L,6L), inp=inp_all)  #ok
 
-inp<-pick_species(ps=c(7L), inp=inp_all)  
+#inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L), inp=inp_all)  #ok
+
+inp<-pick_species(ps=c(1L,7L,8L), inp=inp_all)  
+#inp<-pick_species(ps=c(1L,8L), inp=inp_all) 
 #inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
 if (annualData) inp<-into_annual(inp)
 
-
 inp$data$spNames
+inp$data$fleetNames
 
 #### prepare to run
-
 data<-inp[['data']]
-
 parameters<-inp[['parameters']]
 
-#data$stockRecruitmentModelCode[]<-1L
 data$Debug<-1L
 
-
-#data$seasFprop[[1]]
-
 #### Run rsms
-
-
-#Going back to our objective function f, first step is to check that you can evaluate the function as a normal R function:
-# func(parameters)   # KALDET VIL PÅVIRKE KALDET TIL MakeAdFun !!!?
-#An error at this point is obviously not due to RTMB.
-
-
-  #logSdLogObsSurvey=factor(rep(NA,length(parameters$logSdLogObsSurvey))),
-  # logSdLogN =factor(rep(NA,length(parameters$logSdLogN)))
-  #rho =factor(rep(NA,length(parameters$rho)))
-
-#obj <- MakeADFun(func, parameters,silent=FALSE,map=my.map); obj$simulate()
-#obj <- MakeADFun(func, parameters, random=c("Uf"),silent=FALSE,map=my.map); obj$simulate()
-#obj <- MakeADFun(func, parameters, random=c("Un"),silent=FALSE,map=my.map); obj$simulate()  # problems ?
-
 source(file.path(rsms.root.prog,"map_param.R"))
 random=c("Un","Uf")
 
@@ -80,8 +62,9 @@ obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
 # checkConsistency(obj);
                
 source(file.path(rsms.root.prog,"lowerUpper.R"))
-#t(rbind(lower,upper)) 
 
+#t(rbind(lower,upper)) 
+rm(opt,sdrep)
 system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=1000,eval.max=1000)))
 announce(opt)
 
@@ -91,6 +74,8 @@ sdrep
 
 data.frame(name=attr(sdrep$par.fixed,'names'),value=sdrep$par.fixed,gradient=sdrep$gradient.fixed)
 
+print(calcCV(sdrep) %>%arrange(sp.no,desc(sd)),n=40)
+print(calcCV(sdrep) %>%arrange(desc(abs(gradient))),n=20)
 
 attr(sdrep$par.fixed,'names')
 ####  Re-run with estimated parameters

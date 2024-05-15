@@ -1,4 +1,5 @@
 From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path,sms.dat="rsms.dat") {
+  
 la<-SMS.control@max.age.all
 fa<-SMS.control@first.age
 rec.season <-SMS.control@rec.season

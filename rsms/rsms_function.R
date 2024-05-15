@@ -24,11 +24,10 @@ func <- function(parameters) {
   timeSteps <- nYears
   stateDimF <- nlogF
   stateDimN <- nlogN
-  sdLogFsta = exp(logSdLogFsta)
-  varLogN = exp(logSdLogN*2)
-  varLogObsCatch = exp(logSdLogObsCatch*2)
+  sdLogFsta <- exp(logSdLogFsta)
+  varLogN <- exp(logSdLogN*2)
+  varLogObsCatch <- exp(logSdLogObsCatch*2)
   maxAgePlusGroup <-info[,'+group']
-  
   varLogObsSurvey = exp(logSdLogObsSurvey*2)
   
   makeVar2<-function() {
@@ -53,6 +52,7 @@ func <- function(parameters) {
   #Cq<-makeVar3()
   Chat<-makeVar2()
   predN<-makeVar2()
+  #outF<-makeVar2()
   ssb<-matrix(0,nrow=nSpecies,ncol=nYears)
   fq<-1L;     # first season (e.g. quarter)
   lq<-nSeasons
@@ -99,12 +99,26 @@ func <- function(parameters) {
       }
     }
   }
-  
+
+ 
+  #function for Fishing mortality
+  fiMo<-function(s,y,a,expIt=TRUE) {
+    ff<-logF[[s]][keyLogFsta[s,a],y]  
+    if (fModel==2) {
+     # cat(s,y,a,fSepar,'\n')
+      if (a >=fSepar)  ff<-ff+logSeparF[keyLogSeparF[[s]][y,a]] 
+    }
+    #outF[[s]][a,y]<<-ff
+    if (expIt) return(exp(ff)) else return(ff)
+  }
+ 
+    
   ###################  now we begin 
-  
   for (s in 1:nSpecies) {
   
     cat('Species:',s,spNames[s],'\n')
+    fModel <- as.integer(info[s,'fModel']) 
+    fSepar <- as.integer(info[s,'fSepar'])
     
     ## First take care of F
     fsd <- sdLogFsta[keyLogFstaSd[s,keyLogFstaSd[s,]>0]]
@@ -160,22 +174,21 @@ func <- function(parameters) {
   
       for(j in 2:stateDimN[s]) {
           if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
-            predN[[s]][j,i]=logN[[s]][j-1,i-1]-exp(logF[[s]][(keyLogFsta[s,j-1]),i-1])-sum(natMor[[s]][i-1,,j-1]) 
+             predN[[s]][j,i]=logN[[s]][j-1,i-1]-fiMo(s,i-1,j-1)-sum(natMor[[s]][i-1,,j-1]) 
           } else { 
             predN[[s]][j,i]=logN[[s]][j-1,i-1]-sum(natMor[[s]][i-1,,j-1]) 
           }
        }
        if(maxAgePlusGroup[s]==1){
-          predN[[s]][stateDimN[s],i] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-exp(logF[[s]][keyLogFsta[s,stateDimN[s]-1],i-1])-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
-                                       exp(logN[[s]][stateDimN[s],i-1]  -exp(logF[[s]][keyLogFsta[s,stateDimN[s]],i-1])  -sum(natMor[[s]][i-1,,stateDimN[s]]))  )
+          predN[[s]][stateDimN[s],i] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-fiMo(s,i-1,stateDimN[s]-1)-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
+                                       exp(logN[[s]][stateDimN[s],i-1]  - fiMo(s,i-1,stateDimN[s])  -sum(natMor[[s]][i-1,,stateDimN[s]]))  )
        }
       ans <- ans - dmvnorm(logN[[s]][,i], predN[[s]][,i], nvar, log=TRUE) ## N-Process likelihood
       if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logN[[s]][,i], predN[[s]][,i], nvar, log=TRUE) 
     }
 
   #We have now calculated logN (1 quarter)
-  
-
+ 
     for(i in 1:timeSteps) {
       for(j in 1:stateDimN[s]) {
         
@@ -183,24 +196,24 @@ func <- function(parameters) {
         if (j >1 | recSeason==1 ) {  # first age might not have enter the model yet
           logNq[[s]][i,fq,j]<-logN[[s]][j,i]
           if((keyLogFsta[s,j])>0) {
-            Zq[[s]][i,fq,j] <- exp(logF[[s]][(keyLogFsta[s,j]),i])*seasFprop[[s]][i,fq,j]+ natMor[[s]][i,fq,j]
+            Zq[[s]][i,fq,j] <- fiMo(s,i,j)*seasFprop[[s]][i,fq,j] + natMor[[s]][i,fq,j]
           } else {
             Zq[[s]][i,fq,j] <- natMor[[s]][i,fq,j]
           }
           logNbarq[[s]][i,fq,j] <- logNq[[s]][i,fq,j]-log(Zq[[s]][i,fq,j]) + log(1.0 -exp(-Zq[[s]][i,fq,j]))
-          if (keyLogFsta[s,j]>0) Chat[[s]][j,i] <- exp(logNbarq[[s]][i,fq,j]+logF[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,fq,j]))
+          if (keyLogFsta[s,j]>0) Chat[[s]][j,i] <- exp(logNbarq[[s]][i,fq,j]+fiMo(s,i,j,expIt=FALSE)+log(seasFprop[[s]][i,fq,j]))
         } else Chat[[s]][j,i] = 0.1; #SNYD for at undgå log(0), værdien bruges ikke, så OK
         
         # recruits within the year, need simpler code
         if (j ==1 & recSeason>1) {
            logNq[[s]][i,recSeason,j]<-logN[[s]][j,i] 
            if (keyLogFsta[s,j]>0) {
-             Zq[[s]][i,recSeason,j] <- exp(logF[[s]][(keyLogFsta[s,j]),i])*seasFprop[[s]][i,recSeason,j] + natMor[[s]][i,recSeason,j]
+             Zq[[s]][i,recSeason,j] <- fiMo(s,i,j)*seasFprop[[s]][i,recSeason,j] + natMor[[s]][i,recSeason,j]
            } else {
              Zq[[s]][i,recSeason,j] <- natMor[[s]][i,recSeason,j]
            }
            logNbarq[[s]][i,recSeason,j] <- logNq[[s]][i,recSeason,j]-log(Zq[[s]][i,recSeason,j]) +log(1.0 -exp(-Zq[[s]][i,recSeason,j]))
-           if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <-  exp(logNbarq[[s]][i,recSeason,j]+logF[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,recSeason,j]))
+           if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <-  exp(logNbarq[[s]][i,recSeason,j]+fiMo(s,i,j,expIt=FALSE)+log(seasFprop[[s]][i,recSeason,j]))
            } else { Chat[[s]][j,i]<-0.1  }
         }
         
@@ -208,12 +221,12 @@ func <- function(parameters) {
         if (nSeasons>1) for (q in 2:lq) if (j >1 | q>recSeason ) {
           logNq[[s]][i,q,j]<- logNq[[s]][i,q-1,j]-Zq[[s]][i,q-1,j]
           if (keyLogFsta[s,j]>0) {
-            Zq[[s]][i,q,j] <- exp(logF[[s]][(keyLogFsta[s,j]),i])*seasFprop[[s]][i,q,j] + natMor[[s]][i,q,j]
+            Zq[[s]][i,q,j] <- fiMo(s,i,j)*seasFprop[[s]][i,q,j] + natMor[[s]][i,q,j]
           } else {
             Zq[[s]][i,q,j] <- natMor[[s]][i,q,j]
           }
           logNbarq[[s]][i,q,j] <- logNq[[s]][i,q,j]-log(Zq[[s]][i,q,j]) +log(1.0 -exp(-Zq[[s]][i,q,j]))
-          if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <- Chat[[s]][j,i]+ exp(logNbarq[[s]][i,q,j]+logF[[s]][keyLogFsta[s,j],i]+log(seasFprop[[s]][i,q,j]))}  else { Chat[[s]][j,i]<-0.1  }
+          if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <- Chat[[s]][j,i]+ exp(logNbarq[[s]][i,q,j]+fiMo(s,i,j,expIt=FALSE)+log(seasFprop[[s]][i,q,j]))}  else { Chat[[s]][j,i]<-0.1  }
         }
       }
     }
@@ -251,6 +264,7 @@ func <- function(parameters) {
     cat("survey: ",fl,'\n')
     keys<-keySurvey[keySurvey[,"f"]==fl ,]
     q<-keys[1,"q"]
+    
     if (surveyType[fl]==1) {
       for (a in mina[fl]:maxa[fl]) {
          keysA<-keys[keys[,"a"]==a  ,]
@@ -270,7 +284,7 @@ func <- function(parameters) {
        } 
     } else if (surveyType[fl]==2) {  # exploitable biomass (assumed all age with F>0)
       flYears<-keys[,'y']
-      faf<-info[s,'faf']; laf<-info[s,'lalike']
+      faf<-info[s,'faf']; laf<-info[s,'last-age']
       obs.no<-keys[,'obs.no']
       keyCatchability<-keys[1,"keyCatchability"]
       keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
@@ -299,35 +313,54 @@ func <- function(parameters) {
       if (Debug==1)  {  
         nlls[s,'survey']<- nlls[s,'survey']   - sum(dnorm(logSurveyObs[obs.no],predSurveyObs,sqrt(var),log=TRUE))
       } 
-    } else if (surveyType[fl]==4) {  # effort index
-        flYears<-keys[,'y']
-        faf<-fbarRange[s,1]; laf<-fbarRange[s,2]; naf<-laf-faf+1
-        obs.no<-keys[,'obs.no']
-        keyCatchability<-keys[1,"keyCatchability"]
-        keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
+    } else if (surveyType[fl]==4) {  # effort index, one "catchability" by age group
+      for (a in mina[fl]:maxa[fl]) {
+        keysA<-keys[keys[,"a"]==a, ]
+        flYears<-keysA[,'y']
+        keyPowerQ<-keysA[1,"keyPowerQ"]
+        keyCatchability<-keysA[1,"keyCatchability"]
+        keyVarObsSurvey<-keysA[1,"keyVarObsSurvey"]
         techCreepNo<-techCreepIdx[fl]
-        for (n in 1:length(obs.no))  {
-          y<-flYears[n]
-          predSurveyObs[obs.no[n]]<-0.0;
-          for(j in faf:laf) {
-           # cat("n:",n," y:",y," q:",q," j:",j," F",logF[[s]][keyLogFsta[s,j],y]); cat( "seasFprop[[s]][y,q,j]",seasFprop[[s]][y,q,j],'\n')
-             predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ exp(logF[[s]][keyLogFsta[s,j],y]+log(seasFprop[[s]][y,q,j])) #sum F within Fbar range
-          }
-          predSurveyObs[obs.no[n]]<- log(predSurveyObs[obs.no[n]]/naf) + logCatchability[keyCatchability] 
-          if (techCreepNo>0) predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ n*logTechCreep[techCreepNo] 
+        obs.no<-keysA[,'obs.no']
+        predSurveyObs[obs.no]<- fiMo(s,flYearss,a,expIt=FALSE)+log(seasFprop[[s]][flYears,q,a]) + logCatchability[keyCatchability] 
+        if (techCreepNo>0) for (n in 1:length(obs.no))  {
+            predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ n*logTechCreep[techCreepNo] 
         }
         var <- varLogObsSurvey[keyVarObsSurvey]
         ans <- ans - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
-        if (Debug==1)  {  
-          nlls[s,'survey']<- nlls[s,'survey']  - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
-        } 
+        if (Debug==1) nlls[s,'survey']<- nlls[s,'survey']  - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
+      }
+    } else if (surveyType[fl]==5) {  # effort index for Fbar
+      flYears<-keys[,'y']
+      faf<-fbarRange[s,1]; laf<-fbarRange[s,2]; naf<-laf-faf+1
+      obs.no<-keys[,'obs.no']
+      keyCatchability<-keys[1,"keyCatchability"]
+      keyVarObsSurvey<-keys[1,"keyVarObsSurvey"]
+      techCreepNo<-techCreepIdx[fl]
+      for (n in 1:length(obs.no))  {
+        y<-flYears[n]
+        predSurveyObs[obs.no[n]]<-0.0;
+        for(j in faf:laf) {
+          # cat("n:",n," y:",y," q:",q," j:",j," F",logF[[s]][keyLogFsta[s,j],y]); cat( "seasFprop[[s]][y,q,j]",seasFprop[[s]][y,q,j],'\n')
+          predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ fiMo(s,y,j) * seasFprop[[s]][y,q,j] #sum F within Fbar range
+        }
+        predSurveyObs[obs.no[n]]<- log(predSurveyObs[obs.no[n]]/naf) + logCatchability[keyCatchability] 
+        if (techCreepNo>0) predSurveyObs[obs.no[n]]<- predSurveyObs[obs.no[n]]+ n*logTechCreep[techCreepNo] 
+      }
+      var <- varLogObsSurvey[keyVarObsSurvey]
+      ans <- ans - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
+      if (Debug==1)  {  
+        nlls[s,'survey']<- nlls[s,'survey']  - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
+      } 
     }  else stop(paste("s:",s,"  fleet:",fl,'  fleet type:',surveyType[fl],' is not known\n'))
+    
   } # end fleet loop
   } #end species loop
 
   ADREPORT(ssb)
   REPORT(logNq)
   #REPORT(logF)
+  #REPORT(outF)
   REPORT(predN)
   REPORT(Zq)
   REPORT(Chat)
@@ -336,3 +369,4 @@ func <- function(parameters) {
   
   ans
 }
+

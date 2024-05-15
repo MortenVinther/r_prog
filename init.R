@@ -30,6 +30,7 @@ my.stock.dir<-"rsms_input"
 #my.stock.dir<-"rsms_Sprat-div-4_plus_IIIa"
 
 #my.stock.dir<-"rsms_SAN-area-1r"
+#my.stock.dir<-"rsms_SAN-area-3r"
 #my.stock.dir<-"NorthSeaKeyRun_2023_NS_herring"
 #my.stock.dir<-"NorthSeaKeyRun_2023_no_magic"
 #my.stock.dir<-"SAN-area-1r"
@@ -81,6 +82,6 @@ source(file.path(prog.path.func,"init_r_functions.R"))
 cat("active stock directory:",getwd(),"\n");
 
 
-save(list = ls(all.names = TRUE), file = file.path(data.path,"SMS.RData"), envir = .GlobalEnv)
+save(list = ls(all.names = TRUE), file = file.path(data.path,"SMS.Rdata"), envir = .GlobalEnv)
 
 

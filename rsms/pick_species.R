@@ -1,5 +1,5 @@
 pick_species<-function(ps=c(1), inp) {
- #test  ps<-c(7L,8L); inp=inp_all
+ #test  ps<-c(7L,8L); ps<-c(1L,8L); inp=inp_all
   
   ps<-sort(unique(ps))
   nps<-length(ps)
@@ -10,6 +10,7 @@ pick_species<-function(ps=c(1), inp) {
   d<-data
   
   d$info<-data$info[ps,,drop=FALSE]
+  d$info[,'s']<-1L:length(ps)
   d$nSpecies<-length(ps)
   
   d$nAges<-max(d$info[,'last-age'])-data$minAge+1 
@@ -22,7 +23,6 @@ pick_species<-function(ps=c(1), inp) {
   d$zeroCatchYearExists<-any(d$zeroCatchYearExistsSp==1)  
   d$zeroCatchYear<-data$zeroCatchYear[ps]
   d$seasonalCatches<-data$seasonalCatches[ps]
-  
   cut_tab<-function(tab,reNumber=FALSE,surv=FALSE) {
    if (surv) tab<-tab[data$keySurvey.overview[,"s"] %in% ps,ages,drop=FALSE]  else tab<-tab[ps,ages,drop=FALSE] 
    if (reNumber) {
@@ -42,7 +42,8 @@ pick_species<-function(ps=c(1), inp) {
     tab
   }
   
-  d$keyLogFsta<-cut_tab(data$keyLogFsta,reNumber=FALSE)          
+  d$keyLogFsta<-cut_tab(data$keyLogFsta,reNumber=FALSE)   
+  d$seasonalCatches<-data$seasonalCatches[ps]
   d$keyLogFstaSd<-cut_tab(data$keyLogFstaSd,reNumber=TRUE)
 
   d$nlogFfromTo<-cutFromTo(data$nlogFfromTo)
@@ -50,7 +51,25 @@ pick_species<-function(ps=c(1), inp) {
   d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ 1L
   d$nlogN <- d$nlogNfromTo[,2]- d$nlogNfromTo[,1]+ 1L
   
+  cut_tab_3<-function(tab,reNumber=FALSE) {
+    tab<-tab[ps] 
+    if (reNumber) {
+      x<-  do.call(c,lapply(tab,function(x) unique(as.vector(x))))
+      k<-x[x>0]  
+      kk<-1:length(k)
+      names(kk)<-k
+      tab<-lapply(tab,function(x)  {
+        dims<-dim(x); 
+        x[x>0]<-kk[as.character(x[x>0])]
+        matrix(x,ncol=dims[[2]])
+      })
+    }
+    tab
+  }
+  d$keyLogSeparF<-cut_tab_3(tab=data$keyLogSeparF,reNumber=TRUE) 
   
+
+                             
   d$keyVarLogN<-cut_tab(data$keyVarLogN,reNumber=TRUE)
   d$keyVarObsCatch<-cut_tab(data$keyVarObsCatch,reNumber=TRUE)
   d$keyVarObsSurvey<-cut_tab(tab=data$keyVarObsSurvey,reNumber=TRUE,surv=TRUE)
@@ -83,6 +102,7 @@ pick_species<-function(ps=c(1), inp) {
  
   # survey
   d$keySurvey.overview<-data$keySurvey.overview[data$keySurvey.overview[,'s'] %in% ps,]
+  d$fleetNames<-rownames(d$keySurvey.overview)
   foundTC<-d$keySurvey.overview[,'techCreep']>0
   d$keySurvey.overview[foundTC,'techCreep']<-1:sum(foundTC)
   if (sum(data$keySurvey.overview[,'s'] %in% ps) ==1) {
@@ -130,8 +150,12 @@ pick_species<-function(ps=c(1), inp) {
   p$logCatchability<-parameters$logCatchability[1:max(d$keyCatchability)] 
   p$logSdLogObsSurvey<-parameters$logSdLogObsSurvey[1:max(d$keyVarObsSurvey)] 
   p$logSdLogFsta<-parameters$logSdLogFsta[1:max(d$keyLogFstaSd)]  
-  p$logSdLogN<-parameters$logSdLogN[1:max(d$keyVarLogN)]      
-  p$rho<-parameters$rho[ps]
+  p$logSdLogN<-parameters$logSdLogN[1:max(d$keyVarLogN)]  
+  
+  x<-do.call(c,lapply(d$keyLogSeparF,function(x) unique(as.vector(x)))); x<-x[x>0]
+  
+  if (length(x)>0) p$logSeparF<-parameters$logSeparF[1:length(x)] else  p$logSeparF=numeric(0)
+  p$rho<-parameters$rho[ps] 
   p$rec_loga<-parameters$rec_loga[ps]         
   p$rec_logb<-parameters$rec_logb[ps] 
   if (sum(foundTC)>0) p$logTechCreep<-parameters$logTechCreep[1:sum(foundTC)] else p$logTechCreep<-numeric(0)

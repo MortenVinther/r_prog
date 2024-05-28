@@ -33,7 +33,6 @@ my.stock.dir<-"rsms_input"
 #my.stock.dir<-"rsms_SAN-area-3r"
 #my.stock.dir<-"NorthSeaKeyRun_2023_NS_herring"
 #my.stock.dir<-"NorthSeaKeyRun_2023_no_magic"
-#my.stock.dir<-"SAN-area-1r"
 
 #my.stock.dir<-"NS_2023_key_run_JAMBAY"
 

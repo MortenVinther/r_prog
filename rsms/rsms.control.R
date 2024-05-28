@@ -18,7 +18,6 @@ setClass("RSMS.control",
         species.info        ="matrix",
         SSB.R                ="vector",
         min.catch.CV        ="numeric",
-        min.SR.CV           ="numeric",
         combined.catches    ="vector",
         
       #  nkeyVarLogN          ="vector",
@@ -37,7 +36,8 @@ setClass("RSMS.control",
         avg.F.ages          ="matrix",
         discard             ="vector",
         zero.catch.year.season="numeric",
-        zero.catch.season.age="numeric"
+        zero.catch.season.age="numeric",
+        checkValue="numeric"
   )
   ,
   prototype=prototype(
@@ -56,7 +56,6 @@ setClass("RSMS.control",
         species.info    =matrix(0,ncol=9,nrow=1,dimnames=list(c("sp1"),c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3"))),
         SSB.R           =as.vector(0,mode="numeric"),
         min.catch.CV    =0.2,                                                
-        min.SR.CV       =0.2,
         discard         =as.vector(0,mode="list"),
         combined.catches=as.vector(0,mode="list"),                                                 
         keyVarLogN      =as.vector(0,mode="list"),
@@ -70,7 +69,8 @@ setClass("RSMS.control",
         avg.F.ages      =matrix(0,ncol=2,nrow=1,dimnames=list(c("sp1"),c("first-age","last-age"))),                                        
         discard         =as.vector(0,mode="numeric"),
         zero.catch.year.season =0,
-        zero.catch.season.age =0
+        zero.catch.season.age =0,
+        checkValue= -999L
         )                                                           
 )
 
@@ -84,149 +84,8 @@ setClass("RSMS.control",
 
 ### Methods #############################################################
 
-FLSMS.control <- function(  
-    FLSMS=NULL,
-    first.year=1900,
-    first.year.model=1900,
-    last.year=first.year+1, 
-    last.season=1,  
-    no.species=1,
-    no.VPA.predators=0,
-    no.other.predators=0,
-    species.names=c("sp1"),
-    first.age=0, 
-    max.age.all=10)
-{
-  if (is.null(FLSMS)){
-    if (no.species == 1) {
-      no.VPA.sp<-no.species
-      no.predators<-0
-      no.other.predators<-0
-    }
-    if (no.species>1) {
-      if (no.other.predators>=no.species) stop("no.other.predators cannot be larger than no.species")
-      no.VPA.sp<-no.species-no.other.predators
-      no.predators<-no.other.predators+no.VPA.predators
-    }
-    if (species.names[1] != c("sp1") & length(species.names)!=no.species) 
-      stop("no.species is diffrent from number of species names")
-    
-    species.info<-matrix(0,ncol=11,nrow=no.species,dimnames=list(species.names,c("last-age","first-age F>0","effort",
-                                                                                 "last-age-selec","last-age-likelihood","+group","predator","prey","SSB/R","SpawningQ","RecAdd2")))
-    species.info[,1]<-max.age.all
-    species.info[,2]<-first.age
-    species.info[,3]<-max.age.all
-    species.info[,4]<-0
-    species.info[,5]<-max.age.all       
-    species.info[,6]<-1
-    species.info[,7]<-c(rep(0,no.predators),rep(0,no.VPA.sp-no.VPA.predators))
-    species.info[,8]<-c(rep(0,no.other.predators),rep(1,no.VPA.sp))
-    species.info[,9]<-c(rep(0,no.other.predators),rep(3,no.VPA.sp))
-    species.info[,10]<-c(rep(0,no.other.predators),rep(1,no.VPA.sp))
-    species.info[,11]<-c(rep(0,no.other.predators),rep(0,no.VPA.sp))
-    catch.s2.group<-vector("list", length=no.VPA.sp);
-    for (j in 1:no.VPA.sp) catch.s2.group[[j]]<-as.integer(first.age:(first.age+2)) 
-    catch.sep.age<-vector("list", length=no.VPA.sp)
-    for (j in 1:no.VPA.sp) {
-      if (last.season>1) catch.sep.age[[j]]<-as.integer(first.age:(first.age+1)) else 
-        catch.sep.age[[j]]<-as.integer(first.age)
-    }
-    catch.sep.year<-vector("list", length=no.VPA.sp)
-    for (j in 1:no.VPA.sp) catch.sep.year[[j]]<-as.integer(first.year.model); 
-    catch.spline.year<-vector("list", length=no.VPA.sp)
-    for (j in 1:no.VPA.sp) catch.spline.year[[j]]<-as.integer(first.year.model);
-    zero.catch.year.season<-as.integer(0)
-    zero.catch.season.age<-as.integer(0)
-    
-    res <- new("FLSMS.control",
-               test.output=as.integer(0) ,
-               VPA.mode=as.integer(0),
-               no.areas=as.integer(1),
-               first.year=as.integer(first.year), 
-               first.year.model=as.integer(first.year.model), 
-               last.year=as.integer(last.year),
-               last.year.model=as.integer(last.year),
-               last.season=as.integer(last.season),
-               last.season.last.year=as.integer(last.season),          
-               no.species=as.integer(no.species),
-               first.age=as.integer(first.age),
-               max.age.all=as.integer(max.age.all),
-               species.names=species.names,
-               species.info=species.info,
-               use.known.rec=as.integer(0),
-               beta.cor        =rep(1E6,no.VPA.sp),
-               obj.func.weight =matrix(1,ncol=4,nrow=no.species,dimnames=list(species.names,
-                                                                              c("catch","survey","SSB/R","stomach1","stomach2"))),
-               seasonal.catch.s2=rep(0,no.VPA.sp),                                                 
-               catch.s2.group=catch.s2.group,
-               catch.sep.age=catch.sep.age,
-               avg.F.ages      =matrix(0,ncol=2,nrow=no.VPA.sp,
-                                       dimnames=list(species.names[1:no.VPA.sp],c("first-age","last-age"))),
-               min.catch=rep(-5,no.VPA.sp),
-               catch.sep.year=catch.sep.year,
-               catch.spline.year=catch.spline.year,
-               zero.catch.year.season=zero.catch.year.season,
-               zero.catch.season.age=zero.catch.season.age,
-               fix.F.factor=rep(1,no.VPA.sp),
-               est.calc.sigma   =c(0,0,0),
-               size.selection      =rep(0,no.predators),
-               L50.mesh            =rep(-1,no.VPA.sp),
-               var.scale.stom      =rep(0,no.predators),
-               size.other.food.suit=rep(0,no.predators),                                
-               min.stom.cont       =rep(1E-4,no.predators),
-               max.stom.sampl      =rep(1E4,no.predators),
-               prey.pred.size.fac  =rep(0.5,no.predators),
-               stom.type.include   =rep(1,no.predators)                               
-               
-    )
-  }
-  else {  # We re-use an FLSMS.control object 
-    if (!inherits(FLSMS, "FLSMS"))
-      stop("FLSMS must be an 'FLSMS' object!")
-    
-    res <- FLSMS@control
-    
-    # ... and possibly redefine some of its parameters
-    if (!missing(test.output))
-      res@test.output <- test.output
-    if (!missing(VPA.mode))
-      res@VPA.mode <- as.integer(VPA.mode)
-    if (!missing(no.areas))
-      res@no.areas <- as.integer(no.areas)
-    if (!missing(first.year))
-      res@first.year <- first.year
-    if (!missing(first.year.model))
-      res@first.year.model <- first.year.model
-    if (!missing(last.year))
-      res@last.year <- last.year
-    if (!missing(last.year.model))
-      res@last.year.model <- as.integer(last.year.model)
-    if (!missing(last.season))
-      res@last.season <- as.integer(last.season)
-    if (!missing(last.season.last.year))
-      res@last.season.last.year <- as.integer(last.season.last.year)
-    if (!missing(no.species))
-      res@no.species <- as.integer(no.species)
-    if (!missing(first.age))
-      res@first.age <- as.integer(first.age)
-    if (!missing(rec.season))
-      res@rec.season <- as.integer(rec.season)
-    if (!missing(max.age.all))
-      res@max.age.all <- as.integer(max.age.all)
-    if (!missing(species.info))
-      res@species.info <- as.matrix(species.info)
-    
-    # Verify that this object is valid
-    test <- validObject(res)
-    
-    if (!test) stop("Invalid object:", test)
-  }
-  
-  return(res)
-}
 
-
-write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,nice=TRUE,writeSpNames=T,expand=F) {
+write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,nice=TRUE,writeSpNames=T,expand=F) {
   
   wr.matrix<-function(m,text){
     cat("# ",text,"\n",file=file,append=TRUE)
@@ -285,8 +144,8 @@ write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,
     for (j in 1:length(l)) cat(l[[j]],"\t# ",sp[j],"\n",file=file,append=TRUE)    
   }
   
-  if (!inherits(control, "FLSMS.control"))
-    stop(paste("control" ,"must be an 'FLSMS.contol' object!")) 
+  if (!inherits(control, "RSMS.control"))
+    stop(paste("control" ,"must be an 'RSMS.contol' object!")) 
   
   old.path<-getwd()
   if (!is.null(path)) setwd(path) else path<-old.path
@@ -310,21 +169,7 @@ write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,
              cat(sepLine,file=file,append=TRUE) 
              cat("# Produce test output (option test.output)\n",
                  "#  0 no test output\n",
-                 "#  1 output file sms.dat and  file fleet.info.dat as read in\n",
-                 "#  2 output all single species input files as read in\n",
-                 "#  3 output all multi species input files as read in\n",
-                 "#  4 output option overview\n",
-                 "#\n",
-                 "# 11 output between phases output\n",
-                 "# 12 output iteration (obj function) output\n", 
-                 "# 13 output stomach parameters\n",
-                 "# 19 Both 11, 12 and 13\n",
-                 "#\n",
-                 "# Forecast options\n",
-                 "# 51 output hcr_option.dat file as read in\n",
-                 "# 52 output prediction output summary\n",
-                 "# 53 output prediction output detailed\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
+                   slot(control,x),"\n",file=file,append=T,sep="")
            } 
              else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE) 
            },
@@ -417,132 +262,31 @@ write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,
              cat(sepLine,file=file,append=T)
              cat("## various information by species\n",
                  "# 1. last age \n",
-                 "# 2. first age where catch data are used (else F=0 assumed), First age if species is other predator \n",
-                 "# 3. last age with age dependent fishing selection\n",
-                 "# 4. Esimate F year effect from effort data. 0=no, 1=yes\n",
-                 "# 5. Last age included in the catch at age likelihood (normally last age)\n",
-                 "# 6. plus group, 0=no plus group, 1=plus group\n",
-                 "# 7. predator species, 0=no, 1=VPA predator, 2=Other predator \n",
-                 "# 8. prey species, 0=no, 1=yes\n",
-                 "# 9. Stock Recruit relation\n",
-                 "#      1=Ricker, 2=Beverton & Holt, 3=Geom mean,\n",
-                 "#      4= Hockey stick, 5=hockey stick with smoother,\n",
-                 "#      51=Ricker with estimated temp effect,\n",
-                 "#      52=Ricker with known temp effect,\n",
-                 "#      >100= hockey stick with known breakpoint (given as input)\n",
-                 "# 10. Spawning season (not used yet, but set to 1)\n",
-                 "# 11. Additional data for Stock Recruit relation\n",
+                 "# 2. first age where catch data are used (else F=0 assumed), First age if species is other predator\n", 
+                 "# 3. plus group, 0=no plus group, 1=plus group\n",
+                 "# 4. predator species, 0=no, 1=VPA predator, 2=Other predator \n",
+                 "# 5. prey species, 0=no, 1=yes\n",
+                 "# 6. Spawning season (not used yet, but set to 1)\n", 
+                 "# 7. Additional data1\n",
+                 "# 8. additional data2\n",
+                 "# 9. additional data3\n",
                  "##\n",
                  file=file,append=T,sep="")
              wr.matrix.nice(slot(control,x),paste(1:length(sp.names),sp.names))
            } else wr.matrix(slot(control,x),x)
            },
-           "use.known.rec"       ={if (nice) {
+           "SSB.R"       ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## use input recruitment estimate (option use.known.rec)\n",
-                 "#   0=estimate all recruitments\n",
-                 "#   1=yes use input recruitment from file known_recruitment.in\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           
-           "beta.cor"          ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## adjustment factor to bring the beta parameter close to one (option beta.cor)\n",
-                 file=file,append=T,sep="")
+             cat("# Stock Recruit relation\n", 
+             "#      0_random walk 1=Ricker, 2=Beverton & Holt, 3=Geom mean,\n",
+             "#      4= Hockey stick, 5=hockey stick with smoother,\n",
+             "#      >100= hockey stick with known breakpoint (given as input)\n",file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
-             
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           
-           "SSB.R.year.first"  ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## year range for data included to fit the R-SSB relation (option SSB.R.year.range)\n",
-                 "# first (option SSB.R.year.first) and last (option SSB.R.year.last) year to consider.\n",
-                 "# the value -1 indicates the use of the first (and last) available year in time series\n",
-                 "# first year by species\n",
-                 file=file,append=T,sep="")
-             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
-             
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "SSB.R.year.last"  ={if (nice) {
-             cat("# last year by species\n",
-                 file=file,append=T,sep="")
-             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
-             
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "obj.func.weight"   ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## Objective function weighting by species (option objective.function.weight)\n",
-                 "# first=catch observations,\n",
-                 "# second=CPUE observations,\n",
-                 "# third=SSB/R relations\n",
-                 "# fourth=stomach observations, weight proportions \n",
-                 "# fifth=stomach observations, number at length\n",
-                 "##\n",
-                 file=file,append=T,sep="")
-             wr.matrix.nice(slot(control,x),paste(1:length(sp.names),sp.names))
-           } else wr.matrix(slot(control,x),x)
-           },
-           "phase.rec"         ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## parameter estimation phases for single species parameters\n",
-                 "# phase.rec (stock numbers, first age) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.rec.older"   ={if (nice) {
-             cat("# phase.rec.older (stock numbers, first year and all ages) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.F.y"         ={if (nice) {
-             cat("# phase.F.y (year effect in F model) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.F.y.spline"  ={if (nice) {
-             cat("# phase.F.y.spline (year effect in F model, implemented as spline function)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           
-           "phase.F.q"         ={if (nice) {
-             cat("# phase.F.q (season effect in F model) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.F.a"         ={if (nice) {
-             cat("# phase.F.a (age effect in F model) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.catchability"={if (nice) {
-             cat("# phase.catchability (survey catchability) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.SSB.R.alfa"  ={if (nice) {
-             cat("# phase.SSB.R.alfa (alfa parameter in SSB-recruitment relation) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "phase.SSB.R.beta"  ={if (nice) {
-             cat("# phase.SSB.R.beta (beta parameter in SSB-recruitment relation) (default=1)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
            },
            "min.catch.CV"      ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## minimum CV of catch observation used in ML-estimation (option min.catch.CV)\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "min.SR.CV"         ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## minimum CV of catch SSB-recruitment relation used in ML-estimation (option min.SR.CV)\n",
                  slot(control,x),"\n",file=file,append=T,sep="")
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
            },
@@ -559,43 +303,91 @@ write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,
            
            "combined.catches"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## use seasonal or annual catches in the objective function (option combined.catches)\n",
-                 "# do not change this options from default=0, without looking in the manual\n",
+             cat("## use seasonal or annual catches (for input transformation only)  (option combined.catches)\n",
                  "#    0=annual catches with annual time steps or seasonal catches with seasonal time steps\n",
-                 "#    1=annual catches with seasonal time steps, read seasonal relative F from file F_q_ini.in (default=0)\n",
+                 "#    1=annual catches with seasonal time steps, assume seasonal catches=annual_catches/n_seasons\n",
+                 "#    2=annual catches with seasonal time steps, input seasonal proportions at age from file xx (not implemented yet)\n",
                  file=file,append=T,sep="")   
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },                                                                                       
-           "seasonal.catch.s2" ={if (nice) {
+           }, 
+           "keyVarLogN" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## use seasonal or common combined variances for catch observation\n",
-                 "# seasonal=0, common=1 (use 1 for annual data)\n", 
+             if (expand) wr.list.expand(slot(control,x),"# Process noise: number of age  groups with the same process N by species",
+                                        "first age in sd group (option keyVarLogN)",VPA.species)
+             if (!expand) wr.list.nice(slot(control,x),"Process noise: number of age  groups with the same process N by species",
+                                       "first age in sd group (option keyVarLogN)",VPA.species)
+           } else  wr.list(slot(control,x),"keyVarLogN",x)
+           },
+
+           "fModel"   ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             cat("## Model for F (default=1) (option fModel):\n",
+                 "#   1=random walk (deafult SAM)\n",
+                 "#   2=random walk used as year effect in separable F model\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },                      
+           },
+           
+           "keyLogFsta" ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             if (expand) wr.list.expand(slot(control,x),"# number of separate age groups for use for random walk F stages (option keyLogFsta)",
+                                        "first ages in each group by species",VPA.species)
+             if (!expand) wr.list.nice(slot(control,x),"number of separate age groups for use for random walk F stages (option keyLogFsta)",
+                                       "first ages in each group by species",VPA.species)
+           } else  wr.list(slot(control,x),"keyLogFsta",x)
+           },
+           
            "catch.s2.group" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## \n",file=file,append=T)
              if (expand) wr.list.expand(slot(control,x),"catch observations: number of separate catch variance groups by species",
                                         "first age group in each catch variance group",VPA.species)
              if (!expand) wr.list.nice(slot(control,x),"catch observations: number of separate catch variance groups by species",
                                        "first age group in each catch variance group",VPA.species)
            } else  wr.list(slot(control,x),"n.catch.s2.group",x)
            },
+           
+           "firstAgeYearEffect" ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             cat("## First age in separable model (in case of fModel==2), (option firstAgeYearEffect))\n",
+                 file=file,append=T,sep="")   
+             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
+             
+           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+           }, 
+
            "catch.sep.age"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## \n",file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"catch observations: number of separate catch seasonal component groups by species",
-                                        "first ages in each seasonal component group by species",VPA.species)                                
+             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used  in case of fModel==2)",
+                                        "first age in each group (option catch.sep.age)",VPA.species)                                
              
-             if (!expand) wr.list.nice(slot(control,x),"catch observations: number of separate catch seasonal component groups by species",
-                                       "first ages in each seasonal component group by species",VPA.species)
-           } else  wr.list(slot(control,x),"n.catch.s2.group",x)
+             if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same age selection (used  in case of fModel==2)",
+                                       "first age in each group (option catch.sep.age)",VPA.species)
+           } else  wr.list(slot(control,x),"catch.sep.age",x)
            },
+           
+           "catch.sep.year"  ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             if (expand) wr.list.expand(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2)",
+                                        "first year in each group (option catch.sep.year)",VPA.species)                                
+             
+             if (!expand) wr.list.nice(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2)",
+                                       "first year in each group (option catch.sep.year)",VPA.species)
+           } else  wr.list(slot(control,x),"catch.sep.year",x)
+           },
+           
+           "use_rho"   ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             cat("## Correlation in catches (exploitation pattern) between age group (option useRho) (1=use, 0=no use)\n",
+                 file=file,append=T,sep="")
+             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
+             
+           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+           },
+           
            "avg.F.ages"        ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## first and last age in calculation of average F by species (option avg.F.ages)\n",
@@ -603,38 +395,14 @@ write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,
              wr.matrix.nice(slot(control,x),VPA.species)
            } else wr.matrix(slot(control,x),x)
            },
-           "min.catch"         = {if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## minimum 'observed' catch, (option min.catch). You cannot log zero catch at age!\n",
-                 "#\n",
-                 "# 0 ignore observation in likelihood\n#\n",
-                 "# negative value gives percentage (e.g. -10 ~ 10%) of average catch in age-group for input catch=0\n",
-                 "# negative value less than -100 substitute all catches by the option/100 /100 *average catch in the age group for catches less than (average catch*-option/10000\n",
-                 "#\n",
-                 "# if option>0 then will zero catches be replaced by catch=option\n",
-                 "#\n",
-                 "# else if option<0 and option >-100 and catch=0 then catches will be replaced by catch=average(catch at age)*(-option)/100\n",
-                 "# else if option<-100  and catch < average(catch at age)*(-option)/10000 then catches will be replaced by catch=average(catch at age)*(-option)/10000\n",
-                 file=file,append=T,sep="")
-             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
-             
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "catch.sep.year"    ={if (nice) {
+          "catch.sep.year"    ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## \n",file=file,append=T)
              if (expand) wr.list.expand(slot(control,x),"catch observations: number of year groups with the same age and seasonal selection","first year in each group (please note #1 will always be changed to first model year)",VPA.species)
              if (!expand) wr.list.nice(slot(control,x),"catch observations: number of year groups with the same age and seasonal selection","first year in each group (please note #1 will always be changed to first model year)",VPA.species)
            } else  wr.list(slot(control,x),"catch.sep.year",x)
            },
-           "catch.spline.year"    ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## \n",file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"number of nodes for year effect Fishing mortality spline\n# 1=no spline (use one Fy for each year), >1 number of nodes","first year in each group",VPA.species)
-             if (!expand) wr.list.nice(slot(control,x),"number of nodes for year effect Fishing mortality spline\n# 1=no spline (use one Fy for each year), >1 number of nodes","first year in each group",VPA.species)
-           } else  wr.list(slot(control,x),"catch.spline.year",x)
-           },
-           "zero.catch.year.season"={if (nice) {
+            "zero.catch.year.season"={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## year season combinations with zero catch (F=0) (option zero.catch.year.season)\n",
                  "# 0=no, all year-seasons have catches,\n",
@@ -653,33 +421,14 @@ write.FLSMS.control<-function(control,file="sms.dat",path=NULL,write.multi=TRUE,
                  slot(control,x),"\n",file=file,append=T,sep="")
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
            },
-           "fix.F.factor"      ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## Factor for fixing last season effect in F-model (default=1) (fix.F.factor))\n",
-                 file=file,append=T,sep="")
-             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
-             
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "est.calc.sigma"  ={if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("## Uncertainties for catch, CPUE and SSB-R observations (option calc.est.sigma)\n",
-                 "#  values: 0=estimate sigma as a parameter (the right way of doing it)\n",
-                 "#          1=Calculate sigma and truncate if lower limit is reached \n",
-                 "#          2=Calculate sigma and use a penalty function to avoid lower limit \n",
-                 "#  catch-observation, CPUE-obs, Stock/recruit\n",
-                 file=file,append=T,sep="")
-             cat(formatC(slot(control,x),width=12),"\n",file=file,append=T,sep=" ")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-           },
-           "read.HCR"          = {if (nice) {
-             cat(sepLine,file=file,append=T)
-             cat("# Read HCR_option file (option=read.HCR) default=0 \n",
-                 "#  0=no  1=yes\n",
-                 slot(control,x),"\n",file=file,append=T,sep="")
-           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
-             if (!write.multi) break
-           },                             
+          "checkValue" ={if (nice) {
+            cat(sepLine,file=file,append=T)
+            cat("## Check value, must be -999 \n",
+                slot(control,x),"\n",file=file,append=T,sep="")
+          } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+          },
+          
+          
            "incl.stom.all"     = {if (nice) {
              cat(sepLine,file=file,append=T)
              cat("#\n#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n#\n",
@@ -1083,10 +832,10 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
        group<-vector("list", length=n.VPA.sp); 
        for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
        slot(control,x)<-group },
-       "catch.spline.year"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
-       group<-vector("list", length=n.VPA.sp);
-       for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; }
-       slot(control,x)<-group },
+      "checkValue"   = {slot(control,x)<-as.numeric(opt[n]); n<-n+1
+                       cat('Check value:',slot(control,x),'\n')
+                       stopifnot('Check value should be -999. Something is wrong\n'=slot(control,x) ==  -999) },
+      
        # otherwise                        
        {slot(control,x)<-opt[n];n<-n+1}                                 
     )
@@ -1131,8 +880,8 @@ setMethod("show", signature(object="RSMS.control"),
 
 if (FALSE) {
   RSMS<-new("RSMS.control")    
-  RSMS<-read.RSMS.control(file=file.path(data.path,'SMS.dat'))
-  write.FLSMS.control(SMS.dat,file=file.path(data.path,"tSMS.dat"),write.multi=T,nice=T)
+  RSMS<-read.RSMS.control(dir=data.path,file='rsms.dat')
+  write.RSMS.control(RSMS,file=file.path(data.path,"tSMS.dat"),write.multi=T,nice=T)
   
   write.FLSMS.control(SMS.dat,file=file.path(data.path,"tSMS.dat"),write.multi=T,nice=T)
   

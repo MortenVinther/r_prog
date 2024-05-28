@@ -4,7 +4,7 @@ func <- function(parameters) {
   ### Parameter transform
   # f <- function(x) {2/(1 + exp(-2 * x)) - 1}
  
-  getAll(data, parameters,warn=FALSE)
+  getAll(data, parameters,warn=TRUE)
   
   ## Optional (enables extra RTMB features) 
   #obs<-OBS(obs) #statement tells RTMB that obs is the response. This is needed to enable automatic simulation and residual calculations from the model object.
@@ -79,9 +79,7 @@ func <- function(parameters) {
   ##########################################################################################
   
   SSB_R<-function(s,y,a=1) {
-    # not used yet recruitYears[s,y]
-    
-    if(stockRecruitmentModelCode[s]==0 | !recruitYears[s,y]){    ## straight RW
+    if (stockRecruitmentModelCode[s]==0 | !recruitYears[s,y]){    ## straight RW
       rec = logN[[s]][a, y-1]
     } else {
       if (stockRecruitmentModelCode[s]==1){ ## Ricker
@@ -156,17 +154,15 @@ func <- function(parameters) {
       }
     }
 
-  
     
     ## Now take care of N
     nvar <- outer(1:stateDimN[s], 1:stateDimN[s],
                   function(i,j) (i==j)*varLogN[ keyVarLogN[s,i]])
    
-    # kan måske undværes
     #recruits first year given recruitment at age 0 (later in the same year)
-    if(stockRecruitmentModelCode[s] >=1 & recAge==0 ){
-   #   predN[[s]][1,1]<-SSB_R(s,y=1);
-  #    ans <- ans - dmvnorm(logN[[s]][1,1], predN[[s]][1,1], nvar[1,1], log=TRUE) ## N-Process likelihood
+    if (stockRecruitmentModelCode[s] >=1 & recAge==0 & recruitYears[s,1]){
+      predN[[s]][1,1]<-SSB_R(s,y=1);
+      ans <- ans - dmvnorm(logN[[s]][1,1], predN[[s]][1,1], nvar[1,1], log=TRUE) ## N-Process likelihood
     }
     
    for(i in 2:timeSteps) { 
@@ -330,7 +326,7 @@ func <- function(parameters) {
         ans <- ans - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
         if (Debug==1) nlls[s,'survey']<- nlls[s,'survey']  - sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
       }
-    } else if (surveyType[fl]==5) {  # effort index for Fbar
+    } else if (surveyType[fl]==5) {  # effort used as index for Fbar
       flYears<-keys[,'y']
       faf<-fbarRange[s,1]; laf<-fbarRange[s,2]; naf<-laf-faf+1
       obs.no<-keys[,'obs.no']

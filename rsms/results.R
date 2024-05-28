@@ -125,7 +125,14 @@ make_tab(d=x$logCatchability,key=data$keyCatchability)
 
 make_tab3(d=x$logSeparF,key=data$keyLogSeparF,roundIt=2)
 
-source(file.path(rsms.root.prog,"summary_plot.R"))
+
+
+
+summary_plot(obj,out=as.list(sdrep, "Est", report=TRUE),data,sdrep,incl_ICES_plot=FALSE) 
+plotF(obj,sdrep,data,combineAges=FALSE)  
+  
+ssb<-tail(summary(sdrep, "report"),1); cat('CV of SSB last year:',round(ssb[,2]/ssb[,1],3),'\n')
+
 
 if (FALSE) for (s in (rsp)) {
   bb=filter(b,Species==s & source=='rsms')

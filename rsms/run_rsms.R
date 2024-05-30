@@ -38,9 +38,9 @@ annualData<-FALSE
 
 #inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L), inp=inp_all)  #ok
 
-inp<-pick_species(ps=c(1L,7L,8L), inp=inp_all)  
+#inp<-pick_species(ps=c(1L,6L,7L,8L), inp=inp_all)  
 #inp<-pick_species(ps=c(7L,8L), inp=inp_all) 
-#inp=inp_all
+inp=inp_all
 
 #  transform quarterly data into to annual data (testing)
 if (annualData) inp<-into_annual(inp)
@@ -65,7 +65,7 @@ obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
                
 lu<-lowerUpper(obj,data,parameters )
 
-# round(ftable(data$seasFprop[[1]][,2,]),3)
+# round(ftable(data$seasFprop[[2]][,2,]),3)
 
 # 
 # CC<-as.data.frame(data$keyCatch)

@@ -443,10 +443,10 @@ catch<-left_join(b,
        filter(combCat==1 | (combCat==0 & (age>fa | (age==fa & q>=recSeason )))) 
 #round(ftable(xtabs(CATCHN~year+q+age,data=catch)))
 
-catch<-left_join(catch,zy,by = join_by(y, s)) %>% filter(is.na(zero)) %>% mutate(zero=NULL)
-
 catch<-left_join(catch,bz,by = join_by(s,y, q)) %>% mutate(CATCHN=if_else(z==1,CATCHN,0),z=NULL)
 catch2<-catch
+
+catch<-left_join(catch,zy,by = join_by(y, s)) %>% filter(is.na(zero)) %>% mutate(zero=NULL)
 
 #  round(ftable(xtabs(CATCHN~year+q+age,data=filter(catch2,s==7))))
 

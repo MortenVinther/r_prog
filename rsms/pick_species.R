@@ -1,5 +1,5 @@
-pick_species<-function(ps=c(1), inp) {
- #test  ps<-c(7L,8L); ps<-c(1L,8L); inp=inp_all
+pick_species<-function(ps=c(1), inp,smsConf=0L) {
+ #test  ps<-c(7L,8L); ps<-c(1L,8L); inp=inp_all; smsConf=0L
   
   ps<-sort(unique(ps))
   nps<-length(ps)
@@ -9,7 +9,7 @@ pick_species<-function(ps=c(1), inp) {
   p<-parameters
   d<-data
   
-  d$info<-data$info[ps,,drop=FALSE]
+  if (smsConf==0) d$info<-data$info[ps,,drop=FALSE]
   d$info[,'s']<-1L:length(ps)
   d$nSpecies<-length(ps)
   
@@ -145,6 +145,24 @@ pick_species<-function(ps=c(1), inp) {
   
   d$recruitYears<-data$recruitYears[ps,,drop=FALSE]
  
+  if (smsConf==0) {
+    d$consum<-NULL
+    d$meanL<-NULL
+    d$propM2<-NULL
+    d$natMor1<-NULL
+    d$otherN<-NULL
+    d$stom<-NULL
+    d$otherFood<-NULL
+    d$predPreySize<-NULL
+    d$vulneraIdx<-NULL
+  }
+  
+  
+  #parameters
+  if (smsConf==0) {  # single species
+    p$vulnera<-rep(0.0,0)
+  }
+    
   p$logSdLogObsCatch<-parameters$logSdLogObsCatch[1:max(d$keyVarObsCatch)]
   
   p$logCatchability<-parameters$logCatchability[1:max(d$keyCatchability)] 

@@ -62,7 +62,7 @@ if (otherPredExist) {
   b<-expand.grid(sub_area=1:noAreas,species.n=1:(first.VPA-1),year=years[1]:years[2],quarter=1:nq,age=fa:la)
   b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
   length(N)
-  if ( length(WSEA) !=length(N) ) stop('differen number of observations in west.in for "other predators") and other_pred_n.in')
+  if ( length(WSEA) !=length(N) ) stop('different number of observations in west.in for "other predators") and other_pred_n.in')
 
   b<-data.frame(b,WSEA=WSEA, N=N)
   b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,species.n,age,quarter,sub_area,WSEA,N))
@@ -73,21 +73,21 @@ if (otherPredExist) {
   ###################### mean l
 
   l<-scanData('lsea.in')
-  b<-expand.grid(SMS_area=1:noAreas,species.n=1:nsp,year=years[1]:years[2],quarter=1:nq,age=fa:la)
-   b<-b[order(b$SMS_area,b$species.n,b$year,b$quarter,b$age),]
+  b<-expand.grid(sub_area=1:noAreas,species.n=1:nsp,year=years[1]:years[2],quarter=1:nq,age=fa:la)
+   b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
 
   b<-data.frame(b,mean_l=l)
-  b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,age,quarter,SMS_area,mean_l))
+  b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,age,quarter,sub_area,mean_l))
   out<-c(out,list(mean_l=b))
 
   ###########################  consum
 
   CONSUM<-scanData('consum.in')
-  b<-expand.grid(SMS_area=1:noAreas,species.n=1:npr,year=years[1]:years[2],quarter=1:nq,age=fa:la)
-  b<-b[order(b$SMS_area,b$species.n,b$year,b$quarter,b$age),]
+  b<-expand.grid(sub_area=1:noAreas,species.n=1:npr,year=years[1]:years[2],quarter=1:nq,age=fa:la)
+  b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
 
   b<-data.frame(b,CONSUM=CONSUM)
-  b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,quarter,age,SMS_area,CONSUM))
+  b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,quarter,age,sub_area,CONSUM))
   out<-c(out,list(consum=b))
 }
  return(out)

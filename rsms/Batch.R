@@ -11,12 +11,14 @@ source(file.path(rsms.root.prog,"lowerUpper.R"))
 
 rm(data,parameters)
 
-
+printPlot=T
 doIt<-function(sms,runno){
   write.RSMS.control(sms,file=file.path(data.path,"rsms.dat"),write.multi=T,nice=T)
-  inp<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',adj_san0=TRUE,seasFfrom=c('F','catch')[2])
+  inp<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',seasFfrom=c('F','catch')[2])
 
-  #### prepare to run
+  if (exists('opt')) rm(opt);if (exists('sdrep')) rm(sdrep);if (exists('obj')) rm(obj)
+
+    #### prepare to run
   data<-inp[['data']]
   
   parameters<-inp[['parameters']]
@@ -30,7 +32,6 @@ doIt<-function(sms,runno){
   cat("MakeADFun done\n")
   lu<-lowerUpper(obj,data,parameters )
   cat('lowerUpper is done\n')
-  rm(opt,sdrep)
   system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1000,eval.max=1000)))
   announce(opt)
   
@@ -39,10 +40,10 @@ doIt<-function(sms,runno){
   out<-as.list(sdrep, "Est", report=TRUE)
   sdPar<-calcCV(sdrep,data)
   plts<-summary_plot(obj,data,sdrep,out,incl_ICES_plot=FALSE,pLabel=paste(' Run:',runno)) 
-  print(plts)
-  fplts<-plotF(obj,sdrep,data,combineAges=FALSE) 
-  print(fplts)
-  a<-list(run=runno,opt=opt,Hessian=sdrep$pdHess,sdrep=summary(sdrep, "fixed", p.value = FALSE),obj=obj,sdPar=sdPar,plts=plts,fplts=fplts)
+  if (printPlot) print(plts)
+  fplts<-plotF(obj,sdrep,data,combineAges=T,pLabel=paste(' Run:',runno)) 
+  if (printPlot) print(fplts)
+  a<-list(run=runno,opt=opt,Hessian=sdrep$pdHess,sdrep=sdrep,sdreps=summary(sdrep, "fixed", p.value = FALSE),ssb=summary(sdrep, "report"),obj=obj,sdPar=sdPar,plts=plts,fplts=fplts)
   return(a)
 }
 
@@ -52,6 +53,7 @@ x<- doIt(sms=sms,runno=1) # just cheking
 run<-1
 allruns<-list(list(run=run,sms=sms))
 
+if (FALSE) {
 ##
 sms<-read.RSMS.control(dir=data.path,file="rsms_source.dat"); run<-run+1
 sms@SSB.R<-1
@@ -61,11 +63,42 @@ allruns<-c(allruns,list(list(run=run,sms=sms)))
 sms<-read.RSMS.control(dir=data.path,file="rsms_source.dat"); run<-run+1
 sms@SSB.R<-2
 allruns<-c(allruns,list(list(run=run,sms=sms)))
+}
 
-##
 sms<-read.RSMS.control(dir=data.path,file="rsms_source.dat"); run<-run+1
 sms@SSB.R<-3
 allruns<-c(allruns,list(list(run=run,sms=sms)))
+
+
+## no F at age zero, one F group 
+sms<-read.RSMS.control(dir=data.path,file="rsms_source.dat"); run<-run+1
+sms@SSB.R<-1
+sms@species.info[,2]<-1L
+sms@keyLogFsta[[1]]<-c(1L)
+sms@catch.s2.group[[1]]<-c(1L,3L)
+allruns<-c(allruns,list(list(run=run,sms=sms)))
+
+
+## no F at age zero, two F groups 
+sms<-read.RSMS.control(dir=data.path,file="rsms_source.dat"); run<-run+1
+sms@SSB.R<-1
+sms@species.info[,2]<-1L
+sms@keyLogFsta[[1]]<-c(1L,2L)
+sms@catch.s2.group[[1]]<-c(1L,3L)
+allruns<-c(allruns,list(list(run=run,sms=sms)))
+
+
+## no F at age zero, two F groups 
+sms<-read.RSMS.control(dir=data.path,file="rsms_source.dat"); run<-run+1
+sms@SSB.R<-1
+sms@species.info[,2]<-1L
+sms@keyLogFsta[[1]]<-c(1L,3L)
+sms@catch.s2.group[[1]]<-c(1L,3L)
+allruns<-c(allruns,list(list(run=run,sms=sms)))
+
+
+# x<- doIt(sms=sms,runno=1) # just checking
+
 
 cleanup()
 results<-lapply(allruns,function(x) doIt(sms=x$sms,runno=x$run))
@@ -78,6 +111,17 @@ x<-lapply(results,function(x) {
   a<-x$sdPar %>% filter(is.na(sd)) %>% mutate(run=x$run)
  if (dim(a)[[1]]<4)  print(a) else cat(dim(a)[[1]],'parameters without std\n')
 })
+
+x<-lapply(results,function(x) aa<-summary(x$sdrep, "fixed", p.value = FALSE) )
+
+# CV on SSB
+yssb<-5
+x<-lapply(results,function(x) {
+  a<-tail(as.data.frame(x$ssb),yssb) ;
+  ssbCV<-a[,2]/a[,1]
+})
+xx<-do.call(rbind,x);rownames(xx)<-paste('run',1:run); colnames(xx)<- paste((sms@last.year.model-yssb+1):sms@last.year.model  )
+xx
 
 x<-lapply(results,function(x) print(x$plts))
 x<-lapply(results,function(x) print(x$fplts))

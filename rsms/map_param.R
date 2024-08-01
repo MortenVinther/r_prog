@@ -40,6 +40,8 @@ map_param<-function(data,parameters) {
     rhoMap<-factor(rhoMap)
     my.map<-c(my.map,list(rho=rhoMap))
   }
+  
+  # if (smsConf == 0) 
   # 
   # if (length(parameters$logSeparF)>0) {
   #   sepMap<-1L:length(parameters$logSeparF)

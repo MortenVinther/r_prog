@@ -1,17 +1,37 @@
-make_rsms_data<-function(dir,sms.dat='sms.dat',seasFfrom=c('F','catch')[1]) {
+make_rsms_data<-function(dir,sms.dat='sms.dat',seasFfrom=c('F','catch')[1],multi=FALSE) {
  if (FALSE) {
-   dir=data.path; sms.dat='rsms.dat'; seasFfrom<-'catch';seasFfrom=c('F','catch')[2]; 
+   dir=data.path; sms.dat='rsms.dat'; seasFfrom<-'catch';seasFfrom=c('F','catch')[2]; multi=TRUE
  }
 
 sms<-read.RSMS.control(dir,file=sms.dat)
 
-multi<-!(sms@VPA.mode==0)
 
 info<-sms@species.info
-multi.environment<- any(info[,'predator']==2)
+incl_other<- any(info[,'predator']==2)
+
+if (incl_other) {
+  off.species<-as.integer(-first.VPA+1) 
+  off.oths<-as.integer(first.VPA+1)  #other species offset # in rsms, other species come after VPA (analytical)  species
+  info<-rbind(info[first.VPA:sms@no.species,],info[1:(first.VPA-1),])
+  nOthSpecies<-as.integer(first.VPA-1)
+} else {
+  off.species<-0L
+  off.oths<- -9L
+  info<-info[first.VPA:sms@no.species,]
+  nOthSpecies<-0L
+}
+
+info<-cbind(s=1L:dim(info)[[1]],info)
+
+off.season<-0L # not used 
+
 
 nSpecies<-sms@no.species-first.VPA+1L  # species with analytically assessment
-nOthSpecies<-0L
+nAllSp<-nSpecies+nOthSpecies
+nPredator<-sum(info[,'predator']>0)
+
+oldNewSp_n<-c((1:nOthSpecies)+nSpecies,1:nSpecies)
+
 ages<-sms@first.age:sms@max.age.all
 nAges<-length(ages)
 recSeason<-as.integer(sms@rec.season)
@@ -20,15 +40,16 @@ years<-sms@first.year.model:sms@last.year.model; nYears<-length(years)
 
 off.age<- as.integer(1-sms@first.age)
 off.year<- - as.integer(sms@first.year.model-1)
-stockRecruitmentModelCode<-as.integer(sms@SSB.R)
 
-info<-sms@species.info[first.VPA:sms@no.species,c("last-age", "first-age F>0",  "+group", "SpawningQ"),drop=FALSE]
-info<-cbind(info,fModel=sms@fModel)
+info<-cbind(info,fModel=c(sms@fModel,rep(-9,nOthSpecies)))
 fSepar<-if_else(sms@fModel==2,sms@firstAgeYearEffect+off.age,99L)
-info<-cbind(info,fSepar)
-spNames<-dimnames(info)[[1]]
-othspNames<-dimnames(info)[[1]][1:(first.VPA-1)]
+info<-cbind(info,fSepar=c(fSepar,rep(-9,nOthSpecies)))
 
+spNames<-dimnames(info)[[1]][1:nSpecies]
+othspNames<-dimnames(info)[[1]][(nSpecies+1):nAllSp]
+predNames<- dimnames(info[info[,'predator']>0,])[[1]]
+
+stockRecruitmentModelCode<-as.integer(sms@SSB.R)
 names(stockRecruitmentModelCode)<-spNames
 use_rho<-as.integer(sms@use_rho)
 rec_loga <- rep(1,nSpecies)
@@ -38,12 +59,6 @@ rec_loga[stockRecruitmentModelCode==2] <- 4         # B&W
 rec_logb <- rep(1,nSpecies)
 rec_logb[stockRecruitmentModelCode==1] <- -12  # Ricker
 rec_logb[stockRecruitmentModelCode==2] <- -12        # B&W
-
-if (multi.environment) off.species<-as.integer(-first.VPA+1) else off.species<-0L
-
-info<-cbind(info,s=(first.VPA:sms@no.species)+off.species)
-off.oths<-0L #other species offset (for now)
-off.season<-0L # not used 
 
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages))+off.age;
 seasonalCatches<-as.integer(sms@combined.catches==0)
@@ -352,7 +367,7 @@ if (FALSE) {
   out[[17]]
 }
 keySurvey<-  cpue %>% dplyr::select(obs.no,f,s,y,a,q ,keyVarObsSurvey, keyCatchability,keyPowerQ)
-summary(filter(keySurvey, is.na(keyVarObsSurvey) | is.na(keyCatchability)))
+#summary(filter(keySurvey, is.na(keyVarObsSurvey) | is.na(keyCatchability)))
 filter(keySurvey, is.na(keyVarObsSurvey) | is.na(keyCatchability))
 
 stopifnot(dim(filter(keySurvey, is.na(keyVarObsSurvey) | is.na(keyCatchability)))[[1]]==0)
@@ -369,12 +384,16 @@ rec_years<-matrix(head(x,-1),nrow=nSpecies,byrow=TRUE)==1
 
 source(file.path(rsms.root.prog,"from_sms_format_to_rsms_data.R"))
 
-d<-From_SMS_format_to_rsms(otherPredExist=multi.environment,catchMultiplier=1,dir=dir)
+
+d<-From_SMS_format_to_rsms(otherPredExist=multi,catchMultiplier=1,dir=dir)
+
 
 #merge data
 b<-full_join(d$catch,d$bio,join_by(year, species.n, quarter, sub_area, age))
 if (multi) {
   b2<-full_join(d$mean_l,d$consum,join_by(year, species.n, quarter, sub_area, age))
+  d$other$WSEAoth<-d$other$WSEA; d$other$WSEA<-NULL; d$other$species.n.1<-NULL
+  b2<-full_join(b2,d$other,join_by(year, species.n, quarter, sub_area, age))
   b<-full_join(b,b2,join_by(year, species.n, quarter, sub_area, age))
 }
 
@@ -401,9 +420,13 @@ stopifnot(all(check$Fprop>0.999 & check$Fprop<1.001 | is.na(check$Fprop)))
 
 b<-left_join(b,bb,by = join_by(year, species.n, quarter, sub_area, age,annualC))
 
-b<-b %>% mutate(y=year+off.year,q=quarter,s=species.n+off.species,a=age+off.age)
+b<-b %>% mutate(y=year+off.year,q=quarter,s=oldNewSp_n[species.n],a=age+off.age)  # change species numbering
 b<-left_join(b,data.frame(s=info[,'s'],la=info[,"last-age"]+off.age),by = join_by(s)) %>% filter(a<=la)
 
+
+#sort(unique(paste(b$species.n,b$s,sep='_')))
+
+b[b$s>nSpecies,'WSEA']<-b[b$s>nSpecies,'WSEAoth']; b$WSEAoth<-NULL
 
 propMat         <-by(b,b$s,function(x) {y<-tapply(x$PROPMAT,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 stockMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WSEA,list(x$y,x$q,x$a),sum) ; y[is.na(y)]<-0; y})
@@ -411,7 +434,30 @@ catchMeanWeight <-by(b,b$s,function(x) {y<-tapply(x$WCATCH,list(x$y,x$q,x$a),sum
 natMor          <-by(b,b$s,function(x) {y<-tapply(x$M,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 catchNumber     <-by(b,b$s,function(x) {y<-tapply(x$CATCHN,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
 
+if (multi) {
+  consum          <-by(b,b$s,function(x) {y<-tapply(x$CONSUM,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+  meanL           <-by(b,b$s,function(x) {y<-tapply(x$mean_l,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+  propM2          <-by(b,b$s,function(x) {y<-tapply(x$PROP_M2,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+  natMor1         <-by(b,b$s,function(x) {y<-tapply(x$M1,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+  otherN          <-by(b,b$s,function(x) {y<-tapply(x$N,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y})
+} else {consum<-NA;meanL<-NA;propM2=NA; natMor1=NA;  otherN<-NULL}
 
+
+trimIt<-function(x,used=c(1,2)){
+  x<-x[used]
+}
+
+propMat         <-trimIt(x=propMat,used=1:nSpecies)
+stockMeanWeight <-trimIt(x=stockMeanWeight,used=1:nSpecies)
+catchMeanWeight <-trimIt(x=catchMeanWeight,used=1:nSpecies)
+natMor          <-trimIt(x=natMor,used=1:nSpecies)
+catchMeanWeight <-trimIt(x=catchMeanWeight,used=1:nSpecies)
+catchNumber     <-trimIt(x=catchNumber,used=1:nSpecies)
+
+if (multi) {
+  propM2          <-trimIt(x=propM2,used=1:nSpecies)
+  natMor1         <-trimIt(x=natMor1,used=1:nSpecies)
+}
 zero<-propMat; for (s in 1:nSpecies) {zero[[s]][,,]<-0}
 
 
@@ -437,8 +483,10 @@ zeroCatchYearExistsSp[zeroCatchYearExistsSp>0] <-1L
 zy<-zy %>% mutate(zero=TRUE) %>% filter(y>0)
 if (dim(zy)[[1]]>0) zeroCatchYearExists<-1L else zeroCatchYearExists<-0L
 
+
+
 catch<-left_join(b,
-                 data.frame(s=1:nSpecies,fa=sms@first.age,combCat=sms@combined.catches,recSeason=sms@rec.season,faf=info[,"first-age F>0"]+off.age),
+                 data.frame(s=1:nAllSp,fa=sms@first.age,combCat=c(sms@combined.catches,rep(-9,nOthSpecies)),recSeason=sms@rec.season,faf=info[,"first-age F>0"]+off.age),
                  by = join_by(s)) %>%
        filter(combCat==1 | (combCat==0 & (age>fa | (age==fa & q>=recSeason )))) 
 #round(ftable(xtabs(CATCHN~year+q+age,data=catch)))
@@ -501,6 +549,216 @@ info<-cbind(info,
     la=info[,"last-age"]+off.age,
     faf=info[,"first-age F>0"]+off.age)
  
+###############   stomach data
+
+info<-cbind(info,sizeSlct=rep(0L,nSpecies+nOthSpecies)) # temporary
+            
+
+s<-read_delim(file.path(stom.input,"stomcon_list_Boots_0500_haul_as_observed.dat"))
+s[s$pred=='W_H','pred']<-'WHM'
+s[s$pred=='N_H','pred']<-'NHM'
+
+s<-s%>%mutate(tpred=paste(formatC(pred.no,flag='0',w=2),pred),tprey=paste(formatC(prey.no,flag='0',w=2),prey),prey.mean.length.ALK=NULL,pred.no=as.integer(pred.no),prey.no=as.integer(prey.no))
+#xtabs(~tpred+tprey,data=s)  #OK but old species order
+
+
+
+#s<-s %>% mutate(pred.no=oldNewSp_n[pred.no])
+s$pred.no<-oldNewSp_n[s$pred.no]
+x2<-filter(s,prey=='OTH')
+s<-filter(s,prey!='OTH') %>% mutate(prey.no=oldNewSp_n[prey.no])
+s<-rbind(s,x2)
+s<-s%>%mutate(tpred=paste(formatC(pred.no,flag='0',w=2),pred),tprey=paste(formatC(prey.no,flag='0',w=2),prey))
+xtabs(~tpred+tprey,data=s) #OK
+
+
+
+pp<-matrix(0L,nrow=nSpecies+1,ncol=nSpecies+nOthSpecies,dimnames=list(c(spNames,'OTH'),c(spNames,othspNames)))
+pp2<- s%>% select(pred,pred.no,prey,prey.no) %>% mutate(prey.no=as.integer(ifelse(prey.no==0,nSpecies+1,prey.no))) %>%unique() 
+#xtabs(~prey.no+pred.no,data=pp2)
+for (i in (1:dim(pp2)[[1]]))  pp[unlist(pp2[i,'prey.no']),unlist(pp2[i,'pred.no'])]<-1L
+predPrey<-pp
+predPrey
+
+vulneraIdx<-predPrey
+vulneraIdx[vulneraIdx>0]<-1:sum(vulneraIdx>0)
+vulneraIdx
+vulnera<-rep(1,max(vulneraIdx)) #vulnerability coefficient, parameter 
+
+
+lw<-scan(file.path(dir,"length_weight_relations.in") ,comment.char = "#")
+lw<-head(lw,-1)
+lw<-matrix(lw,ncol=2,nrow=nSpecies+nOthSpecies,dimnames=list(c(spNames,othspNames),c('a','b')),byrow=TRUE )
+lwdf<-data.frame(lw) %>% mutate(sp=1:dim(lw)[[1]])
+#lwdf
+
+ss<-s%>% left_join(x=s,y=lwdf,by = join_by(pred.no == sp)) %>% 
+  mutate(pred.size.w=a*pred.mean.length**b,a=NULL,b=NULL,prey.size.w=mean.weight,pred.prey.size.w=pred.size.w/prey.size.w)  
+
+
+#xtabs(~tpred+tprey,data=ss)  #OK
+
+library(quantreg)
+q1<-0.025 #lower quantile
+q2<-0.975 #higher quantile
+
+
+# xtabs(~tpred+tprey,data=ss)  #OK
+
+a<-filter(ss,type=='obs' & prey !='OTH' ) %>% 
+  mutate(log.pred.prey.size.w=log(pred.size.w/prey.size.w),log.pred.size.w=log(pred.size.w)) %>%
+  select(SMS_area,pred.no, pred,tpred,prey.no,prey,tprey,log.pred.size.w,log.pred.prey.size.w ) 
+a
+xtabs(~tpred+tprey,data=a)  #OK
+
+# predator size independent prey range
+aa<-a %>% group_by(pred.no,pred,tpred,prey.no,prey,tprey) %>% summarize(min_s=min(log.pred.size.w),max_s=max(log.pred.size.w))
+round(xtabs(min_s~tpred+tprey,data=aa),3)  
+round(xtabs(max_s~tpred+tprey,data=aa),3)  
+aa
+
+#
+pp<-array(0,dim=c(4,nSpecies,nSpecies+nOthSpecies),dimnames=list(c('lower_intc','lower_slope','upper_intc','upper_slope'),spNames,c(spNames,othspNames)) )                                                         
+for (i in (1:dim(aa)[[1]])) {
+  pred<-unlist(aa[i,'pred'])
+  prey<-unlist(aa[i,'prey'])
+  pp[1,prey,pred]<-unlist(aa[i,'min_s'])
+  pp[3,prey,pred]<-unlist(aa[i,'max_s'])
+}
+round(ftable(pp),2)
+
+
+#quantile regressions
+
+if(FALSE) by(a,list(a$pred.no),function(x) {
+  
+  pp<-ggplot(data=x, aes(x=log.pred.size.w, y=log.pred.prey.size.w)) +
+    geom_point()+
+    labs(title=x[1,'pred'],y='log(predator size/prey size)',x='log(predator size)')+
+    geom_smooth(method = "lm", se =F)+
+    facet_wrap(vars(prey),ncol=3)
+})
+
+
+if (FALSE) {
+  a1<-filter(a,pred.no %in% c(1:9) )
+  aa<-by(a1,list(a1$prey.no,a1$pred.no),function(x,minNobs=5) {
+    titl<-paste(x[1,'pred'],'eating',x[1,'prey'])
+    print(titl)
+    
+    if (dim(x)[[1]]<minNobs) {
+      print('too few observations')
+    } else {
+      ru<-rq(log.pred.prey.size.w~log.pred.size.w ,data=x, tau=q1)
+      ru<-ru[["coefficients"]]
+      rl<-rq(log.pred.prey.size.w~log.pred.size.w ,data=x, tau=q2)
+      rl<-rl[["coefficients"]]
+      
+      
+      pp<-ggplot(data=x, aes(x=log.pred.size.w, y=log.pred.prey.size.w)) +
+        geom_point()+
+        labs(title=titl,y='log(predator size/prey size)',x='log(predator size)')+
+        geom_smooth(method = "lm", se =F)+
+        geom_abline(slope=ru[2],intercept=ru[1])+
+        geom_abline(slope=rl[2],intercept=rl[1])
+      print(pp)
+    } 
+    if (dim(x)[[1]]<minNobs) {
+      return(list(pred=unlist(x[1,'pred']),prey=unlist(x[1,'prey'])))
+    } else return(list(pred=unlist(x[1,'pred']),prey=unlist(x[1,'prey']),ru=ru,rl=rl,plt=pp))
+    
+  })
+}
+
+a1<-filter(a,pred.no %in% c(1:9) )
+n<-a1 %>% group_by(pred.no,prey.no) %>% summarize(n=dplyr::n())
+an<-left_join(a1,n,by = join_by(pred.no, prey.no))
+
+aa<-filter(an,n>5) %>% 
+  nest_by(pred.no,pred,prey.no,prey) %>%  
+  mutate(ru=list(rq(log.pred.prey.size.w~log.pred.size.w, tau=q1,data=data)),
+         rl=list(rq(log.pred.prey.size.w~log.pred.size.w, tau=q2,data=data)))
+
+
+for (i in (1:dim(aa)[[1]])) {
+  pred<-unlist(aa[i,'pred'])
+  prey<-unlist(aa[i,'prey'])
+  cof<-aa[i,'rl'][[1]][[1]][['coefficients']]
+  pp[1,prey,pred]<-cof[1]
+  pp[2,prey,pred]<-cof[2]
+  cof<-aa[i,'ru'][[1]][[1]][['coefficients']]
+  pp[3,prey,pred]<-cof[1]
+  pp[4,prey,pred]<-cof[2]
+}  
+round(ftable(pp),2)  
+if (FALSE){
+  u<-scan(file.path(stom.input,"pred_prey_size_range_param.csv"),comment.char = "#",sep=',') 
+  u<-u[!is.na(u)]
+  u<-head(u,-1)
+  u<-matrix(u,nrow=(nSpecies)*4,ncol=nSpecies++nOthSpecies,byrow=TRUE)
+  round(ftable(u),1)
+  
+  uu<-array(0,dim=c(4,nSpecies,nSpecies+nOthSpecies),dimnames=list(c('lower_intc','lower_slope','upper_intc','upper_slope'),spNames,c(spNames,othspNames)) )                                                         
+  round(ftable(uu),1)
+  for (i in (1:4)) {
+    ul<-nSpecies*(i-1)+1
+    up<-nSpecies*(i) 
+    uu[i,,]<-u[ul:up,]
+  }
+  
+  pp<-uu
+  ftable(pp)
+}
+
+## stomach contents
+
+aBasis<-ss%>% transmute(area=as.integer(SMS_area),
+                        year=as.integer(year),
+                        y=as.integer(year+off.year),
+                        q=as.integer(quarter+off.season),
+                        predC=pred,
+                        pred=pred.no,
+                        predSize=pred.size,
+                        predSizeClass=as.integer(pred.size.class),
+                        predMeanLength=as.integer(pred.mean.length),  
+                        predSizeW=pred.size.w,
+                        noStom=as.integer(stom.no),
+                        noHaul=as.integer(haul.no),
+                        phi=phi,
+                        preyC=prey,
+                        prey=as.integer(prey.no),
+                        preySize=prey.size,
+                        preySizeClass=as.integer(prey.size.class),
+                        preyMeanLength=as.integer(prey.mean.length),
+                        preySizeW=prey.size.w,
+                        logPPsize=log(pred.prey.size.w),
+                        type=type,
+                        stomcon=stomcon )
+aBasis[aBasis$preyC=='OTH','logPPsize']<-NA
+
+
+a<- aBasis %>% mutate(predSize=NULL,  predMeanLength=NULL, predSizeW=NULL,,preySize=NULL, preySizeClass=NULL, preyMeanLength=NULL ) %>% 
+  group_by( area,year,y,q,predC,pred, predSizeClass,noHaul,noStom,phi) %>% 
+  nest()
+
+if (FALSE) {
+  head(a)
+  a[1,'data'][[1]]
+  a[6,'data'][[1]]
+  a[6,'data'][[1]][[1]]
+  
+  print(a[6,'data'][[1]][[1]],n=50)
+}
+
+
+#other food
+of<-scan(file.path(dir,"other_food.in"),comment.char = "#")
+of<-head(of,-1)
+names(of)<-c(spNames,othspNames)
+of
+
+stomD<-list(stom=a,of=of,predPredSize=pp,vulneraIdx=vulneraIdx,vulnera=vulnera)
+
 
 
 Un<-matrix(0.0, nrow=sum(info[,"last-age"]-sms@first.age+1L),ncol=nYears )
@@ -558,6 +816,15 @@ list(
      natMor= natMor,
      propF=zero,
      propM=zero,
+     consum=consum,
+     meanL=meanL,
+     propM2=propM2,          
+     natMor1=natMor1,         
+     otherN=otherN, 
+     stom=stomD$stom,
+     otherFood=stomD$of,
+     predPreySize=stomD$predPredSize,
+     vulneraIdx=stomD$vulneraIdx,
      keyCatch=keyCatch,
      catchNoSeason=catchNoSeason,
      catchNoSeasonUsed=catchNoSeasonUsed,
@@ -583,7 +850,8 @@ list(
       logSdLogN=logSdLogN,
       rho=rho,
       rec_loga=rec_loga, 
-      rec_logb=rec_logb, 
+      rec_logb=rec_logb,
+      vulnera=stomD$vulnera,
       Un=Un,
       Uf=Uf
     ))

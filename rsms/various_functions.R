@@ -450,14 +450,14 @@ seasonalF<-function(obj,sdrep,data) {
 
 #b<-left_join(inputToDF(data),outputToDF(obj),by = join_by(species, year, q, age))
 
-plotF<-function(obj,sdrep,data,combineAges=FALSE) {
+plotF<-function(obj,sdrep,data,combineAges=FALSE,pLabel='') {
   ff<- FToDF(obj,sdrep,data) %>% mutate(species=data$spNames[s])
   
   a<-t(data$keyLogFsta)
   a<-cbind(a,Age=data$minAge-1 +(1:data$nAges))
-  a<-data.frame(a) %>% pivot_longer(cols=1:data$nSpecies) %>%rename(species=name,aGroup=value,age=Age)
+  a<-data.frame(a) %>% pivot_longer(cols=1:data$nSpecies) %>%rename(species=name,aGroup=value,age=Age) %>%   mutate(species=gsub('\\.',' ',species))
   
-  ff<-left_join(ff,a) %>% as_tibble()
+  ff<-left_join(ff,a,by = join_by(age, species)) %>% as_tibble()
   
   ag<-a%>%  group_by(species,aGroup) %>% summarise(mina=min(age),maxa=max(age)) %>% ungroup() %>%
     mutate(ages=paste(mina,maxa,sep='-'),mina=NULL,maxa=NULL)
@@ -466,17 +466,20 @@ plotF<-function(obj,sdrep,data,combineAges=FALSE) {
   ff<-left_join(ff,ag,by = join_by(species, aGroup))%>% mutate(ages=factor(ages),age=factor(age))
   
   fplt<-by(ff,ff$s,function(x) ggplot(x,aes(x=year,y=FF,shape=age,col=age))+
-             geom_point(size=2)  + geom_line()+labs(title=x[1,'species'],ylab='F')+
+             geom_point(size=2)  + geom_line()+labs(title=paste(x[1,'species'],pLabel),ylab='F')+
              facet_wrap(vars(data$spNames[s]),ncol=2,scales="free_y")
   )
-  return(fplt)
+
   if (combineAges) {
     fff<-ff %>%mutate(age=NULL) %>% unique()
     
-    by(fff,fff$s,function(x) ggplot(x,aes(x=year,y=FF,shape=ages,col=ages))+
-         geom_point(size=2)  + geom_line()+labs(title=x[1,'species'],ylab='F')+
+    fplt<-by(fff,fff$s,function(x) ggplot(x,aes(x=year,y=FF,shape=ages,col=ages))+
+         geom_point(size=2)  + geom_line()+labs(title=paste(x[1,'species'],pLabel),ylab='F')+
          facet_wrap(vars(data$spNames[s]),ncol=2,scales="free_y")
     )
   }
+  return(fplt)
 }
+
+
 

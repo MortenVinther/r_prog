@@ -49,13 +49,18 @@ func <- function(parameters) {
   logNq<-makeVar3()
   logNbarq<-makeVar3()
   Zq<-makeVar3()
+  MM<-makeVar3()  # natural mortality
+  for (i in (1:length(MM))) MM[[i]]<-natMor[[i]]
+  M2<-makeVar3()  # predation mortality (M2)
+  
+  
   #Cq<-makeVar3()
   Chat<-makeVar2()
   predN<-makeVar2()
   #outF<-makeVar2()
   ssb<-matrix(0,nrow=nSpecies,ncol=nYears)
   fq<-1L;     # first season (e.g. quarter)
-  lq<-nSeasons
+  lq<-nSeasons #  use 1 for annual data
   nlls<-matrix(0,ncol=4,nrow=nSpecies,dimnames=list(species=spNames,nll=c("catch","F","N","survey")))
   
   
@@ -109,7 +114,77 @@ func <- function(parameters) {
     #outF[[s]][a,y]<<-ff
     if (expIt) return(exp(ff)) else return(ff)
   }
+
+  
+  # food suitability
+  suitability <-function(pred,prey,predSize,preysize,observed) { 
+   #   FUNCTION dvariable suit(int y, int q, int d, int pred,int prey,double pred_size,double prey_size, int observed)
+  #  vul=season_overlap(d,pred,q,prey)*vulnera(pred_prey_comb(d,pred,prey));
  
+  vul<-vulnera[vulneraIdx[prey,pred]]  
+  #if (use_overlap==1 && y<=lyModel) vul=vul*overlap(d,pred,y,q,prey);
+  #else if (use_overlap==2 && y>lyModel) vul=vul*overlap_forecast(d,pred,y,q,prey); 
+  
+  opt<-info[pred,'sizeSlct']
+   
+  if (opt==0) {         # (uniform) no size selection
+    if (observed) return(vul) else {
+      ratio<-pred_size/prey_size;  
+      if (ratio>=predPreySize['lower_intc',prey,pred] & ratio<=predPreySize['upper_intc',prey,pred]) return(vul) else return(0.0)
+    }
+  }
+  else if (opt==4) {        # (confined uniform) no size selection, but within limits
+    if (observed==1) return(vul) else { 
+      ratio<-pred_size-prey_size; # sizes are on log scale  
+      if (ratio>=(predPreySize['lower_intc',prey,pred] + predPreySize['lower_slope',prey,pred]*pred_size) & 
+          ratio<=(predPreySize['upper_intc',prey,pred] + predPreySize['upper_slope',prey,pred]*pred_size)) return(vul) else return(0.0)
+    }
+  }
+  } #end function
+   
+  # else {           //  size selection
+  #   if (ratio >= min_pred_prey_size_ratio(pred,prey) &&  ratio <= max_pred_prey_size_ratio(pred,prey)){    
+  #     
+  #     if (size_selection(pred)==1  || size_selection(pred)==2 ) { //normal distribution or asymmetric normal distribution
+  #       tmp=log(ratio)-(pref_size_ratio(pred)*prey_size_adjustment(prey)+pref_size_ratio_correction(pred)*log(pred_size));     
+  #       return vul*exp(-square(tmp)/(2.0* var_size_ratio(pred)));
+  #     }
+  #     else if (size_selection(pred)==3) {      //Gamma     1.0/(b^a*gamma(a))*x^(a-1)*exp(-x/b)
+  #       // use gammln function: exp(-(log(b)*a+log(gamma(a)))+log(x)*(a-1)-x/b)
+  #       tmp=log(ratio);
+  #       // cout<<"gamma var:"<<var_size_ratio(pred)<<" pref: "<<pref_size_ratio(pred)<<" tmp:"<<tmp<<endl;                                                   
+  #       size_sel= exp(-(log(var_size_ratio(pred))*pref_size_ratio(pred)+gammln(var_size_ratio(pred)))+log(tmp)*(pref_size_ratio(pred)-1.0)-tmp/pref_size_ratio(pred));
+  #       return vul*size_sel;
+  #     }
+  #     else if (size_selection(pred)==5 || size_selection(pred)==6) {      //beta     gamma(a+b)/gamma(a)/gamma(b)*x^(a-1)*(1-x)^(b-1)
+  #       // use gammln function: exp(lgamma(a+b)-lgamma(a)-lgamma(b)+log(x)*(a-1)+log(1-x)*(b-1))                                             
+  #       //rescale ratio to [0;1]                                             
+  #       ratio=(log(ratio)-all_min_pred_prey_size_ratio(pred))/all_range_pred_prey_size_ratio(pred); 
+  #       size_sel=exp(gammln(pref_size_ratio(pred)+var_size_ratio(pred))-gammln(pref_size_ratio(pred))-gammln(var_size_ratio(pred))+log(ratio)*(pref_size_ratio(pred)-1.0)+log(1.0-ratio)*(var_size_ratio(pred)-1));
+  #       //cout<<"pred:"<<pred<<" prey:"<<prey<<setprecision(3)<<" ratio:"<<ratio<<" size_sel:"<<size_sel<<" suit:"<<vul*size_sel<<endl;
+  #       return vul*size_sel;
+  #     }
+  #     
+  #     else return -1000.0;  // error
+  #   }
+  #   else return 0.0;
+  # }  
+  # 
+  
+ # Other food suitability
+ otherSuit<-function(pred, pred_size,y, q) {
+
+  # tmp=exp(stl_other_suit_slope(pred)*log(pred_size/AV_other_food_size(pred)))*season_overlap(d,pred,q,0);
+  # 
+  # if (use_overlap>1 && y<=lyModel) tmp*=overlap(d,pred,y,q,0); 
+  # else if (use_overlap==2 && y>lyModel) tmp*=overlap_forecast(d,pred,y,q,0); 
+  # 
+  # return tmp;
+  # 
+  
+  return(1.0)
+ }
+    
     
   ###################  now we begin 
   for (s in 1:nSpecies) {
@@ -170,14 +245,14 @@ func <- function(parameters) {
   
       for(j in 2:stateDimN[s]) {
           if (keyLogFsta[s,j-1]>0) {  # to take account for ages with no F
-             predN[[s]][j,i]=logN[[s]][j-1,i-1]-fiMo(s,i-1,j-1)-sum(natMor[[s]][i-1,,j-1]) 
+             predN[[s]][j,i]=logN[[s]][j-1,i-1]-fiMo(s,i-1,j-1)-sum(MM[[s]][i-1,,j-1]) 
           } else { 
-            predN[[s]][j,i]=logN[[s]][j-1,i-1]-sum(natMor[[s]][i-1,,j-1]) 
+            predN[[s]][j,i]=logN[[s]][j-1,i-1]-sum(MM[[s]][i-1,,j-1]) 
           }
        }
        if(maxAgePlusGroup[s]==1){
-          predN[[s]][stateDimN[s],i] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-fiMo(s,i-1,stateDimN[s]-1)-sum(natMor[[s]][i-1,,stateDimN[s]-1])) +
-                                       exp(logN[[s]][stateDimN[s],i-1]  - fiMo(s,i-1,stateDimN[s])  -sum(natMor[[s]][i-1,,stateDimN[s]]))  )
+          predN[[s]][stateDimN[s],i] = log( exp(logN[[s]][stateDimN[s]-1,i-1]-fiMo(s,i-1,stateDimN[s]-1)-sum(MM[[s]][i-1,,stateDimN[s]-1])) +
+                                       exp(logN[[s]][stateDimN[s],i-1]  - fiMo(s,i-1,stateDimN[s])  -sum(MM[[s]][i-1,,stateDimN[s]]))  )
        }
       ans <- ans - dmvnorm(logN[[s]][,i], predN[[s]][,i], nvar, log=TRUE) ## N-Process likelihood
       if (Debug) nlls[s,"N"]<- nlls[s,"N"]  - dmvnorm(logN[[s]][,i], predN[[s]][,i], nvar, log=TRUE) 
@@ -192,9 +267,9 @@ func <- function(parameters) {
         if (j >1 | recSeason==1 ) {  # first age might not have enter the model yet
           logNq[[s]][i,fq,j]<-logN[[s]][j,i]
           if((keyLogFsta[s,j])>0) {
-            Zq[[s]][i,fq,j] <- fiMo(s,i,j)*seasFprop[[s]][i,fq,j] + natMor[[s]][i,fq,j]
+            Zq[[s]][i,fq,j] <- fiMo(s,i,j)*seasFprop[[s]][i,fq,j] + MM[[s]][i,fq,j]
           } else {
-            Zq[[s]][i,fq,j] <- natMor[[s]][i,fq,j]
+            Zq[[s]][i,fq,j] <- MM[[s]][i,fq,j]
           }
           logNbarq[[s]][i,fq,j] <- logNq[[s]][i,fq,j]-log(Zq[[s]][i,fq,j]) + log(1.0 -exp(-Zq[[s]][i,fq,j]))
           if (keyLogFsta[s,j]>0) Chat[[s]][j,i] <- exp(logNbarq[[s]][i,fq,j]+fiMo(s,i,j,expIt=FALSE)+log(seasFprop[[s]][i,fq,j]))
@@ -204,9 +279,9 @@ func <- function(parameters) {
         if (j ==1 & recSeason>1) {
            logNq[[s]][i,recSeason,j]<-logN[[s]][j,i] 
            if (keyLogFsta[s,j]>0) {
-             Zq[[s]][i,recSeason,j] <- fiMo(s,i,j)*seasFprop[[s]][i,recSeason,j] + natMor[[s]][i,recSeason,j]
+             Zq[[s]][i,recSeason,j] <- fiMo(s,i,j)*seasFprop[[s]][i,recSeason,j] + MM[[s]][i,recSeason,j]
            } else {
-             Zq[[s]][i,recSeason,j] <- natMor[[s]][i,recSeason,j]
+             Zq[[s]][i,recSeason,j] <- MM[[s]][i,recSeason,j]
            }
            logNbarq[[s]][i,recSeason,j] <- logNq[[s]][i,recSeason,j]-log(Zq[[s]][i,recSeason,j]) +log(1.0 -exp(-Zq[[s]][i,recSeason,j]))
            if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <-  exp(logNbarq[[s]][i,recSeason,j]+fiMo(s,i,j,expIt=FALSE)+log(seasFprop[[s]][i,recSeason,j]))
@@ -217,9 +292,9 @@ func <- function(parameters) {
         if (nSeasons>1) for (q in 2:lq) if (j >1 | q>recSeason ) {
           logNq[[s]][i,q,j]<- logNq[[s]][i,q-1,j]-Zq[[s]][i,q-1,j]
           if (keyLogFsta[s,j]>0) {
-            Zq[[s]][i,q,j] <- fiMo(s,i,j)*seasFprop[[s]][i,q,j] + natMor[[s]][i,q,j]
+            Zq[[s]][i,q,j] <- fiMo(s,i,j)*seasFprop[[s]][i,q,j] + MM[[s]][i,q,j]
           } else {
-            Zq[[s]][i,q,j] <- natMor[[s]][i,q,j]
+            Zq[[s]][i,q,j] <- MM[[s]][i,q,j]
           }
           logNbarq[[s]][i,q,j] <- logNq[[s]][i,q,j]-log(Zq[[s]][i,q,j]) +log(1.0 -exp(-Zq[[s]][i,q,j]))
           if (keyLogFsta[s,j]>0)  {Chat[[s]][j,i] <- Chat[[s]][j,i]+ exp(logNbarq[[s]][i,q,j]+fiMo(s,i,j,expIt=FALSE)+log(seasFprop[[s]][i,q,j]))}  else { Chat[[s]][j,i]<-0.1  }
@@ -353,6 +428,12 @@ func <- function(parameters) {
   } # end fleet loop
   } #end species loop
 
+  if (sms.mode>0) {
+    MM<-makeVar3()  # natural mortality
+    for (i in (1:length(MM))) MM[[i]]<-natMor[[i]]
+    
+    
+  }
   ADREPORT(ssb)
   REPORT(logNq)
   #REPORT(logF)

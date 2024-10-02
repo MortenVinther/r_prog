@@ -1,45 +1,23 @@
-pick_species<-function(ps=c(1L), pso=0L,inp,smsConf=0L) {
+pick_species<-function(ps=c(1), inp,smsConf=0L) {
  #test  ps<-c(7L,8L); ps<-c(1L,8L); inp=inp_all; smsConf=0L
- #test multi  ps<-c(1L,2L,6L,7L,8L,9L); pso=c(13L,27L); inp=inp_all; smsConf=1L 
+  
   ps<-sort(unique(ps))
   nps<-length(ps)
- 
-  pso<-sort(unique(pso))
-  npso<-length(pso)
-  
-  if (smsConf==1) psAll<-c(ps,pso) else psAll=ps
- 
-  
   parameters<-inp[["parameters"]]
   data<-inp[["data"]]
   
   p<-parameters
   d<-data
   
-  sOld<-data$info[,'s']
-  sOld<-data.frame(oldName=names(sOld),oldNo=sOld)
-  
-  d$spNames<-  rownames(data$info[data$info[,'s'] %in% ps,] )
-  d$othspNames<-rownames(data$info[data$info[,'s'] %in% pso,] )
-  d$allSpNames<-c(d$spNames,d$othspNames)
-  
-  
-  d$info<-data$info[psAll,,drop=FALSE] 
+  if (smsConf==0) d$info<-data$info[ps,,drop=FALSE] else {
+    d$info<-data$info
+  }
   d$info[,'s']<-1L:dim(d$info)[[1]]
-  sNew<-d$info[,'s']
-  sNew<-data.frame(newName=names(sNew),newNo=sNew)
-  
   d$nSpecies<-length(ps)
-  d$nSpeciesAll<-length(psAll)
-  npsAll<- d$nSpeciesAll
-  d$preds<-rownames(d$info[d$info[,'predator'] %in% c(1,2),] )
-  d$preys<-rownames(d$info[d$info[,'prey'] %in% c(1),] )
   
-
   d$nAges<-max(d$info[,'last-age'])-data$minAge+1 
   ages<-1:d$nAges
-
-  
+  d$spNames=rownames(d$info)[rownames(d$info) %in% d$spNames]               
   d$fbarRange<-data$fbarRange[ps,,drop=FALSE]     
   d$useRho<-data$useRho[ps]
   d$stockRecruitmentModelCode<-data$stockRecruitmentModelCode[ps]
@@ -47,7 +25,6 @@ pick_species<-function(ps=c(1L), pso=0L,inp,smsConf=0L) {
   d$zeroCatchYearExists<-any(d$zeroCatchYearExistsSp==1)  
   d$zeroCatchYear<-data$zeroCatchYear[ps]
   d$seasonalCatches<-data$seasonalCatches[ps]
-  
   cut_tab<-function(tab,reNumber=FALSE,surv=FALSE) {
    if (surv) tab<-tab[data$keySurvey.overview[,"s"] %in% ps,ages,drop=FALSE]  else tab<-tab[ps,ages,drop=FALSE] 
    if (reNumber) {
@@ -179,7 +156,7 @@ pick_species<-function(ps=c(1L), pso=0L,inp,smsConf=0L) {
     d$otherN<-NULL
     d$stom<-NULL
     d$otherFood<-NULL
-    #d$predPreySize<-NULL
+    d$predPreySize<-NULL
     d$vulneraIdx<-NULL
     d$suitIdx<-NULL
     d$ovelapIdx<-NULL
@@ -187,106 +164,6 @@ pick_species<-function(ps=c(1L), pso=0L,inp,smsConf=0L) {
     d$stomObsVarIdx<-NULL
   }
   
-  if (smsConf==1) {
-    d$consum<-data$consum[psAll]; names(d$consum)<-1:npsAll
-    d$meanL<-data$meanL[psAll]; names(d$meanL)<-1:npsAll
-    d$propM2<-data$propM2[ps]; names(d$propM2)<-1:nps
-    d$natMor1<-data$natMor1[ps]; names(d$natMor1)<-1:nps
-    d$otherN<-data$otherN[pso]; names(d$otherN)<-1:npso
-    #d$predPreySize<-data$predPreySize[psAll]; names(d$predPreySize)<-1:npsAll
-    d$otherFood<-data$otherFood[psAll]
-  
-      
-    d$preys<-data$preys[data$preys %in% psAll]
-    d$predNames<-rownames(d$info[d$info[,'predator']>0,])
-    d$preyNames<-rownames(d$info[d$info[,'prey']>0,])
-    d$othspNames<-rownames(d$info[d$info[,'predator']==2,])
-    d$nOthSpecies<-length(d$othspNames)
-    
-    stom<-data$stom
-    stom<-unnest(stom,cols = c(data))
-    stom<-filter(stom,pred %in% psAll)
-    stom<-unnest(stom,cols = c(data))
-    filter(stom,y==8 & q==1 & pred==1 & predSizeClass==6)
-    stom%>% select(pred,prey) %>% unique() 
-
-    oth<-!(stom$prey %in%  d$preys)
-    stom[oth,'prey']<-data$nSpecies+1
-    stom[oth,'preySizeClass']<-1
-    stom[oth,'preySizeW']<-1
-    stom[oth,'logPPsize']<-NA
-    
-    filter(stom,y==8 & q==1 & pred==1 & predSizeClass==6)
-    stom<- stom %>% group_by( area, y, q, pred, predSizeClass, predSizeW, stomObsVarIdx, noStom, noHaul, phi,prey, preySizeClass, preySizeW ,logPPsize, type ) %>%
-       summarize(stomcon=sum(stomcon)) %>% ungroup()
-    filter(stom,y==8 & q==1 & pred==1 & predSizeClass==6)
-    oldNew<-left_join(sNew, sOld,by=join_by(newName==oldName))
-    stom<-left_join(stom,oldNew,join_by(pred==oldNo)) %>% mutate(pred=as.integer(newNo),newNo=NULL,newName=NULL,stomObsVarIdx=pred)
-    oldNew<-rbind(filter(oldNew,newName %in% d$preyNames),data.frame(newName=d$otherFoodName,newNo=d$nSpecies+1,oldNo=data$nSpecies+1))
-   
-    stom<-left_join(stom,oldNew,join_by(prey==oldNo)) %>% mutate(prey=as.integer(newNo),newNo=NULL,newName=NULL)
-    
-    #parameters
-    stomObsVar<-1L:length(d$predNames)
-    names(stomObsVar)<-d$predNames 
-    stomObsVar[]<-1.0
-    
-    # vulnerability
-    pp<-matrix(0L,nrow=d$nSpecies+1,ncol=d$nSpecies+d$nOthSpecies,dimnames=list(c(d$spNames,d$otherFoodName),c(d$spNames,d$othspNames)))
-    pp2<- stom%>% select(pred,prey) %>% unique() 
-    xtabs(~prey+pred,data=pp2)
-    for (i in (1:dim(pp2)[[1]]))  pp[unlist(pp2[i,'prey']),unlist(pp2[i,'pred'])]<-1L
-    predPrey<-pp
-    pp2$vulneraIdx=1:dim(pp2)[[1]]
-    
-    vulneraIdx<-predPrey
-    vulneraIdx[vulneraIdx>0]<-1:sum(vulneraIdx>0)
-    d$vulneraIdx<-vulneraIdx # data$vulneraIdx
-    p$vulnera<-rep(0,max(vulneraIdx)) #log vulnerability coefficient, parameter 
-    
-    stom<-left_join(stom,pp2,by = join_by(pred, prey))
-  
-    d$stom<- stom %>% select(area, y,q,pred, predSizeClass, predSizeW ,noStom ,noHaul, phi,prey, preySizeClass, preySizeW, logPPsize, type,  stomcon,vulneraIdx,stomObsVarIdx) %>% 
-      nest(data=c(pred,predSizeClass,predSizeW,stomObsVarIdx,noStom, noHaul,   phi,prey,preySizeClass,preySizeW,logPPsize,type,stomcon,vulneraIdx)) %>% 
-      rowwise() %>% mutate(data=list(data %>% nest(data=c(prey,preySizeClass,preySizeW,logPPsize,type,stomcon,vulneraIdx))))
-    
-    d$overlapIdx<-filter(data$overlapIdx,predNo %in% psAll) %>% filter(preyNo %in% c(d$preys,data$nSpecies+1))
-    oo<-sort(unique(d$overlapIdx$overlap))
-    oo<-data.frame(overlap=oo,newOverlap=1:length(oo))
-    d$overlapIdx<-left_join(d$overlapIdx,oo,by = join_by(overlap)) %>% mutate(overlap=newOverlap,newOverlap=NULL)
-    d#$overlapIdx;data$overlapIdx
-    p$overlapP<-rep(0,length(unique(d$overlapIdx$overlap))) # log overlap parameter
-    
-    alk<-data$alk
-    alk<-unnest(alk,cols = c(data))
-    alk<-filter(alk,s %in% psAll)
-    alk<-unnest(alk,cols = c(data))
-    filter(alk,y==8 & q==1 & s==1 & sizeClass==6)
-    oldNew<-left_join(sNew, sOld,by=join_by(newName==oldName))
-    alk<-left_join(alk,oldNew,join_by(s==oldNo)) %>% mutate(s=as.integer(newNo),newNo=NULL,newName=NULL)
-    
-    fl<- alk %>% group_by(area,y,q,s,a) %>% summarize(minSize=min(sizeClass), maxSize=max(sizeClass)) %>% ungroup()
-    d$maxSizeCl<-max(fl$maxSize)
-    d$alk<- left_join(alk %>% select(area,y,q,s,a,sizeClass,meanLength,alk),fl,by = join_by(area, y, q, s, a)) %>% 
-      nest(data=c(a,s,minSize,maxSize,sizeClass,meanLength,alk)) %>% 
-      rowwise() %>% mutate(data=list(data %>% nest(data=c(sizeClass,meanLength,alk))))
-    
-    
-
-    suitIdx<-unnest(d$suitIdx,cols = c(data))
-    suitIdx<-filter(suitIdx,predNo %in% psAll) %>% unnest(cols = c(data)) %>% filter(preyNo %in% psAll)
-    suitIdx
-    oldNew<-left_join(sNew, sOld,by=join_by(newName==oldName))
-    suitIdx<-left_join( suitIdx,oldNew,join_by(predNo==oldNo)) %>% mutate(predNo=as.integer(newNo),newNo=NULL,newName=NULL)
-    oldNew<-rbind(filter(oldNew,newName %in% d$preyNames),data.frame(newName=d$otherFoodName,newNo=d$nSpecies+1,oldNo=data$nSpecies+1))
-    suitIdx<-left_join(suitIdx,oldNew,join_by(preyNo==oldNo)) %>% mutate(preyNo=as.integer(newNo),newNo=NULL,newName=NULL,vulneraIdx =NULL)
-    vul<-stom %>% select(pred,prey,vulneraIdx) %>% unique()
-    suitIdx<-left_join(suitIdx,vul,join_by(predNo==pred,preyNo==prey)) 
-    
-    d$suitIdx<-suitIdx %>% nest(data=c(predNo,predAge,predW,preyNo,preyAge,preyW,logRatio, vulneraIdx)) %>% 
-      rowwise() %>% mutate(data=list(data %>% nest(data=c(preyNo,preyAge,preyW,logRatio,vulneraIdx))))
-    
-  }
   
   #parameters
   if (smsConf==0) {  # single species

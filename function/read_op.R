@@ -85,6 +85,16 @@ Read.OP.condensed<-function(dir=data.path,infile='op_condensed.out')
   data.frame(Species=sp.names[s$Species.n],s)
 }
 
+
+#Function to read summary data
+Read.op_summary<-function(dir=data.path,infile='op_summary.out')
+{
+  file<-file.path(dir,infile)
+  s<-read.table(file,header=TRUE)
+  data.frame(Species=sp.names[s$Species.n],s)
+}
+
+
 #Function to read variable size and growth other pred
 Read.op.other.sp.var<-function(dir=data.path,infile='op_other_sp_var.out')
 {

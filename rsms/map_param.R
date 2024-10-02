@@ -1,3 +1,17 @@
+lock_param<-function(data,parameters,my.map,lockP){
+  for (p in lockP) {
+    if (p %in% names(my.map)) {
+      my.map[[p]][]<-NA
+      my.map[[p]]<- factor(my.map[[p]])
+    } else {
+      m<-1L:length(parameters[[p]])
+      m[]<-NA
+      my.map[[p]]<-factor(m)
+    }
+  }
+  return(my.map)
+}
+
 map_param<-function(data,parameters) {
   # adjust if the are species/year combination with zero catches (or assumed F is very low and highly uncertain)
   if (data$zeroCatchYearExists==1 |length(parameters$logSeparF)>0) {

@@ -7,6 +7,9 @@ sms<-read.RSMS.control(dir,file=sms.dat)
 
 
 info<-sms@species.info
+oldPredNames<-rownames(info[info[,'predator']>=1,])
+
+
 incl_other<- any(info[,'predator']==2)
 
 if (incl_other) {
@@ -17,7 +20,7 @@ if (incl_other) {
 } else {
   off.species<-0L
   off.oths<- -9L
-  info<-info[first.VPA:sms@no.species,]
+  info<-info[first.VPA:sms@no.species,,drop=FALSE]
   nOthSpecies<-0L
 }
 
@@ -27,9 +30,12 @@ off.season<-0L # not used
 
 
 nSpecies<-sms@no.species-first.VPA+1L  # species with analytically assessment
+otherFoodn<-nSpecies+1L
 nAllSp<-nSpecies+nOthSpecies
 nPredator<-sum(info[,'predator']>0)
 
+predators<-info[info[,'predator']>0,'s']
+preys<-info[info[,'prey']>0,'s']
 oldNewSp_n<-c((1:nOthSpecies)+nSpecies,1:nSpecies)
 
 ages<-sms@first.age:sms@max.age.all
@@ -38,6 +44,7 @@ recSeason<-as.integer(sms@rec.season)
 nSeasons<-as.integer(sms@last.season)
 years<-sms@first.year.model:sms@last.year.model; nYears<-length(years)
 
+yq_idx<-matrix(1:(nYears*nSeasons),nrow=nYears,ncol=nSeasons,byrow=TRUE)
 off.age<- as.integer(1-sms@first.age)
 off.year<- - as.integer(sms@first.year.model-1)
 
@@ -47,8 +54,10 @@ info<-cbind(info,fSepar=c(fSepar,rep(-9,nOthSpecies)))
 
 spNames<-dimnames(info)[[1]][1:nSpecies]
 othspNames<-dimnames(info)[[1]][(nSpecies+1):nAllSp]
+allSpNames<-c(spNames,othspNames)
 predNames<- dimnames(info[info[,'predator']>0,])[[1]]
-
+preyNames<- dimnames(info[info[,'prey']>0,])[[1]]
+otherFoodName<-'OTH'
 stockRecruitmentModelCode<-as.integer(sms@SSB.R)
 names(stockRecruitmentModelCode)<-spNames
 use_rho<-as.integer(sms@use_rho)
@@ -420,7 +429,9 @@ stopifnot(all(check$Fprop>0.999 & check$Fprop<1.001 | is.na(check$Fprop)))
 
 b<-left_join(b,bb,by = join_by(year, species.n, quarter, sub_area, age,annualC))
 
-b<-b %>% mutate(y=year+off.year,q=quarter,s=oldNewSp_n[species.n],a=age+off.age)  # change species numbering
+b<-b %>% mutate(y=year+off.year,q=quarter,a=age+off.age)  
+
+if (nSpecies>1 & multi) b<-b %>% mutate(s=oldNewSp_n[species.n]) else b<-b %>% mutate(s=species.n)  # change species numbering
 b<-left_join(b,data.frame(s=info[,'s'],la=info[,"last-age"]+off.age),by = join_by(s)) %>% filter(a<=la)
 
 
@@ -443,8 +454,10 @@ if (multi) {
 } else {consum<-NA;meanL<-NA;propM2=NA; natMor1=NA;  otherN<-NULL}
 
 
-trimIt<-function(x,used=c(1,2)){
+trimIt<-function(x,used=c(1,2),spnames=spNames){
   x<-x[used]
+  names(x)<-spnames
+  return(x)
 }
 
 propMat         <-trimIt(x=propMat,used=1:nSpecies)
@@ -457,6 +470,8 @@ catchNumber     <-trimIt(x=catchNumber,used=1:nSpecies)
 if (multi) {
   propM2          <-trimIt(x=propM2,used=1:nSpecies)
   natMor1         <-trimIt(x=natMor1,used=1:nSpecies)
+  NN<-filter(b,!is.na(N)) %>% transmute(y,q,predNo=s,predAge=a,N) %>%filter(N>0)%>%mutate(N=NULL)
+  
 }
 zero<-propMat; for (s in 1:nSpecies) {zero[[s]][,,]<-0}
 
@@ -551,20 +566,51 @@ info<-cbind(info,
  
 ###############   stomach data
 
+if (multi) {
 info<-cbind(info,sizeSlct=rep(0L,nSpecies+nOthSpecies)) # temporary
-            
 
 s<-read_delim(file.path(stom.input,"stomcon_list_Boots_0500_haul_as_observed.dat"))
+
 s[s$pred=='W_H','pred']<-'WHM'
 s[s$pred=='N_H','pred']<-'NHM'
 
 s<-s%>%mutate(tpred=paste(formatC(pred.no,flag='0',w=2),pred),tprey=paste(formatC(prey.no,flag='0',w=2),prey),prey.mean.length.ALK=NULL,pred.no=as.integer(pred.no),prey.no=as.integer(prey.no))
 #xtabs(~tpred+tprey,data=s)  #OK but old species order
 
-
-
 #s<-s %>% mutate(pred.no=oldNewSp_n[pred.no])
 s$pred.no<-oldNewSp_n[s$pred.no]
+excl<-!(s$prey %in% c(preyNames,otherFoodName))
+summary(excl)
+soth<-as.data.frame(head(filter(s,prey==otherFoodName),1))
+
+s[excl,'prey']<-otherFoodName
+s[excl,'prey.no']<-soth$prey.no
+s[excl,'prey.size']<-soth$prey.size
+s[excl,'prey.size.class']<-soth$prey.size.class
+s[excl,'prey.mean.length']<-soth$prey.mean.length
+s[excl,'mean.weight']<-soth$mean.weight
+s[excl,'calc.prey.number']<-soth$calc.prey.number
+s[excl,'used.prey.number']<-soth$used.prey.number
+s[excl,'haul.prey.no']<-soth$haul.prey.no
+names(s)
+summary(excl)
+
+sort(unique(s$type))
+sms@stom.type.include
+a<-left_join(data.frame(pred=oldPredNames,typ=sms@stom.type.include), 
+  rbind(
+  data.frame(typ=1,type=c('obs')),
+  data.frame(typ=2,type=c('obs','mid')),
+  data.frame(typ=3,type=c('obs','mid','tail'))
+ ),relationship = "many-to-many",by = join_by(typ))
+
+s<-inner_join(a,s,by = join_by(pred, type))
+
+s<-s %>% group_by(SMS_area,year,quarter,pred,pred.no,pred.size,pred.size.class,pred.mean.length,haul.no,stom.no,phi,
+               prey,prey.no,prey.size,prey.size.class,prey.mean.length,type,mean.weight,haul.prey.no,calc.prey.number,used.prey.number) %>%
+               summarize(stomcon=sum(stomcon)) %>% ungroup()
+s                         
+                         
 x2<-filter(s,prey=='OTH')
 s<-filter(s,prey!='OTH') %>% mutate(prey.no=oldNewSp_n[prey.no])
 s<-rbind(s,x2)
@@ -572,7 +618,7 @@ s<-s%>%mutate(tpred=paste(formatC(pred.no,flag='0',w=2),pred),tprey=paste(format
 xtabs(~tpred+tprey,data=s) #OK
 
 
-
+# vulnerability
 pp<-matrix(0L,nrow=nSpecies+1,ncol=nSpecies+nOthSpecies,dimnames=list(c(spNames,'OTH'),c(spNames,othspNames)))
 pp2<- s%>% select(pred,pred.no,prey,prey.no) %>% mutate(prey.no=as.integer(ifelse(prey.no==0,nSpecies+1,prey.no))) %>%unique() 
 #xtabs(~prey.no+pred.no,data=pp2)
@@ -580,44 +626,53 @@ for (i in (1:dim(pp2)[[1]]))  pp[unlist(pp2[i,'prey.no']),unlist(pp2[i,'pred.no'
 predPrey<-pp
 predPrey
 
+pp2$no<-1:dim(pp2)[[1]]
+
 vulneraIdx<-predPrey
 vulneraIdx[vulneraIdx>0]<-1:sum(vulneraIdx>0)
 vulneraIdx
-vulnera<-rep(1,max(vulneraIdx)) #vulnerability coefficient, parameter 
+vulnera<-rep(0,max(vulneraIdx)) #log vulnerability coefficient, parameter 
 
 
+# pred prey overlap
+ov<-scan(file.path(dir,"season_overlap.in") ,comment.char = "#")
+ov<-head(ov,-1)
+ov<-matrix(ov,ncol=nSpecies+1,nrow=nAllSp*4,dimnames=list(paste0(rep(c(spNames,othspNames),each=4),' Q',1:4), c(spNames,'Other')),byrow=TRUE )
+ov<-array(ov,dim=c(4,nAllSp,nSpecies+1),dimnames=list(paste0('Q',1:4),c(spNames,othspNames), c(spNames,'Other')))                                                        
+ovd<-array2DF(ov)
+names1<-c( spNames,othspNames)
+names2<-c(spNames,'Other')
+ovdt<-ovd%>%mutate(q=as.integer(substr(Var1,2,2)),predNo=match(Var2,names1),preyNo=match(Var3,names2)) %>% 
+   transmute(q,predNo,preyNo,overlap=Value)
+overlap<-ov
+ftable(overlap)
+overlap[overlap>0] =log(overlap[overlap>0])
+overlapIdx<-filter(ovdt,overlap<0) %>% unique() %>% mutate(overlap= -overlap)
+overlapP<-rep(0,length(unique(overlapIdx$overlap))) # log overlap parameter
+
+# put weight on from length
 lw<-scan(file.path(dir,"length_weight_relations.in") ,comment.char = "#")
 lw<-head(lw,-1)
 lw<-matrix(lw,ncol=2,nrow=nSpecies+nOthSpecies,dimnames=list(c(spNames,othspNames),c('a','b')),byrow=TRUE )
-lwdf<-data.frame(lw) %>% mutate(sp=1:dim(lw)[[1]])
-#lwdf
+lwdf<-data.frame(lw) %>% mutate(sp=1L:dim(lw)[[1]])
 
+#observed predator prey size ratio
 ss<-s%>% left_join(x=s,y=lwdf,by = join_by(pred.no == sp)) %>% 
   mutate(pred.size.w=a*pred.mean.length**b,a=NULL,b=NULL,prey.size.w=mean.weight,pred.prey.size.w=pred.size.w/prey.size.w)  
-
-
-#xtabs(~tpred+tprey,data=ss)  #OK
-
-library(quantreg)
-q1<-0.025 #lower quantile
-q2<-0.975 #higher quantile
-
-
-# xtabs(~tpred+tprey,data=ss)  #OK
 
 a<-filter(ss,type=='obs' & prey !='OTH' ) %>% 
   mutate(log.pred.prey.size.w=log(pred.size.w/prey.size.w),log.pred.size.w=log(pred.size.w)) %>%
   select(SMS_area,pred.no, pred,tpred,prey.no,prey,tprey,log.pred.size.w,log.pred.prey.size.w ) 
 a
-xtabs(~tpred+tprey,data=a)  #OK
 
-# predator size independent prey range
-aa<-a %>% group_by(pred.no,pred,tpred,prey.no,prey,tprey) %>% summarize(min_s=min(log.pred.size.w),max_s=max(log.pred.size.w))
+
+# constraint uniform size selection
+# first the predator size independent prey range 
+aa<-a %>% group_by(pred.no,pred,tpred,prey.no,prey,tprey) %>% summarize(min_s=min(log.pred.prey.size.w),max_s=max(log.pred.prey.size.w)) %>% ungroup()
 round(xtabs(min_s~tpred+tprey,data=aa),3)  
 round(xtabs(max_s~tpred+tprey,data=aa),3)  
-aa
 
-#
+
 pp<-array(0,dim=c(4,nSpecies,nSpecies+nOthSpecies),dimnames=list(c('lower_intc','lower_slope','upper_intc','upper_slope'),spNames,c(spNames,othspNames)) )                                                         
 for (i in (1:dim(aa)[[1]])) {
   pred<-unlist(aa[i,'pred'])
@@ -628,7 +683,12 @@ for (i in (1:dim(aa)[[1]])) {
 round(ftable(pp),2)
 
 
-#quantile regressions
+
+# add parameters from quantile regressions
+
+library(quantreg)
+q1<-0.025 #lower quantile
+q2<-0.975 #higher quantile
 
 if(FALSE) by(a,list(a$pred.no),function(x) {
   
@@ -670,14 +730,15 @@ if (FALSE) {
   })
 }
 
-a1<-filter(a,pred.no %in% c(1:9) )
+sort(unique(a$tpred))
+a1<-filter(a,pred.no %in% c(1:5) )
 n<-a1 %>% group_by(pred.no,prey.no) %>% summarize(n=dplyr::n())
 an<-left_join(a1,n,by = join_by(pred.no, prey.no))
 
 aa<-filter(an,n>5) %>% 
   nest_by(pred.no,pred,prey.no,prey) %>%  
-  mutate(ru=list(rq(log.pred.prey.size.w~log.pred.size.w, tau=q1,data=data)),
-         rl=list(rq(log.pred.prey.size.w~log.pred.size.w, tau=q2,data=data)))
+  mutate(rl=list(rq(log.pred.prey.size.w~log.pred.size.w, tau=q1,data=data)),
+         ru=list(rq(log.pred.prey.size.w~log.pred.size.w, tau=q2,data=data)))
 
 
 for (i in (1:dim(aa)[[1]])) {
@@ -690,7 +751,17 @@ for (i in (1:dim(aa)[[1]])) {
   pp[3,prey,pred]<-cof[1]
   pp[4,prey,pred]<-cof[2]
 }  
-round(ftable(pp),2)  
+#round(ftable(pp),2)  
+
+predPreySizeParm<-pp
+
+names1<-c( spNames,othspNames)
+names2<-c(spNames,'Other')
+
+k<-array2DF(pp) %>% transmute(preyNo=match(Var2,names2),predNo=match(Var3,names1),Var1,Value) %>% 
+  pivot_wider(names_from = Var1, values_from = Value) 
+
+
 if (FALSE){
   u<-scan(file.path(stom.input,"pred_prey_size_range_param.csv"),comment.char = "#",sep=',') 
   u<-u[!is.na(u)]
@@ -710,8 +781,105 @@ if (FALSE){
   ftable(pp)
 }
 
+#sort(unique(pp2$prey))
+#sort(unique(pp2$prey.no))
+# the full set of possible combinations of pred, pred age, prey and prey age
+pp3<-by(pp2,list(pp2$no),function(x){
+  predAge<-1L:info[x$pred.no,'la']
+  preyAge<-1L:info[x$prey.no,'la']
+  expand.grid(y=1:nYears,q=1L:nSeasons,predNo=x$pred.no,predAge=predAge,preyNo=x$prey.no,preyAge=preyAge)
+})
+pp3<-do.call(rbind,pp3)
+
+
+pp3<-filter(pp3,(predAge > 1 & preyAge>1) | (q>=recSeason & predAge==1 & preyAge==1)) %>% filter(preyNo<otherFoodn | (preyNo==otherFoodn & preyAge==2))  %>%
+  arrange(y,q,preyNo,preyAge,predNo,predAge)
+# filter(pp3,preyNo==13)
+
+#sort(unique(pp3$preyNo))
+# all combinations
+aa2<-left_join(pp3%>% transmute(y,q,predNo,predAge,preyNo,preyAge),b%>%  transmute(y,q,predNo=s,predAge=a,predW=WSEA,N),by = join_by(y,q, predNo, predAge))
+aa2<-left_join(aa2,b%>%  transmute(y,q,preyNo=s,preyAge=a,preyW=WSEA),by = join_by(y,q, preyNo, preyAge))
+sort(unique(aa2$preyNo))
+
+aa2<- aa2 %>% filter(predNo<=nSpecies | predNo>nSpecies & N>0)  %>% mutate(N=NULL)
+
+# filter(aa2,preyNo==13)
+aa2<- aa2%>%mutate(preyW=if_else(preyNo==otherFoodn,1,preyW))
+
+
+aa2<-filter(aa2,predW>0 & preyW>0 & preyNo <=nSpecies+1)
+#filter(aa2,preyNo==13)
+# actual comb
+aa3<-left_join(aa2,k,by = join_by(predNo, preyNo))
+aaa<-aa3 %>%  mutate(logRatio=log(predW/preyW),predW=log(predW),preyW=log(preyW),predNo=as.integer(predNo),preyNo=as.integer(preyNo)) %>% 
+       mutate(incl=if_else(logRatio >=lower_intc+ predW*lower_slope & logRatio<=upper_intc+ predW*upper_slope,TRUE,FALSE )) %>%
+       mutate(incl=if_else(preyNo==otherFoodn,TRUE,incl))
+#summary(aaa)
+#filter(aaa,preyNo==otherFoodn)
+#ftable(xtabs(~incl+predNo+preyNo,data=aaa))
+if (FALSE) ggplot(subset(aaa,incl), aes(x=predW, y=logRatio,col=factor(incl))) +
+  geom_point() + 
+    facet_wrap(vars(predNo),ncol=5,nrow=5)+
+  labs(y='log(predator size/prey size)',x='log(predator size)')
+  
+ 
+#subset(aaa,predNo==23)
+aaa<-aaa %>% filter(incl) %>% mutate(lower_intc=NULL,lower_slope=NULL, upper_intc=NULL, upper_slope=NULL,incl=NULL) %>%
+        arrange(y,q,preyNo,preyAge,predNo,predAge)
+
+#filter(aaa,preyNo==otherFoodn)
+#dim(aaa)
+#subset(aaa,predNo==13 )
+#head(subset(aaa,predNo==1 & predAge<=3 ))
+#aaa$n<-1L:dim(aaa)[[1]]
+
+#sort(unique(aaa$preyNo))
+#add vulnerability param index
+aaa<-left_join(aaa, pp2 %>% transmute(area=1L,predNo=pred.no,preyNo=prey.no,vulneraIdx=no))
+
+#filter(aaa,preyNo==otherFoodn)
+#filter(aaa,predNo==1 & predAge==2 &y==1 & q==3)
+
+if (FALSE) {
+  one<-aaa %>% group_by(y,q,predNo,predAge) %>% summarize(n=dplyr::n()) %>% ungroup()
+  filter(one,n<=1)
+  othErr<-left_join(one,aaa,by = join_by(y, q, predNo, predAge))
+  sort(unique(othErr$predNo))
+  filter(othErr,preyNo != otherFoodn)
+  aaa<-left_join(aaa,one,by = join_by(y, q, predNo, predAge)) %>% filter(!(n==1 & preyNo==otherFoodn)) %>% mutate(n=NULL)
+}
+#summary(aaa); dim(a)
+
+check2<-function(sp=1,yy=1,qq=1) {
+  cod<-filter(aaa,predNo==sp & y==yy & q==qq)
+  ftable(xtabs(~predAge+preyNo+preyAge,data=cod))
+}
+
+#check2(1)
+#check2(2)
+
+suitIdx<-aaa %>% nest(data=c(predNo,predAge,predW,preyNo,preyAge,preyW,logRatio, vulneraIdx)) %>% 
+  rowwise() %>% mutate(data=list(data %>% nest(data=c(preyNo,preyAge,preyW,logRatio,vulneraIdx))))
+
+
+suitIdx
+suitIdx[,'y']
+suitIdx[1,'data'][[1]][[1]]
+#suitIdx[1,'data'][[1]][[1]][['data']]
+suitIdx[1,'data'][[1]][[1]][['data']][[2]]
+
+
+
 ## stomach contents
 
+oth<-ss$prey==otherFoodName
+
+ss[oth,'prey.no']<-otherFoodn
+ss[oth,'prey.size.class']<-1
+ss[oth,'prey.size.w']<-1
+
+# glimpse(filter(ss,oth))
 aBasis<-ss%>% transmute(area=as.integer(SMS_area),
                         year=as.integer(year),
                         y=as.integer(year+off.year),
@@ -735,20 +903,90 @@ aBasis<-ss%>% transmute(area=as.integer(SMS_area),
                         type=type,
                         stomcon=stomcon )
 aBasis[aBasis$preyC=='OTH','logPPsize']<-NA
+aBasis<-left_join(aBasis,select(pp2,pred,prey,vulneraIdx=no),by=join_by(predC==pred,preyC==prey))
+
+stomObsVar<-1L:length(predNames)
+names(stomObsVar)<-predNames 
+aBasis$stomObsVarIdx<-stomObsVar[aBasis$predC]
+
+#sort(unique(paste(aBasis$predC,aBasis$stomObsVarIdx)))
+stomObsVar[]<-1.0
 
 
-a<- aBasis %>% mutate(predSize=NULL,  predMeanLength=NULL, predSizeW=NULL,,preySize=NULL, preySizeClass=NULL, preyMeanLength=NULL ) %>% 
-  group_by( area,year,y,q,predC,pred, predSizeClass,noHaul,noStom,phi) %>% 
-  nest()
+stom<- aBasis %>% select(area, y,q,pred, predSizeClass, predSizeW ,noStom ,noHaul, phi,prey, preySizeClass, preySizeW, logPPsize, type,  stomcon,vulneraIdx,stomObsVarIdx) %>% 
+  nest(data=c(pred,predSizeClass,predSizeW,stomObsVarIdx,noStom, noHaul,   phi,prey,preySizeClass,preySizeW,logPPsize,type,stomcon,vulneraIdx)) %>% 
+  rowwise() %>% mutate(data=list(data %>% nest(data=c(prey,preySizeClass,preySizeW,logPPsize,type,stomcon,vulneraIdx))))
 
-if (FALSE) {
-  head(a)
-  a[1,'data'][[1]]
-  a[6,'data'][[1]]
-  a[6,'data'][[1]][[1]]
-  
-  print(a[6,'data'][[1]][[1]],n=50)
+if (FALSE){
+  str(stom$data[[1]],2)
+  str(stom$data[[1]][['data']],2)
+  stom[,'y']
+  stom[1,'data'][[1]][[1]]
+  stom[1,'data'][[1]][[1]][['data']]
+  stom[1,'data'][[1]][[1]][['data']][[2]]
 }
+
+###### stom ALK
+s<-read_delim(file.path(stom.input,"ALK_stom_list_Simple_0001_sample_id_as_observed.dat"))
+sort(unique(s$prey))
+s<-s%>%mutate(prey.no=as.integer(prey.no),prey.age=as.integer(prey.age),quarter=as.integer(quarter),year=as.integer(year),prey.size.class=as.integer(prey.size.class))
+
+# new number order
+s$prey.no<-oldNewSp_n[s$prey.no]
+s<-filter(s,prey %in% union(preyNames,setdiff(predNames,othspNames)))  #just preys and analytical predators
+
+
+alkBasis<-s%>% transmute(area=as.integer(SMS_area),
+                        year,
+                        y=as.integer(year+off.year),
+                        q=as.integer(quarter+off.season),
+                        sp=prey,
+                        s=prey.no,
+                        age=as.integer(prey.age),
+                        a=as.integer(prey.age+off.age),
+                        size=prey.size,
+                        sizeClass=as.integer(prey.size.class),
+                        meanLength=ALK.MeanL,  
+                        alk=ALK/100
+)
+
+#a        <-by(alkBasis,list(alkBasis$y,alkBasis$q),function(x) {y<-tapply(x$alk,list(x$s,x$a,x$sizeClass),sum); y[is.na(y)]<-0; y})
+#str(a)
+#round(ftable(a[[1]]),3)
+
+alkBasis<-left_join(alkBasis,data.frame(s=info[,'s'],la=info[,'la']),by = join_by(s))
+plusG<-alkBasis$a>alkBasis$la
+summary(plusG)
+alkBasis$wf<-1
+alkBasis[plusG,'wf']<-exp(-(alkBasis[plusG,'a']-alkBasis[plusG,'la'])*0.5) #quick and dirty plusgroup
+alkBasis[plusG,'a']<-alkBasis[plusG,'la']
+tst1<-filter(alkBasis,s==2&a>6)
+#tst1
+
+
+alkBasis<-alkBasis %>% group_by(area,year,y ,q, sp,s, a ,size,sizeClass) %>% 
+  summarize(meanLength=weighted.mean(x=meanLength, w=wf),alk=weighted.mean(x=alk, w=wf)) %>%
+  group_by(area,year,y ,q, sp,s, a ) %>%
+  mutate(alk=alk/sum(alk)) %>% ungroup()
+#tst1
+#filter(alkBasis,s==2&a>6)
+  
+fl<- alkBasis %>% group_by(area,y,q,s,a) %>% summarize(minSize=min(sizeClass), maxSize=max(sizeClass)) %>% ungroup()
+
+#tapply(fl$maxSize,list(fl$s,fl$y),max)
+#tapply(fl$minSize,list(fl$s,fl$y),min)
+maxSizeCl<-max(fl$maxSize)
+alk<- left_join(alkBasis %>% select(area,y,q,s,a,sizeClass,meanLength,alk),fl,by = join_by(area, y, q, s, a)) %>% 
+  nest(data=c(a,s,minSize,maxSize,sizeClass,meanLength,alk)) %>% 
+  rowwise() %>% mutate(data=list(data %>% nest(data=c(sizeClass,meanLength,alk))))
+
+
+
+#str(alk$data[[1]],2)
+#alk[1,'data'][[1]][[1]]
+#alk[1,'data'][[1]][[1]][['data']]
+
+
 
 
 #other food
@@ -756,31 +994,36 @@ of<-scan(file.path(dir,"other_food.in"),comment.char = "#")
 of<-head(of,-1)
 names(of)<-c(spNames,othspNames)
 of
-
-stomD<-list(stom=a,of=of,predPredSize=pp,vulneraIdx=vulneraIdx,vulnera=vulnera)
-
-
+} #end if multi
 
 Un<-matrix(0.0, nrow=sum(info[,"last-age"]-sms@first.age+1L),ncol=nYears )
 Uf<-matrix(0.0, nrow=length(unlist(sms@keyLogFsta)),ncol=nYears)
 
 
 #return values
-list(
+rl<-list(
    data=list(                                          # Description of data, most of the text is copied from the ?sam.fit description
      sms.mode=sms@VPA.mode,                            #
      info=info,                                        # Various information for each species with analytically assessment
      nSpecies=nSpecies,                                # Number of species with analytically assessment
-     #nOthSpecies=nOthSpecies,                          # Number of other predators (used for multispecies mode)   
+     preds=predators,                                  # predator species
+     preys=preys,                                      # prey species
+     nOthSpecies=nOthSpecies,                          # Number of other predators (used for multispecies mode) 
      nYears=nYears,                                    # Number of years used in the model
      nAges=nAges,
+     nSeasons=nSeasons,                                # number of seasons
+     yqIdx=yq_idx,                                     # index for year-season combinations
      minAge=as.integer(sms@first.age),                 # A vector of integers defining the the lowest age class in the assessment for each species.
-     #maxAge=as.integer(sms@max.age.all),               # Maximum age for all species. The actual age range by species is given in "info"
-     recAge=as.integer(sms@first.age),                 # recruitmet age
+     #maxAge=as.integer(sms@max.age.all),              # Maximum age for all species. The actual age range by species is given in "info"
+     recAge=as.integer(sms@first.age),                 # recruitment age
      years=sms@first.year.model:sms@last.year.model,   # A vector of the years used in the model
      spNames=spNames,                                  # Species names of species with analytically assessment
+     othspNames=othspNames,                            # Species names of "other" species (without analytically assessment)
+     allSpNames=allSpNames, 
+     predNames=predNames,
+     preyNames=preyNames,
+     otherFoodName=otherFoodName,
      fleetNames=fleetNames,                            # names of survey fleets
-     nSeasons=nSeasons,                                # number of seasons
      spawnSeason=1L,
      recSeason=recSeason,                              # recruitment season
      fbarRange=fbarRange,                              # Minimum and maximum age by species used to calculate Fbar 
@@ -816,15 +1059,8 @@ list(
      natMor= natMor,
      propF=zero,
      propM=zero,
-     consum=consum,
-     meanL=meanL,
-     propM2=propM2,          
-     natMor1=natMor1,         
-     otherN=otherN, 
-     stom=stomD$stom,
-     otherFood=stomD$of,
-     predPreySize=stomD$predPredSize,
-     vulneraIdx=stomD$vulneraIdx,
+     
+     
      keyCatch=keyCatch,
      catchNoSeason=catchNoSeason,
      catchNoSeasonUsed=catchNoSeasonUsed,
@@ -851,10 +1087,38 @@ list(
       rho=rho,
       rec_loga=rec_loga, 
       rec_logb=rec_logb,
-      vulnera=stomD$vulnera,
-      Un=Un,
+       Un=Un,
       Uf=Uf
     ))
+
+if (multi){
+  rl[['data']]<-c(rl[['data']],
+     list(
+      #multi species
+      consum=consum,
+      meanL=meanL,
+      propM2=propM2,          
+      natMor1=natMor1,         
+      otherN=otherN, 
+      stom=stom,
+      alk=alk,
+      maxSizeCl=maxSizeCl,
+      otherFood=of,
+     # predPreySizeParm=predPreySizeParm,
+      vulneraIdx=vulneraIdx,
+      suitIdx=suitIdx,
+      overlap=overlap, 
+      overlapIdx=overlapIdx)
+  )
+      
+  rl[['parameters']]<-c(rl[['parameters']],
+   list(  
+    vulnera=vulnera,
+    overlapP=overlapP,
+    stomObsVar=stomObsVar
+   ))
+}
+return(rl)
 }
 
 

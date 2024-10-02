@@ -103,8 +103,10 @@ compare_runs_stock_rec<-function(dirs,labels,first.year.on.plot=1975,last.year.o
          if ((noxy <5) && (include.year.labels) || combinePlot) text(x=xx$SSB,y=xx$Rec,labels=as.character(sprintf("%02.0f",xx$Year%%100)),pos=3)
          if (incl_not_used) {
             xx2<-subset(xx,incl==FALSE)
-            points(xx2$SSB,xx2$Rec,col='red',lwd=2 )
-            if ((noxy <5) && (include.year.labels)) text(x=xx2$SSB,y=xx2$Rec,labels=as.character(sprintf("%02.0f",xx2$Year%%100)),pos=3,col='red')
+            if (dim(xx2)[[1]]>0) {
+              points(xx2$SSB,xx2$Rec,col='red',lwd=2 )
+              if ((noxy <5) && (include.year.labels)) text(x=xx2$SSB,y=xx2$Rec,labels=as.character(sprintf("%02.0f",xx2$Year%%100)),pos=3,col='red')
+            }        
          }
          
          # SSB/R regression line
@@ -156,7 +158,7 @@ compare_runs_stock_rec<-function(dirs,labels,first.year.on.plot=1975,last.year.o
    
    #dat<-subset(dat,!is.na(Rec))
    for (sp in (sp.plot)) {
-     #cat(sp,'\n')
+     cat(sp,'\n')
       if (combinePlot) gi<<- -1 else gi<<-0
       plotvar(sp=sp,dat=subset(all,Species==sp),addModel=TRUE)
       if (!combinePlot) if (dev %in% c('png','print')) cleanup()

@@ -2,7 +2,7 @@
 SSBparm<-"out"   # read ssb-R parameters from SSB_R.in (="in") or SSB_R.out (="out")
 include.terminal.year <- FALSE          # plot terminal year as well?
 dev<-"screen"
-#dev<-"png"
+dev<-"png"
 Portrait <- T
 
 ##########################################################################
@@ -76,6 +76,7 @@ for (sp in (first.VPA:nsp)) {
   i<-i+1
   grid()
 }
+
 if (dev=='png') cleanup()
 
 ##########################  SSB - Recruit plot Observations and regression line  #############

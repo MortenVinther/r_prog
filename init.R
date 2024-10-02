@@ -35,6 +35,7 @@ my.stock.dir<-"rsms_input"
 #my.stock.dir<-"NorthSeaKeyRun_2023_no_magic"
 
 #my.stock.dir<-"NS_2023_key_run_JAMBAY"
+#my.stock.dir<-"NS_2022_seawise_ver_2024"
 
 # make a backup of the SMS source code
 # file.copy(file.path(root.prog,"program","sms.tpl"),file.path(root.prog,"program",paste("sms_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)

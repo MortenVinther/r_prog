@@ -19,12 +19,14 @@ compare_runs<-function(
   include.2.std=FALSE,
   std.first.only=FALSE,
   makeAllGraphs=FALSE, # make plots for HTML output
+  do_op_summary.out=FALSE,
   compare.dir=data.path,
   #incl.sp=c("Cod","Whiting","Haddock","Saithe",'Herring',"Sprat",'Nor. pout'),                      # species number to be included. Numbers or "all"
   incl.sp="all",
   w8=8,w11=11,
   first.pch=0,    # first pch symbol
   first.color=1,   # first color
+  ncollegd=1,  # the number of columns in which to set the legend items (default is 1, a vertical legend).
   palette="R3"               # good for clolorfull plots
   #palette(gray(seq(0,.9,len=10)))  # gray scale for papers, use len =500 to get black only
 )
@@ -141,9 +143,22 @@ for (dir in dirs) {
    names(yield.hat)<-c("scenario","Variable","Species","Year","Value","std")
 
  }
- if (!single.species) { if (dir==dirs[1]) all<-rbind(rec,FF,ssb,yield,yield.hat,eaten) else all<-rbind(all,rec,FF,ssb,yield,yield.hat,eaten)}
- else {if (dir==dirs[1]) {all<-rbind(rec,FF,ssb,yield,yield.hat)} else all<-rbind(all,rec,FF,ssb,yield,yield.hat)}
- a$label<-labels[which(dirs==dir)]
+  
+  if (do_op_summary.out) {
+    op_sumTmp<-Read.op_summary(dir=file.path(root,dir)) %>% filter(Quarter==3) %>% group_by(Species,Year) %>%
+      summarize(TSBq3=sum(BIO)) %>% ungroup() %>% mutate(Variable='TSBq3',scenario=dir,std=0) %>% rename(Value=TSBq3)
+  }
+  
+ if (!single.species) { if (dir==dirs[1]) all<-rbind(rec,FF,ssb,yield,yield.hat,eaten) else all<-rbind(all,rec,FF,ssb,yield,yield.hat,eaten)}else {
+   if (dir==dirs[1]) {all<-rbind(rec,FF,ssb,yield,yield.hat)} else all<-rbind(all,rec,FF,ssb,yield,yield.hat)
+   }
+ 
+  
+  if (do_op_summary.out) all<-rbind(all,op_sumTmp)
+  
+   a$label<-labels[which(dirs==dir)]
+ 
+
  #if (dir==dirs[1]) all2<-a else all2<-rbind(all2,a)
 }
 
@@ -151,7 +166,7 @@ all<-subset(all,(Year>=first.year.on.plot & Year<=last.year.on.plot) ,drop=T)
 values<-tapply(all$Value,list(all$Year,all$scenario,all$Species,all$Variable),sum)/1000
 stds<-  tapply(all$std,  list(all$Year,all$scenario,all$Species,all$Variable),sum)/1000  
 
-values[,,1,'Rec']; stds[,,1,'Rec']*1000
+#values[,,1,'Rec']; stds[,,1,'Rec']*1000
 #stds[,,1,'SSB']
 #stds[,,1,'F']
 #subset(all,Species=='Plaice' & Variable=='SSB')
@@ -161,10 +176,39 @@ values[,,1,'Rec']; stds[,,1,'Rec']*1000
 if (incl.sp=="all") sp.plot<-sp.names else sp.plot<-incl.sp
 out<-arr2df(values)
 colnames(out)<-c('Year','scenario','Species','variable','value')
-tmp<-labels; names(tmp)<-dirs
-out$scenario<-tmp[out$scenario]
+
+if (FALSE) {
+  values[as.character(2025:2039),"NS_2022_seawise_ver_2024_FMSY-Min_noCC","Cod",'Rec']
+  filter(out, scenario=="NS_2022_seawise_ver_2024_FMSY-Min_noCC" & Year %in% 2025:2039 & Species=='Cod' & variable=='Rec')
+  values[as.character(2025:2039),"NS_2022_seawise_ver_2024_FMSY-Min_rcp45","Cod",'Rec']
+  filter(out, scenario=="NS_2022_seawise_ver_2024_FMSY-Min_rcp45" & Year %in% 2025:2039 & Species=='Cod' & variable=='Rec')
+  
+  values[as.character(2025:2039),"NS_2022_seawise_ver_2024_FMSY-Min_rcp85","Cod",'Rec']
+  filter(out, scenario=="NS_2022_seawise_ver_2024_FMSY-Min_rcp85" & Year %in% 2025:2039 & Species=='Cod' & variable=='Rec')
+}
+
+
+xx<-data.frame(newSce=labels,scenario=dirs)
+out<-left_join(out,xx,by = join_by(scenario)) %>% mutate(scenario=newSce,newSce=NULL)
+#tmp<-labels; names(tmp)<-dirs
+#out$scenario<-tmp[out$scenario]
+
+if (FALSE) {
+  values[as.character(2025:2039),"NS_2022_seawise_ver_2024_FMSY-Min_noCC","Cod",'Rec']
+  filter(out, scenario=="FMSY-Min_noCC" & Year %in% 2025:2039 & Species=='Cod' & variable=='Rec')
+  
+  values[as.character(2025:2039),"NS_2022_seawise_ver_2024_FMSY-Min_rcp45","Cod",'Rec']
+  filter(out, scenario=="FMSY-Min_rcp45" & Year %in% 2025:2039 & Species=='Cod' & variable=='Rec')
+  
+  values[as.character(2025:2039),"NS_2022_seawise_ver_2024_FMSY-Min_rcp85","Cod",'Rec']
+  filter(out, scenario=="FMSY-Min_rcp85" & Year %in% 2025:2039 & Species=='Cod' & variable=='Rec')
+}
+
 out<-subset(out,Species %in% sp.plot & !is.na(value))
 out[out$variable=='F',"value"]<-out[out$variable=='F',"value"]*1000
+
+
+
 
 write.csv(out,file=paste0("R_F_SSB.csv"),row.names=FALSE)
 
@@ -202,9 +246,10 @@ len.dir<-length(dirs)
       # make legends
       if (paper) lwds<-2  else lwds<-2
       par(mar=c(0,0,0,0))
+      if (ncollegd==1) lgdcex<-2 else lgdcex<-1.5
       plot(10,10,axes=FALSE,xlab=' ',ylab=' ',xlim=c(0,1),ylim=c(0,1))
-      legend("center",legend=labels,col=first.color:(first.color+len.dir-1),
-              pch=first.pch:(first.pch-1+len.dir),cex=2,title=sp)
+      legend("center",legend=labels,col=first.color:(first.color+len.dir-1),ncol=ncollegd,
+              pch=first.pch:(first.pch-1+len.dir),cex=lgdcex,title=sp)
       gi<<-gi+1  
       par(mar=c(2.5,5,3,1))   # c(bottom, left, top, right)
     }

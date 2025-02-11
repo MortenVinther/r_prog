@@ -1,10 +1,11 @@
 
 
 if (TRUE) {
-rsms<-batch_default_configuration(outfile='rsms.dat',writeConrol=T)
+  sms.dat<-'rsms.dat'
+rsms<-batch_default_configuration(outfile=sms.dat,writeConrol=T)
 
 rsms
-sms<-read.RSMS.control(dir=dir,file=sms.dat,test=F) # just checking
+sms<-read.RSMS.control(dir=data.path,file="rsms.dat",test=F) # just checking
 }
 ### Extract data from SMS
 doMultiExtract<-FALSE

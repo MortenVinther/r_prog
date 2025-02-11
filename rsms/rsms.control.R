@@ -3,28 +3,27 @@
 
 setClass("RSMS.control",
     representation(
-        test.output         ="numeric",
-        VPA.mode            ="numeric",
-        first.year          ="numeric",
-        first.year.model    ="numeric",
-        last.year           ="numeric",
-        last.year.model     ="numeric",
-        last.season         ="numeric",
-        no.species          ="numeric",
+        test.output         ="integer",
+        VPA.mode            ="integer",
+        first.year          ="integer",
+        first.year.model    ="integer",
+        last.year           ="integer",
+        last.year.model     ="integer",
+        last.season         ="integer",
+        no.species          ="integer",
         species.names       ="vector",
-        first.age           ="numeric",
-        rec.season          ="numeric",
-        max.age.all         ="numeric",
+        species.names.long  ="vector",
+        first.age           ="integer",
+        rec.season          ="integer",
+        max.age.all         ="integer",
         species.info        ="matrix",
         SSB.R                ="vector",
         min.catch.CV        ="numeric",
         combined.catches    ="vector",
-        
-      #  nkeyVarLogN          ="vector",
+        incl.process.noise  ='vector',
         keyVarLogN          ="vector",
-        
+        incl.Ssb.R          ="vector",
         fModel              ="vector",
-       # nkeyLogFsta          ="vector",
         keyLogFsta          ="vector",
         catch.s2.group      ="vector",
   
@@ -32,22 +31,24 @@ setClass("RSMS.control",
         catch.sep.age       ="vector",
         catch.sep.year      ="vector",
       
-        use_rho             ="vector",
+        use.rho             ="vector",
         avg.F.ages          ="matrix",
         discard             ="vector",
-        zero.catch.year.season="numeric",
-        zero.catch.season.age="numeric",
-      checkValueSingle="numeric",
+        zero.catch.year.season="integer",
+        zero.catch.season.age="integer",
+        checkValueSingle="integer",
       
-      incl.stom.all       ="numeric",
-      use.Nbar            ="numeric",
-      M2.iterations       ="numeric",
+      incl.stom.all       ="integer",
+      use.Nbar            ="integer",
+      M2.iterations       ="integer",
       max.M2.sum2         ="numeric",
-      stomach.variance    ="numeric",
-      simple.ALK          ="numeric",
-      consum              ="numeric",
-      size.select.model   ="numeric",
+      stomach.variance    ="vector",
+      simple.ALK          ="integer",
+      consum              ="integer",
+      size.select.model   ="integer",
       size.selection      ="vector",
+      size.range.lower    ="vector",
+      size.range.upper    ="vector",
       sum.stom.like       ="vector",
       #stom.obs.var        ="vector",
       stom.max.sumP        ="vector",
@@ -57,58 +58,63 @@ setClass("RSMS.control",
       max.stom.sampl      ="vector",
       prey.pred.size.fac  ="vector",
       stom.type.include   ="vector",
-      use.overlap         ="numeric",
-      checkValueMulti="numeric"
+      use.overlap         ="integer",
+      checkValueMulti="integer"
   )
   ,
   prototype=prototype(
-        test.output     =0,
-        VPA.mode        =0,
-        first.year      =1900, 
-        first.year.model=1901,                                            
-        last.year       =1901,                                            
-        last.year.model =1901,                                            
-        last.season     =1,                                            
-        no.species      =1,  
-        species.names   =as.vector("sp1",mode="character"),                                         
-        first.age       =0,                                            
-        rec.season      =1,                                            
-        max.age.all     =0,                                            
-        species.info    =matrix(0,ncol=9,nrow=1,dimnames=list(c("sp1"),c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3"))),
+        test.output     =0L,
+        VPA.mode        =0L,
+        first.year      =1900L, 
+        first.year.model=1901L,                                            
+        last.year       =1901L,                                            
+        last.year.model =1901L,                                            
+        last.season     =1L,                                            
+        no.species      =1L,  
+        species.names   =as.vector("sp1",mode="character"), 
+        species.names.long=as.vector("sp1",mode="character"), 
+        first.age       =0L,                                            
+        rec.season      =1L,                                            
+        max.age.all     =0L,                                            
+        species.info    =matrix(0L,ncol=9,nrow=1,dimnames=list(c("sp1"),c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3"))),
         SSB.R           =as.vector(0,mode="numeric"),
-        min.catch.CV    =0.2,                                                
-        discard         =as.vector(0,mode="list"),
-        combined.catches=as.vector(0,mode="list"),                                                 
-        keyVarLogN      =as.vector(0,mode="list"),
-        fModel          =as.vector(1,mode="numeric"),
-        keyLogFsta      =as.vector(0,mode="list"),
-        catch.s2.group  =as.vector(0,mode="list"),  
-        firstAgeYearEffect=as.vector(0,mode="numeric"),
+        min.catch.CV    =0.1,                                                
+        discard         =as.vector(0L,mode="list"),
+        combined.catches=as.vector(0L,mode="list"),  
+        incl.process.noise=as.vector(0L,mode="list"),
+        keyVarLogN      =as.vector(0L,mode="list"),
+        incl.Ssb.R      =as.vector(0L,mode="list"),
+        fModel          =as.vector(1L,mode="integer"),
+        keyLogFsta      =as.vector(0L,mode="list"),
+        catch.s2.group  =as.vector(0L,mode="list"),  
+        firstAgeYearEffect=as.vector(0L,mode="integer"),
         catch.sep.age   =as.vector(0,mode="list"), 
         catch.sep.year  =as.vector(0,mode="list"), 
-        use_rho=         as.vector(0,mode="numeric"),
+        use.rho=         as.vector(0L,mode="integer"),
         avg.F.ages      =matrix(0,ncol=2,nrow=1,dimnames=list(c("sp1"),c("first-age","last-age"))),                                        
-        discard         =as.vector(0,mode="numeric"),
-        zero.catch.year.season =0,
-        zero.catch.season.age =0,
+        discard         =as.vector(0,mode="integer"),
+        zero.catch.year.season =1L,
+        zero.catch.season.age =1L,
         checkValueSingle= -999L,
-        incl.stom.all   =0, 
-        use.Nbar        =0,
-        M2.iterations   =3,
+        incl.stom.all   =0L, 
+        use.Nbar        =0L,
+        M2.iterations   =3L,
         max.M2.sum2     =0.0, 
-        stomach.variance    =1,                                              
-        simple.ALK          =0, 
-        consum              =0,                                            
-        size.select.model   =2, 
-        size.selection      =as.vector(0,mode="numeric"),  
-        sum.stom.like       =as.vector(0,mode="numeric"),
-          stom.max.sumP        =as.vector(0,mode="numeric"),
-        size.other.food.suit=as.vector(0,mode="numeric"),
-        min.stom.cont       =as.vector(0,mode="numeric"),
-        max.stom.sampl      =as.vector(0,mode="numeric"),
-        prey.pred.size.fac  =as.vector(0,mode="numeric"), 
-        stom.type.include   =as.vector(1,mode="numeric"),                               
-        use.overlap         =0,                                              
+        stomach.variance    =as.vector(0,mode="numeric"),                                              
+        simple.ALK          =0L, 
+        consum              =0L,                                            
+        size.select.model   =2L, 
+        size.selection      =as.vector(0L,mode="integer"),  
+        size.range.lower    =as.vector(0,mode="numeric"), 
+        size.range.upper    =as.vector(100,mode="numeric"), 
+        sum.stom.like       =as.vector(0L,mode="integer"),
+        stom.max.sumP        =as.vector(100,mode="numeric"),
+        size.other.food.suit=as.vector(0L,mode="integer"),
+        min.stom.cont       =as.vector(1E-4,mode="numeric"),
+        max.stom.sampl      =as.vector(1000,mode="numeric"),
+        prey.pred.size.fac  =as.vector(0.5,mode="numeric"), 
+        stom.type.include   =as.vector(1L,mode="integer"),                               
+        use.overlap         =0L,                                              
         checkValueMulti= -999L
         
         )                                                           
@@ -123,6 +129,7 @@ setClass("RSMS.control",
 
 
 ### Methods #############################################################
+
 
 
 write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,nice=TRUE,writeSpNames=T,expand=F,w=5) {
@@ -281,6 +288,10 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            "species.names"      ={ cat(sepLine,file=file,append=T)
              cat("# Species names, for information only. See file species_names.in \n# ",sp.names,"\n",file=file,append=T)
            },
+           "species.names.long"      ={ cat(sepLine,file=file,append=T)
+             cat("# Species names.long, for information only. See file species_names_long.in \n# ",sp.names,"\n",file=file,append=T)
+           },
+           
            "first.age"         ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## first age all species (option first.age)\n",
@@ -319,8 +330,8 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            },
            "SSB.R"       ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("# Stock Recruit relation\n", 
-             "#      0_random walk 1=Ricker, 2=Beverton & Holt, 3=Geom mean,\n",
+             cat("# Stock Recruit relation (option SSB.R)\n", 
+             "#      0=random walk 1=Ricker, 2=Beverton & Holt, 3=Geom mean,\n",
              "#      4= Hockey stick, 5=hockey stick with smoother,\n",
              "#      >100= hockey stick with known breakpoint (given as input)\n",file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
@@ -334,7 +345,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            },
            "discard"           ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## Use proportion landed information in calculation of yield (option calc.discard)\n",
+             cat("## Use proportion landed information in calculation of yield (option discard)\n",
                  "#    0=all catches are included in yield\n",
                  "#    1=yield is calculated from proportion landed (file proportion_landed.in)\n",
                  file=file,append=T,sep="")
@@ -346,28 +357,51 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            "combined.catches"  ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## use seasonal or annual catches",inpOnly,  "(option combined.catches)\n",
-                 "#    0=annual catches with annual time steps or seasonal catches with seasonal time steps\n",
-                 "#    1=annual catches with seasonal time steps, assume seasonal catches=annual_catches/n_seasons\n",
-                 "#    2=annual catches with seasonal time steps, input seasonal proportions at age from file xx (not implemented yet)\n",
+                 '#    0=annual catches in likelihood, with seasonal proportions of annual F at age derived from seasonal catch N / sum(all seasonal catch N)\n',
+                 '#    1=annual catches in likelihood, with seasonal proportions of annual F at age from number of seasons (1/nseasons)\n',
+                 '#    2=annual catches in likelihood with seasonal proportions of annual F at age from file proportion_of_annual_f.in\n',
+                 '#    3=seasonal catches in likelihood with estimation of seasonal F from separable F-model \n',
+                 '#    4=annual catches in likelihood with estimation of seasonal F from separable F-model \n',
                  file=file,append=T,sep="")   
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
-             
+           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+           }, 
+           "incl.process.noise" ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             cat("## Process noise: Include process noise (option incl.process.noise)\n",
+                 '#    1= Both recruits and older ages have process noise estimated\n',
+                 '#    2= Recruits only (N at age older than recruits in the first year become parameters)\n',
+                 '#    3= Do not include process noise at all (N in the first year and recruits become parameters)\n',
+                 file=file,append=T,sep="")   
+             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
            }, 
            "keyVarLogN" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"# Process noise: number of age  groups with the same process N by species",
+             if (expand) wr.list.expand(slot(control,x),"# Process noise: number of age  groups with the same process N by species (option keyVarLogN)",
                                         "first age in sd group (option keyVarLogN)",VPA.species)
              if (!expand) wr.list.nice(slot(control,x),"Process noise: number of age  groups with the same process N by species",
                                        "first age in sd group (option keyVarLogN)",VPA.species)
            } else  wr.list(slot(control,x),"keyVarLogN",x)
            },
-
+           
+           "incl.Ssb.R"   ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             cat("## Include stock-recruitment relation in log-likelihood (option incl.Ssb.R)\n",
+                 "#   0 = no\n",  
+                  "#   1 = include the likelihood (only used in cases where recruitment is estimatede as a fixed parameter)\n",
+                 file=file,append=T,sep="")
+             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
+             
+           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+           },
+           
+           
            "fModel"   ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## Model for F (default=1) (option fModel):\n",
                  "#   1=random walk (deafult SAM)\n",
-                 "#   2=random walk used as year effect in separable F model\n",
+                 "#   2=random walk used as year effect in separable F model for some or all ages\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
@@ -385,7 +419,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            
            "catch.s2.group" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"catch observations: number of separate catch variance groups by species",
+             if (expand) wr.list.expand(slot(control,x),"catch observations: number of separate catch variance groups by species (option catch.s2.group)",
                                         "first age group in each catch variance group",VPA.species)
              if (!expand) wr.list.nice(slot(control,x),"catch observations: number of separate catch variance groups by species",
                                        "first age group in each catch variance group",VPA.species)
@@ -403,17 +437,17 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
 
            "catch.sep.age"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used  in case of fModel==2)",
+             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2) (option catch.sep.age)",
                                         "first age in each group (option catch.sep.age)",VPA.species)                                
              
-             if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same age selection (used  in case of fModel==2)",
+             if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2)",
                                        "first age in each group (option catch.sep.age)",VPA.species)
            } else  wr.list(slot(control,x),"catch.sep.age",x)
            },
            
            "catch.sep.year"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2)",
+             if (expand) wr.list.expand(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2) (option catch.sep.year)",
                                         "first year in each group (option catch.sep.year)",VPA.species)                                
              
              if (!expand) wr.list.nice(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2)",
@@ -421,9 +455,9 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            } else  wr.list(slot(control,x),"catch.sep.year",x)
            },
            
-           "use_rho"   ={if (nice) {
+           "use.rho"   ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## Correlation in catches (exploitation pattern) between age group (option useRho) (1=use, 0=no use)\n",
+             cat("## Correlation in catches (exploitation pattern) between age group (option useRho) (0=no use, 1 compound symmetry, 2=AR(1))\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
@@ -482,7 +516,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
                  "# multispecies parameters\n#\n",
                  "#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n#\n",
                  file=file,append=TRUE,sep='')
-             cat("# Exclude year, season and predator combinations where stomach data are not included,\n",
+             cat("# Exclude year, season and predator combinations where stomach data are not included (option incl.stom.all),\n",
                  "#",inpOnly,"(option incl.stom.all)\n",
                  "#   0=no, all stomach data are used in likelihood\n",
                  "#   1=yes there are combinations for which data are not included in the likelihood.\n",
@@ -528,14 +562,16 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            "stomach.variance"   = {if (nice)  {                               
              cat(sepLine,file=file,append=TRUE) 
              cat("# Variance used in likelihood model for stomach contents as prey weight proportion (option stomach.variance)\n",
-                 "#  0 = not relevant, \n",
                  "#  1 = log normal distribution, \n",
                  "#  2 = normal distribution,\n",
-                 "#  3 = Dirichlet distribution (with estimation of 'concentration' parameter)\n",
-                 "#  4 = Dirichlet distribution (with input of 'concentration' parameter)\n",
-                 "#  5 = Dirichlet distribution (with input of maximum 'concentration' parameter)\n",
+                 "#  3 = Dirichlet distribution (with estimation of alpha0 parameter from sampling level)\n",
+                 "#  4 = Dirichlet distribution (with input of alpha0 parameter)\n",
+                 "#  5 = Dirichlet distribution (from input of alpha0 and estimated scaling factor)\n",
+                 "#\n",
+                 "# by predator\n",
+                 file=file,append=T,sep="")
                  
-                 slot(control,x),"\n",file=file,append=T,sep="")
+                  if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
            } 
              else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE) 
            },                                             
@@ -617,10 +653,9 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
          "size.selection"        ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## spread of size selection (option size.selection)\n",
-                 "#   0=no size selection, predator/preys size range defined from observations\n",
+                 "#   0=no size selection, predator/preys size range defined from observations (and optional percentile range) \n",
                  "#   1=normal distribution size selection\n",
                  "#   3=Gamma distribution size distribution\n",
-                 "#   4=no size selection, but range defined by input min and max regression parameters (file pred_prey_size_range_param.in)\n",
                  "#   5=Beta distributed size distribution, within observed size range\n",
                  "#   6=log-Beta size distributed, within observed size range\n",
                  "#\n",
@@ -629,10 +664,25 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
              if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
            }, 
+         "size.range.lower"        ={if (nice) {
+           cat(sepLine,file=file,append=T)
+           cat("## percentile range of log(prey siz/ predator size) used for calculation of M2 (option size.range.lower and size.range.upper)\n", 
+                "#  Upper and lower quantile (in percentage)\n",
+                "# by predator\n", 
+               file=file,append=T,sep="")
+           if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
+         } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+         }, 
+         "size.range.upper"        ={if (nice) {
+             if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
+           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+         }, 
+         
            "sum.stom.like"     ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## sum stomach contents over prey size for use in likelihood for prey weight proportions (option sum.stom.like)\n",
-                 "#   0=no, use observations as they are; 1=yes, sum observed and predicted stomach contents before used in likelihood for prey weight proportions\n",
+                 "#   0=no, use observations as they are\n",
+                 "#    1=yes, sum observed and predicted stomach contents before used in likelihood for prey weight proportions\n",
                  "#\n",
                  "# by predator\n",
                  file=file,append=T,sep="")
@@ -652,7 +702,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            }, 
            "stom.max.sumP"     ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## # Upper limit for Dirichlet sumP. A low value (e.g. 10) limits the risk of overfitting. A high value (e.g. 100) allows a full fit. (option stom_max_sumP)\n",
+             cat("## # Upper limit for Dirichlet sumP. A low value (e.g. 10) limits the risk of overfitting. A high value (e.g. 100) allows a full fit. (option stom.max.sumP)\n",
                  "# by predator\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
@@ -681,6 +731,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            "min.stom.cont"     ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## Minimum observed relative stomach contents weight for inclusion in ML estimation (option min.stom.cont)\n",
+                 " # a negative value will delete the observation if observation<abs(value), a positivee will change the observation to the limit value\n",
                  "#",inpOnly,'\n',
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
@@ -697,7 +748,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            },
            "prey.pred.size.fac" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## Max prey size/ pred size factor for inclusion in M2 calc (option max.prey.pred.size.fac)\n",
+             cat("## Max prey size/ pred size factor for inclusion in M2 calc (option prey.pred.size.fac)\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),pred.species) else wr.vector.nice(slot(control,x),pred.species)
              
@@ -800,7 +851,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
   setwd(old.path)
 }
 
-read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {       
+read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {       
   #print(file.path(dir,file))
   opt<-scan(file=file.path(dir,file), comment.char = "#",quiet=T) 
   
@@ -808,24 +859,31 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
   control<-new("RSMS.control")
   n.<-slotNames(control)
   n.
+
+  if (opt[2]==0) n.<-head(n.,-1)  #single sp mode, ignore ms input
   for (x in n.) {
     switch(x,
        "no.species"          = {slot(control,x)<-as.integer(opt[n]); nsp<-as.integer(opt[n]); n<-n+1;
        species.names<-readLines(file.path(dir,"species_names.in"), n=control@no.species)
        species.names<-gsub('_',' ',species.names)
        species.names<-sub('[[:space:]]+$', '', species.names)
+       species.names.long<-readLines(file.path(dir,"species_names_long.in"), n=control@no.species)
+       species.names.long<-gsub('_',' ',species.names.long)
+       species.names.long<-sub('[[:space:]]+$', '', species.names.long)
+       
        },
        "species.names"       = { slot(control,x)<-species.names; },
+       "species.names.long"  = { slot(control,x)<-species.names.long; },
        
-       "species.info"        = {    ncols<-9
-           tmp<-matrix(opt[n:(n-1+nsp*ncols)],ncol=ncols,nrow=nsp,byrow=TRUE,
+       "species.info"        = {    ncols<-9;
+           tmp<-matrix(as.integer(opt[n:(n-1+nsp*ncols)]),ncol=ncols,nrow=nsp,byrow=TRUE,
                        dimnames<-list(species.names,c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3")));
            slot(control,x)<-tmp;
            n<-n+nsp*ncols;
-           n.prey<-0; n.pred<-0; n.oth.pred<-0
+           n.prey<-0L; n.pred<-0L; n.oth.pred<-0L
            for (s in (1:nsp)) { 
-             if(tmp[s,'predator']>=1) n.pred<-n.pred+1;
-             if(tmp[s,'predator']==2 | tmp[s,'predator']==3) n.oth.pred<-n.oth.pred+1;
+             if(tmp[s,'predator']>=1) n.pred<-n.pred+1L;
+             if(tmp[s,'predator']==2 | tmp[s,'predator']==3) n.oth.pred<-n.oth.pred+1L;
            }
            first.VPA<-n.oth.pred+1
            n.VPA.sp<-nsp-first.VPA+1
@@ -835,10 +893,12 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
        "min.catch.CV"        = {slot(control,x)<-as.numeric(opt[n]); n<-n+1},
        "discard"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        "combined.catches"    ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
+       "incl.process.noise" ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        "keyVarLogN"      = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
            group<-vector("list", length=n.VPA.sp); 
            for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
             slot(control,x)<-group},
+       "incl.Ssb.R"         ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        "fModel"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        "keyLogFsta"      = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
          group<-vector("list", length=n.VPA.sp); 
@@ -851,7 +911,7 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
              group<-vector("list", length=n.VPA.sp); 
              for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
              slot(control,x)<-group},
-       "seasonal.catch.s2"   = {slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
+       "catch.s2.group"   = {slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
       "catch.sep.age"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
          group<-vector("list", length=n.VPA.sp); 
          for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
@@ -862,7 +922,7 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
       slot(control,x)<-group }, 
       
       
-       "use_rho"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
+       "use.rho"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        
        "avg.F.ages"          = {slot(control,x)<-matrix(opt[n:(n-1+n.VPA.sp*2)],ncol=2,nrow=n.VPA.sp,byrow=TRUE,
                                                         dimnames=list(species.names[first.VPA:nsp],c("first-age","last-age"))); n<-n+n.VPA.sp*2},
@@ -870,18 +930,22 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
        group<-vector("list", length=n.VPA.sp); 
        for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
        slot(control,x)<-group },
-      "checkValueSingle"   = {slot(control,x)<-as.numeric(opt[n]); n<-n+1
-                       cat('Check value:',slot(control,x),'\n')
-                       stopifnot('Check value should be -999. Something is wrong\n'=slot(control,x) ==  -999) },
+      "checkValueSingle"   = {slot(control,x)<-as.integer(opt[n]); n<-n+1
+                      if (!silent) cat('Check value1:',slot(control,x),'\n')
+                       stopifnot('Check value1 should be -999. Something is wrong\n'=slot(control,x) ==  -999) },
       
-      "checkValueMulti"   = {slot(control,x)<-as.numeric(opt[n]); n<-n+1
-      cat('Check value:',slot(control,x),'\n')
-      stopifnot('Check value should be -999. Something is wrong\n'=slot(control,x) ==  -999) },
+      "checkValueMulti"   = {slot(control,x)<-as.integer(opt[n]); n<-n+1
+                      if(!silent) cat('Check value2:',slot(control,x),'\n')
+      stopifnot('Check value2 should be -999. Something is wrong\n'=slot(control,x) ==  -999) },
       
       
       "est.calc.sigma"      = {slot(control,x)<-as.vector(opt[n:(n-1+3)]); n<-n+3},
       "size.selection"      ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
+      "size.range.lower"    ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
+      "size.range.upper"    ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
+      
       "sum.stom.like"       ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
+      "stomach.variance"     ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
       "stom.obs.var"        ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
       "stom.max.sumP"        ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.pred)])); n<-n+n.pred},
       "var.scale.stom"      ={slot(control,x)<-as.vector((opt[n:(n-1+n.pred)])); n<-n+n.pred},
@@ -893,12 +957,13 @@ read.RSMS.control<-function(dir='.',file="rsms_new.dat",test=FALSE) {
       
       
        # otherwise                        
-       {slot(control,x)<-opt[n];n<-n+1}                                 
+      {   if (is.integer(slot(control,x))) slot(control,x)<-as.integer(opt[n]) else slot(control,x)<-opt[n];
+               n<-n+1}                                 
     )
     if (test) {
       cat(x,'\n')
-      #cat(class(slot(control,x)),'\n')
-      if (class(slot(control,x))!='list') cat(slot(control,x),'\n') else print(slot(control,x))
+      cat(class(slot(control,x)),'\n')
+      if (class(slot(control,x))[1]!='list') cat(slot(control,x),'\n') else print(slot(control,x))
     }
   }
   control
@@ -913,9 +978,12 @@ setMethod("show", signature(object="RSMS.control"),
             for (i in 1:length(n.)) {
               cat(n.[i]) 
               for (j in nchar(n.[i]):25) cat(" ")
-              
-              if (is.integer(slot(object,n.[i]))) cat(slot(object,n.[i]),"\n")
-              
+             # cat(is.integer(slot(object,n.[i])),is.vector(slot(object,n.[i])),is.matrix(slot(object,n.[i])))
+              if (is.matrix(slot(object,n.[i]))) {
+                m<-slot(object,n.[i])
+                cat("\n")
+                print(m)
+              } 
               else if (is.vector(slot(object,n.[i]))) {          
                 if (is.list(slot(object,n.[i]))) { 
                   for (k in 1:length(slot(object,n.[i]))) cat("\n\t",slot(object,n.[i])[[k]])
@@ -923,28 +991,182 @@ setMethod("show", signature(object="RSMS.control"),
                 }
                 else cat(slot(object,n.[i]),"\n")
               }
-              else if (is.matrix(slot(object,n.[i]))) {
-                m<-slot(object,n.[i])
-                cat("\n")
-                print(m)
-              }
+              else if (is.integer(slot(object,n.[i]))) cat(slot(object,n.[i]),"\n")
             }
           }
 )
 
 
+RSMS.control <- function(  
+    RSMS=NULL,
+    first.year=1900,
+    first.year.model=first.year,
+    last.year=first.year+10, 
+    last.season=1,  
+    no.species=1,
+    no.VPA.predators=0,
+    no.other.predators=0,
+    species.names=c("sp1"),
+    species.names.long=c('species1'),
+    first.age=0, 
+    max.age.all=10)
+{
+  first.year<-as.integer(first.year); first.year.model<-as.integer(first.year.model);
+  last.year<-as.integer(last.year);
+  last.season<-as.integer(last.season)
+  no.species<-as.integer(no.species)
+  no.VPA.predators<-as.integer(no.VPA.predators)
+  no.other.predators<-as.integer(no.other.predators)
+  first.age<-as.integer(first.age)
+  max.age.all<-as.integer(max.age.all)
+  
+  if (is.null(RSMS)){
+    if (no.species == 1) {
+      no.VPA.sp<-as.integer(no.species)
+      first.no.VPA<-1L
+      last.no.VPA<-1L
+      no.predators<-0L
+      no.other.predators<-0L
+    }
+    if (no.species>1) {
+      if (no.other.predators>=no.species) stop("no.other.predators cannot be larger than no.species")
+      no.VPA.sp<-as.integer(no.species)-as.integer(no.other.predators)
+      no.predators<-no.other.predators+no.VPA.predators
+      first.no.VPA<-no.other.predators+1
+      last.no.VPA<-no.species
+    }
+    if (species.names[1] != c("sp1") & length(species.names)!=no.species) 
+      stop("no.species is diffrent from number of species names")
+    
+    species.info<-matrix(0L,ncol=9,nrow=no.species,dimnames=list(species.names,
+                                      c("last-age", "first-age F>0", "+group", "predator", "prey", "SpawningQ", "add1", "add2", "add3")))
+    species.info[,1]<-as.integer(max.age.all)
+    species.info[,2]<-as.integer(first.age)
+    species.info[,3]<-1L
+    species.info[,4]<-c(rep(2L, no.other.predators),rep(1L,no.VPA.predators),rep(0L,no.species-no.predators))
+    species.info[,5]<-c(rep(0L,no.other.predators),rep(1L,no.VPA.sp))
+    species.info[,6]<-1L
+    species.info[,7]<-0L
+    species.info[,8]<-0L
+    species.info[,9]<-0L
+ 
+    
+    res <- new("RSMS.control",
+               test.output=0L ,
+               VPA.mode=0L,
+              # no.areas=1L,
+               first.year=as.integer(first.year), 
+               first.year.model=as.integer(first.year.model), 
+               last.year=as.integer(last.year),
+               last.year.model=as.integer(last.year),
+               last.season=as.integer(last.season),
+               rec.season=1L,
+               #last.season.last.year=as.integer(last.season),          
+               no.species=as.integer(no.species),
+               first.age=as.integer(first.age),
+               max.age.all=as.integer(max.age.all),
+               species.names=species.names,
+               species.names.long=species.names.long,
+               species.info=species.info,
+               SSB.R=rep(0, no.VPA.sp),
+               combined.catches=rep(2L, no.VPA.sp),
+               incl.process.noise=rep(1L, no.VPA.sp),
+               keyVarLogN=lapply(1:no.VPA.sp,function(x) 0L),
+               incl.Ssb.R=rep(1L, no.VPA.sp),
+               fModel=rep(1L, no.VPA.sp),
+              
+               keyLogFsta=lapply(1:no.VPA.sp,function(x) as.integer(species.info[x+no.other.predators,"first-age F>0"]:(species.info[x+no.other.predators,"first-age F>0"]+1L))),
+               catch.s2.group=lapply(1:no.VPA.sp,function(x) as.integer(species.info[x+no.other.predators,"first-age F>0"]:(species.info[x+no.other.predators,"first-age F>0"]+1L))),
+               firstAgeYearEffect= species.info[ first.no.VPA:last.no.VPA,"first-age F>0"],
+               catch.sep.age=lapply(1:no.VPA.sp,function(x) species.info[x+no.other.predators,"first-age F>0"]),
+               catch.sep.year=lapply(1:no.VPA.sp,function(x) first.year.model),
+               use.rho=rep(0L, no.VPA.sp),
+               avg.F.ages      =matrix(0L,ncol=2,nrow=no.VPA.sp,dimnames=list(species.names[first.no.VPA:last.no.VPA],c("first-age","last-age"))),
+               discard=rep(0L, no.VPA.sp),
+               zero.catch.year.season=1L,
+               zero.catch.season.age=1L,
+              
+              #multi
+              stomach.variance=rep(1L, no.predators),
+              size.selection=rep(1L, no.predators),
+              size.range.lower=rep(0, no.predators),
+              size.range.upper=rep(100, no.predators),
+              sum.stom.like=rep(1L, no.predators),
+              stom.max.sumP=rep(100, no.predators),
+              size.other.food.suit=rep(0L, no.predators),
+              min.stom.cont       =rep(1E-4,no.predators),
+              max.stom.sampl      =rep(1E4,no.predators),
+              prey.pred.size.fac  =rep(0.5,no.predators),
+              stom.type.include   =rep(1L,no.predators)
+                              
+    )
+  }
+  else {  # We re-use an RSMS.control object 
+    if (!inherits(RSMS, "RSMS"))
+      stop("RSMS must be an 'RSMS' object!")
+    
+    res <- RSMS@control
+    
+    # ... and possibly redefine some of its parameters
+    if (!missing(test.output))
+      res@test.output <- test.output
+    if (!missing(VPA.mode))
+      res@VPA.mode <- as.integer(VPA.mode)
+    #if (!missing(no.areas))     res@no.areas <- as.integer(no.areas)
+    if (!missing(first.year))
+      res@first.year <- first.year
+    if (!missing(first.year.model))
+      res@first.year.model <- first.year.model
+    if (!missing(last.year))
+      res@last.year <- last.year
+    if (!missing(last.year.model))
+      res@last.year.model <- as.integer(last.year.model)
+    if (!missing(last.season))
+      res@last.season <- as.integer(last.season)
+    if (!missing(last.season.last.year))
+      res@last.season.last.year <- as.integer(last.season.last.year)
+    if (!missing(no.species))
+      res@no.species <- as.integer(no.species)
+    if (!missing(first.age))
+      res@first.age <- as.integer(first.age)
+    if (!missing(rec.season))
+      res@rec.season <- as.integer(rec.season)
+    if (!missing(max.age.all))
+      res@max.age.all <- as.integer(max.age.all)
+    if (!missing(species.info))
+      res@species.info <- as.matrix(species.info)
+    
+    # Verify that this object is valid
+    test <- validObject(res)
+    
+    if (!test) stop("Invalid object:", test)
+  }
+  
+  return(res)
+}
+
+
+
+
 
 if (FALSE) {
-  RSMS<-new("RSMS.control")    
+  RSMS<-new("RSMS.control")  
+
+  
   RSMS<-read.RSMS.control(dir=data.path,file='rsms.dat')
   write.RSMS.control(RSMS,file=file.path(data.path,"trsms.dat"),write.multi=T,nice=T)
   
-  write.FLSMS.control(SMS.dat,file=file.path(data.path,"trSMS.dat"),write.multi=T,nice=F)
+  write.RSMS.control(SMS.dat,file=file.path(data.path,"trSMS.dat"),write.multi=T,nice=F)
   
-  write.FLSMS.control(SMS.dat,file=file.path(data.path,"trSMS.dat"),write.multi=T,nice=F)
+  write.RSMS.control(SMS.dat,file=file.path(data.path,"trSMS.dat"),write.multi=T,nice=F)
+
+  write.RSMS.control(a,file=file.path(data.path,'tSMS.dat'))
   
-  print(validFLSMS.control(SMS.dat))
-  a<-FLSMS.control(first.year=1976,last.year=2000,no.species=3,
-                   no.other.predators=1,no.VPA.predators=1,species.names=c('Bird','Cod','Herring'))
-  write.FLSMS.control(a,file=file.path(data.path,'tSMS.dat'))
+  
+  a<-RSMS.control(first.year=1976,last.year=2000,no.species=3,last.season=4,
+                  no.other.predators=1,no.VPA.predators=1,species.names=c('BIR','COD','HER'),species.names.long=c('Bird','Cod','Herring'))
+  
+  write.RSMS.control(a,file=file.path(data.path,'tSMS.dat'))
+  
+  
 }  

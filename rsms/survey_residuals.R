@@ -1,20 +1,32 @@
+plotSurveyResiduals<-function(surv,inclFleets=1:100, inclSp=1:100,fileLabel='survey_residuals',
+                              outFormat=c('screen','pdf','png')[1],longSpNames=TRUE,standardized=FALSE,scaleY=c('fixed',"free_y")[1]) {
 
-overw<-as.data.frame(data$keySurvey.overview) %>%  rownames_to_column(var = "fleet") %>% select(f,fleet,s,type)
+  survResid<-surv$rep$resSurv  %>% 
+    transmute(s,species,year,Age=factor(age),quarter=q,f,fleet=fleetName,predict=logPred,observed=logObs,Residual=resid,variance)
+    if (standardized) survResid$Residual<- survResid$Residual/sqrt(survResid$variance)
+    survResid<-survResid %>% mutate(cols=if_else(Residual<0,'negativ','positiv')) %>% filter(f %in% inclFleets & s %in% inclSp)  
+  
+  plt<-by(survResid,survResid$s,function(x){
+    if (longSpNames) sp<-surv$data$allSpNamesLong[unlist(x[1,'s'])] else sp<<-x[1,'species']
+    maxRes<-max((abs(x$Residual)))
+    pl<-x %>% ggplot(aes(year, Age,color= cols,fill=cols,size = (abs(Residual)))) +
+      geom_point(shape = 21,alpha=0.75) +
+      scale_color_manual(values = c("blue", "red")) +
+      scale_size(range = c(0,maxRes)*4) +
+      labs(x = "", y = "Age",title=paste(if_else(standardized,'Standardised',''),'Survey residuals, ',sp)) +
+      facet_wrap(vars(fleet),ncol=1,scales=scaleY)+
+      my_theme() + 
+      theme(legend.title = element_blank(),    legend.position = "right")
 
-survResid<-as.data.frame(data$keySurvey) %>% as_tibble()  %>% 
-  mutate(predict=rep$predSurveyObs,obs=data$logSurveyObs,Residual=predict-obs,year=y-data$off.year,Age=factor(a-data$off.age),species=data$spNames[s]) %>% 
-  left_join(.,overw,by = join_by(f, s)) %>% select(s,species,f,fleet,type,year,q,Age,s,predict,obs,Residual) %>%
-  mutate(cols=if_else(Residual<0,'negativ','positiv')) 
+    if (outFormat=='screen'){
+      print(pl)
+    } else {
+      ggexport(pl, filename = paste0(fileLabel,'_',sp,'.',outFormat),width = 900,height = 600, pointsize = 16)
+      cleanup()
+    }
+  })
+  invisible(NULL)
+}
 
-plt<-by(survResid,survResid$s,function(x){
-  plt<-x %>% ggplot(aes(year, Age,color= cols,fill=cols,size = sqrt(abs(Residual)))) +
-    geom_point(shape = 21,alpha=0.75) +
-    scale_color_manual(values = c("blue", "red")) +
-    labs(x = "", y = "Age",title=paste('Survey residuals, ',x[1,'species'])) +
-    # facet_grid(rows =vars(fleet), scales="free_y")
-    facet_wrap(vars(fleet),ncol=1)+
-    theme_bw() + 
-    theme(strip.text = element_text(size = 10,margin = margin(0.01,0,0.01,0, "cm")))
-  print(plt)
-})
-print(plt)
+plotSurveyResiduals(surv=sms,inclFleets=1:300, inclSp=1:100, outFormat=c('screen','pdf','png')[1],standardized=T) 
+

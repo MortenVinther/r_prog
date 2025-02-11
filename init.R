@@ -27,14 +27,11 @@ root.copy<-root
 #my.stock.dir<-"NS_2023_key_run_directors_cut"
 
 my.stock.dir<-"rsms_input"
-#my.stock.dir<-"rsms_Sprat-div-4_plus_IIIa"
 
 #my.stock.dir<-"rsms_SAN-area-1r"
 #my.stock.dir<-"rsms_SAN-area-3r"
-#my.stock.dir<-"NorthSeaKeyRun_2023_NS_herring"
-#my.stock.dir<-"NorthSeaKeyRun_2023_no_magic"
 
-#my.stock.dir<-"NS_2023_key_run_JAMBAY"
+
 #my.stock.dir<-"NS_2022_seawise_ver_2024"
 
 # make a backup of the SMS source code
@@ -78,7 +75,9 @@ setwd(data.path)
 # Path to R-programme directory
 prog.path.func<-file.path(root.prog,"r_prog","function")
 
-source(file.path(prog.path.func,"init_r_functions.R"))
+# for SMS (not RSMS) runs
+#source(file.path(prog.path.func,"init_r_functions.R"))
+
 cat("active stock directory:",getwd(),"\n");
 
 

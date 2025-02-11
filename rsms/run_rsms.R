@@ -1,239 +1,486 @@
-#
-### init: Run: init.R in the SMS directory and _init_rsms.R
-source(file.path(rsms.root.prog,"make_rsms_data_function.R"))
-source(file.path(rsms.root.prog,"pick_species.R"))
-source(file.path(rsms.root.prog,"quarter2annual.R"))
-source(file.path(rsms.root.prog,"rsms_function.R"))
-source(file.path(rsms.root.prog,"summary_plot.R"))
-source(file.path(rsms.root.prog,"map_param.R"))
-source(file.path(rsms.root.prog,"lowerUpper.R"))
 
+
+if (TRUE) {
+rsms<-batch_default_configuration(outfile='rsms.dat',writeConrol=T)
+
+rsms
+sms<-read.RSMS.control(dir=dir,file=sms.dat,test=F) # just checking
+}
 ### Extract data from SMS
-doMultiExtract=TRUE
+doMultiExtract<-FALSE
 
 if (TRUE) {  # transform  SMS data into RSMS format 
-  if (my.stock.dir=="rsms_input") inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',seasFfrom=c('F','catch')[2],multi=doMultiExtract)
-  
-  # 
-  if (my.stock.dir=="rsms_SAN-area-1r")  inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',seasFfrom=c('F','catch')[2])
-  
-  # 
-  # if (my.stock.dir=="rsms_SAN-area-3r") inp_all<-make_rsms_data(dir=my.stock.dir,sms.dat='rsms.dat',
-  #                                                               seasFfrom=c('F','catch')[2], effort_fl=c("Effort season 1","Effort season 2") )
-  # 
-  # 
-  # if (my.stock.dir=="rsms_Sprat-div-4_plus_IIIa") inp_all<-make_rsms_data(dir=my.stock.dir,sms.dat='rsms.dat',adj_san0=FALSE,
-  #                                                               seasFfrom=c('F','catch')[2] )
-  # 
- 
-  save(inp_all,file=file.path(data.path,"rsms_input_all.Rdata"))
-}
+  switch(my.stock.dir,
+   "rsms_input"       = inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',multi=doMultiExtract),
+   "rsms_SAN-area-1r"       = inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',multi=FALSE),
+    stop(paste0("Not valid stock dir: ",my.stock.dir))
+  ) #end switch
+  save(inp_all,file=file.path(data.path,"rsms_input_all.Rdata")) 
+} else load(file=file.path(data.path,"rsms_input_all.Rdata"),verbose=TRUE)
 
-load(file=file.path(data.path,"rsms_input_all.Rdata"),verbose=TRUE)
-#str(inp_all$data,1)
 
 smsConf<-0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
-
 annualData<-FALSE
 
 # select a combination of species from the (full) data set, also including multi species information
-#inp<-pick_species(ps=c(1L,3L,4L,6L), inp=inp_all) # example with more species, convergence and Hessian
-#inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L,7L,9L), inp=inp_all) # 8,10 no Hessian
-#inp<-pick_species(ps=c(1L,2L,3L,4L,5L,6L), inp=inp_all)  #ok
-#inp<-pick_species(ps=c(1L,6L,7L,8L), inp=inp_all) 
+
+runName<-'Single'
+
+my.ps<-c(1L,2L,3L,4L,5L,6L,7L,8L,9L,10L,11L,12L)
+#my.ps<-c(1L,7L,8L)
+my.ps<-c(1L,2L,3L,4L,6L,7L,8L,9L,10L)
+my.ps<-c(1L:12L)
+my.ps=c(1,2,3,4,5,6,11,12)
+my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
+my.ps=c(1,2,3,4,5)
+my.pso<-c(0L)
+#my.pso<-13L:27L
 
 
-#inp<-pick_species(ps=seq(1L:12L), inp=inp_all,smsConf) 
-
-inp<-pick_species(ps=c(1L,2L,6L,7L,8L,9L), inp=inp_all,smsConf) 
-#inp<-pick_species(ps=c(7L,8L), inp=inp_all) 
+inp<-pick_species(ps=my.ps,pso=my.pso, inp=inp_all,smsConf) 
 #inp=inp_all
 
 inp$data$sms.mode<-smsConf
 
-#  transform quarterly data into to annual data (testing)
-if (annualData) inp<-into_annual(inp)
-
 inp$data$spNames
-inp$data$fleetNames
 
 #### prepare to run
 data<-inp[['data']]
+data$silent<-FALSE
 parameters<-inp[['parameters']]
 
-data$Debug<-1L
+if (FALSE) {
+ load(paste0(runName,'.Rdata'),verbose=TRUE)
+  parameters<-as.list(sms$sdrep, what="Est")  #parameters and random effects
+  exp(parameters$logSeparF)
+  exp(parameters$logFSeasonal)
+}
 
 #### Run rsms
-my.map<-map_param(data,parameters)
+cleanrun(silent=TRUE)
+
+myMap<-map_param(data,parameters)
 random=c("Un","Uf")
-if (exists('obj')) rm(obj)
 
-obj <- MakeADFun(func, parameters, random,silent=T,map=my.map)
+system.time(obj <- MakeADFun(func, parameters, random,silent=T,map=myMap))
 
-#obj$simulate()
 # checkConsistency(obj);
-               
 lu<-lowerUpper(obj,data,parameters )
-
-# round(ftable(data$seasFprop[[2]][,2,]),3)
-
-# 
-# CC<-as.data.frame(data$keyCatch)
-# CC$canum<-exp(data$logCatchObs)
-# CC$canumR<-round(exp(data$logCatchObs))
-# round(ftable(xtabs(canum~s+year+age,data=CC)))
-# round(ftable(tapply(CC$canum,list(CC$s,CC$year,CC$age),FUN=sum)))
-# filter(CC,year==2012)
-# round(ftable(data$seasFprop[[1]][45,,]),5)
-# arrange(CC,canum)
-
-if (exists('opt')) rm(opt);if (exists('sdrep')) rm(sdrep);
-
 
 system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1000,eval.max=1000)))
 announce(opt)
 
-sdrep <- sdreport(obj); 
+system.time(sdrep <- sdreport(obj))
 cat('Hesssian:',sdrep$pdHess,'\n')
-sdrep
 
-save(opt,obj,lu,sdrep,inp_all,random,data,parameters,file=file.path(data.path,"single_sp.Rdata"))
+# summary(sdrep,select = c("all", "fixed", "random", "report")[3])
 
-load(file=file.path(data.path,"single_sp.Rdata"),verbose=TRUE)
+a<-extractParameters(sdrep,myMap,data)[[2]]
+print(a,n=300)
 
-#checkConsistency(obj)
+#print(filter(a,name=="logFSeasonal"),n=50)
+myRep<-obj$report()
+a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
-#essential output for single sp mode
-if (FALSE) {
-  summary_plot(obj,out=as.list(sdrep, "Est", report=TRUE),data,sdrep,incl_ICES_plot=F) 
-  plotF(obj,sdrep,data,combineAges=TRUE)  
-  
-  FF<-FToDF(obj,sdrep,data) %>% mutate(species=data$spNames[s])
-  by(FF,FF$species,function(x) round(ftable(xtabs(FF~year+age,data=x)),6))
-  
-  sF<-seasonalF(obj,sdrep,data)
-  by(sF,sF$species,function(x) round(ftable(xtabs(SF~year+q+age,data=x)),6))
-  
-  filter(sF,year >2021 & age <2)
-  data.frame(name=attr(sdrep$par.fixed,'names'),value=sdrep$par.fixed,gradient=sdrep$gradient.fixed)
-  
-  print(calcCV(sdrep,data) %>%arrange(sp.no,desc(sd)),n=40)
-  print(calcCV(sdrep,data) %>%arrange(desc(abs(gradient))),n=20)
-  
-  attr(sdrep$par.fixed,'names')
-}
+sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
+
+names(sms[['rep']]$res)
+
+x<-sms[['rep']]$res %>% group_by(s,year,age)%>% mutate(FiProp=FisQ/sum(FisQ)) %>% mutate(FiProp=if_else(is.na(FiProp),0,FiProp))
+head(x)
+
+xx<-tapply(x$FiProp,list(x$species,x$year,x$quarter,x$age),sum)  
+round(xx[1,1,,],4)
+round(xx[1,10,,],4)
+round(xx[1,40,,],4)
+
+round(xx[2,1,,],4)
+round(xx[2,30,,],4)
 
 
-load(file=file.path(data.path,"single_sp.Rdata"),verbose=TRUE)
 
-###################  multi species mode
+plotSeasonalData(inp=runName,Type="FiProp",showSpecies=1:100,
+                 outFormat=c('screen','pdf','png')[1],
+                 showAges=0:8,
+                 multN=0.001,
+                 ncols=3,
+                 cummulate=TRUE,
+                 fileLabel='pl')
+
+
+ 
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=1:12,
+                                 inpRdata=list("Single3","Single4"),
+                                 labels=c("single3","single4"),
+                                 outFormat=c('screen','pdf','png')[1],
+                                 multN=0.000001,
+                                 longSpNames=FALSE, fileLabel='single')
+
+ 
+ (plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
+                       inpRdata=list("Single"),
+                       labels=c("single"),
+                       outFormat=c('screen','pdf','png')[1],
+                       multN=0.000001,
+                       longSpNames=FALSE, fileLabel='single')
+ 
+   
+   AICCompare( 
+     inpRdata=list("Single3","Single4"),
+     labels=c("Single3","Single4")
+   )
+   
+   # read results from ICES stock assessment into a suitable format,saved as "outSet" .Rdata
+   transExternalSummary(inp='summary_table_raw_ICES.out',outSet='ICES_single_sp',spNames=data$spNames) #, exSpeciesNames=data$spNames)
+   transExternalSummary(inp='summary_table_raw.out',outSet='SMS_old',spNames=data$spNames) #, exSpeciesNames=data$spNames)
+   transExternalData(inp='summary.out',outSet='SMS_old_detailed',spNames=data$spNames)
+   transExternalSummary(inp='ICES_SAN_R1_2025.out',outSet='SandeelR1',spNames=data$spNames,exSpeciesNames=c('SA1'))
+   transExternalData(inp='ICES_SAN_R1_2025_detailed.out',outSet='SandeelR1_detailed',spNames=data$spNames, exSpeciesNames=data$spNames)
+   transExternalData(inp='ICES_SAN_R1_2025_detailed_twoBlocks.out',outSet='SandeelR1_detailed_twoBlocks',spNames=data$spNames, exSpeciesNames=data$spNames)
+   
+   
+
+if (FALSE) plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[2],showSpecies=1:12,
+                                 inpRdata=list("noTechCreep","TechCreep"),
+                                 labels=c("No TechCreep","TechCreep"),
+                                 outFormat=c('screen','pdf','png')[1],
+                                 multN=0.000001,
+                                 longSpNames=FALSE, fileLabel='techCreep_')
+
+
+# plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[5],
+#                       showSpecies=1:12,
+#                       inpRdata=list('SandeelR1_detailed','SandeelR1_detailed_twoBlocks'),
+#                       labels=c('ICES 2025','ICES 2025 two blocks'),
+#                       outFormat=c('screen','pdf','png')[1],
+#                       showAges=0:4,
+#                       longSpNames=FALSE, fileLabel='san1R_')
+
+
+# F at age
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=1:12,
+                      inpRdata=list('Single','SandeelR1_detailed'),
+                      labels=c('RSMS','ICES 2025'),
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:4,
+                      longSpNames=FALSE, fileLabel='san1R_')
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary")[2],showSpecies=1:12,
+                      inpRdata=list('Single','SandeelR1'),
+                      labels=c('RSMS','ICES 2025'),
+                      outFormat=c('screen','pdf','png')[1],
+                      longSpNames=FALSE, fileLabel='san1R_')
+
+if (FALSE) plotCompareRunSummary(Type=c("compSummaryConf","compSummary")[2],showSpecies=1:12,
+                                 inpRdata=list('Single','SMS_old'),
+                                 labels=c('Single sp','SMS_old'),
+                                 outFormat=c('screen','pdf','png')[1],
+                                 longSpNames=FALSE, fileLabel='SS_oldSMS_')
+
+
+if (FALSE) plotCompareRunSummary(Type=c("compSummaryConf","compSummary")[2],showSpecies=1:12,
+                      inpRdata=list('Single','ICES_single_sp'),
+                      labels=c('Single sp','ICES'),
+                      outFormat=c('screen','pdf','png')[1],
+                      longSpNames=TRUE, fileLabel='SS_ICES_')
+
+
+if (FALSE) plotCompareRunSummary(Type=c("compSummaryConf","compSummary")[2],showSpecies=1:12,
+                                 inpRdata=list('Single'),
+                                 labels=c('Single sp'),
+                                 outFormat=c('screen','pdf','png')[3],
+                                 longSpNames=FALSE, fileLabel='techCreepNO_')
+
+
+
+###################  multi species mode 1
+runName<-'Single'; load(file=file.path(data.path,paste0(runName,".Rdata")),verbose=TRUE)
+
+runName<-'Multi'
 smsConf<-1L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 
-# get the parameters from smsConf==0
-sdrep <- sdreport(obj,ignore.parm.uncertainty=TRUE); # ignore.parm.uncertainty=TRUE to speed up
+cleanrun(silent=FALSE)
+
+sdrep<-sms$sdrep # from single species run
 cat('Hesssian:',sdrep$pdHess,'\n')
-sdrep
-newPar<-as.list(sdrep, what="Est")  #parameters and random effects
 
-#inp<-pick_species(ps=seq(1L:12L), inp=inp_all,smsConf) # to extract multi species data and parameters
-inp<-pick_species(ps=c(1L,2L,6L,7L,8L,9L), pso=c(13L,27L), inp=inp_all,smsConf) # to extract multi species data and parameters
+newPar<-as.list(sms$sdrep, what="Est")  #parameters and random effects
 
+my.pso<-c(13L:27L)
+my.ps; my.pso
+inp<-pick_species(ps=my.ps,pso=my.pso,inp=inp_all,smsConf) # to extract multi species data and parameters
 
 inp$data$sms.mode<-smsConf
 data<-inp[['data']]
-data$Debug<-1L
 
 # add MS parameters
 newPar$vulnera<-inp$parameters$vulnera
 newPar$overlapP<-inp$parameters$overlapP
-newPar$stomObsVar<-inp$parameters$stomObsVar
-
-#parameters<-inp[['parameters']]
+newPar$logStomObsVar<-inp$parameters$logStomObsVar
 parameters<-newPar
 
-my.map<-map_param(data,parameters)
+myMap<-map_param(data,parameters)
+
+#lock single species parameters,if necessary
+doLock<-TRUE
+if (doLock) {
+  lockP<-c('logCatchability','logSdLogN','logSdLogFsta','logSdLogObsSurvey','logSdLogObsCatch','rho','rec_loga','rec_logb','logSeparF')  #,'Uf','Un'
+   myMap<-lock_param(data,parameters,myMap,lockP) 
+}
+
+system.time(obj <- MakeADFun(func, parameters, random,silent=T,map=myMap))
+
+lu<-lowerUpper(obj,data,parameters)
+system.time(opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1300,eval.max=1300)))
+announce(opt)
+
+system.time(sdrep <- sdreport(obj)); 
+cat('Hesssian:',sdrep$pdHess,'\n')
+#sdrep
+
+a<-extractParameters(sdrep,myMap,data)[[2]] 
+arrange(a,desc(abs(gradient)))
+arrange(a,desc(is.na(estimate.sd)))
+#rint(a,n=500)
 
 
-lockP<-setdiff(names(parameters),c( "vulnera", "overlapP","stomObsVar" ))
-#lockP
-lockP<-c('logCatchability','logSdLogN','logSdLogFsta','logSdLogObsSurvey','logSdLogObsCatch','rho','rec_loga','rec_logb')
-my.map1<-lock_param(data,parameters,my.map,lockP)
+myRep<-obj$report()
+a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a)
+
+sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
+#load(file=file.path(data.path,paste0(runName,".Rdata")),verbose=TRUE)
+
 
 if (FALSE) {
-  unlist(lapply(my.map,function(x) length(x)))
-  unlist(lapply(my.map1,function(x) length(x)))
-  unlist(lapply(parameters,function(x) length(x)))
+  plotCompareRunSummary(Type=c("compSummaryConf","compSummary")[2],showSpecies=1:10,
+                      inpRdata=list('Single','Multi'),
+                      labels=c('Single sp','Multi sp'),
+                      outFormat=c('screen','pdf','png')[1],
+                      longSpNames=TRUE,fileLabel='SS_MS1_')
+
+
 }
-save(parameters,data,my.map1,random,file=file.path(data.path,"multi_sp1.Rdata"))
+
+
+###################  multi species mode 2
+runName<-'Multi'; load(file=file.path(data.path,paste0(runName,".Rdata")),verbose=TRUE)
+
+runName<-'Multi2'
+smsConf<-2L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+
+cleanrun(silent=FALSE)
+
+sdrep<-sms$sdrep # from single species run
+cat('Hesssian:',sdrep$pdHess,'\n')
+newPar<-as.list(sms$sdrep, what="Est")  #parameters and random effects
+
+inp$data$sms.mode<-smsConf
+data<-inp[['data']]
+parameters<-newPar
+myMap<-map_param(data,parameters)
+
+system.time(obj <- MakeADFun(func, parameters, random,silent=T,map=myMap))
+
+lu<-lowerUpper(obj,data,parameters )
+system.time(opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1300,eval.max=1300)))
+announce(opt)
+
+system.time(sdrep <- sdreport(obj)) 
+cat('Hesssian:',sdrep$pdHess,'\n')
+#sdrep
+
+
+a<-extractParameters(sdrep,myMap,data)[[2]] %>% mutate(expParm=round(exp(estimate),2))
+#arrange(a,desc(abs(gradient)))
+#arrange(a,desc(is.na(estimate.sd)))
+#print(a,n=500)
+
+myRep<-obj$report()
+a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a)
+
+sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
+#load(file=file.path(data.path,paste0(runName,".Rdata")),verbose=TRUE)
+
+a<-sms$rep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a)
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2")[3],
+                      showSpecies=1:10,M2ages=0:4,ncol=3,
+                      inpRdata=list('Multi2','SMS_old_detailed'),
+                      labels=c('Multi sp2','old SMS'),
+                      outFormat=c('screen','pdf','png')[3],
+                      longSpNames=TRUE,fileLabel='Multi2_SMSold')
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2")[2],
+                      showSpecies=1:10,ncol=3,
+                      inpRdata=list('Multi2','SMS_old'),
+                      labels=c('Multi sp2','old SMS'),
+                      outFormat=c('screen','pdf','png')[3],
+                      longSpNames=TRUE,fileLabel='Multi2_SMSold')
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2")[1],showSpecies=1:12,
+                      inpRdata=list('Multi2'),
+                      labels='Multi sp',
+                      outFormat=c('screen','pdf','png')[3],
+                      longSpNames=TRUE,fileLabel='Multi2')
+
+
+hertil
+
+
+
+
+inp$data$stom[1,'data'][[1]][[1]]
+rep1$stom[1,'data'][[1]][[1]]
+
+inp$data$suitIdx
+inp$data$suitIdx[1,'data'][[1]][[1]]
+inp$data$suitIdx[1,'data'][[1]][[1]][['data']][[2]]
+
+
+inp$data$stom[1,'data'][[1]][[1]][['data']][[2]]
+rep1$stom[1,'data'][[1]][[1]][['data']][[2]]
+
+inp$data$partM2Idx
+inp$data$partM2Idx[1,'data'][[1]][[1]]
+inp$data$partM2Idx[1,'data'][[1]][[1]][['data']][[2]]
+
+inp$data$partM2Idx[1,'data'][[1]][[1]][['data']][[2]]
+rep1$partM2Idx[1,'data'][[1]][[1]][['data']][[2]]
+
+stom2<-unnest(rep1$stom,cols = c(data))
+stom2<-unnest(stom2,cols = c(data))
+
+stom2 %>% select(pred,prey,vulneraIdx) %>% unique() %>% arrange(pred,prey)
+
+rep1$res
+M2 for 0-gruppe i Q1 ????
+  
+  
+xx<-rep1$res %>% group_by(species,age) %>% mutate(sumM=sum(M2,na.rm=TRUE)) %>% filter(sumM>0) %>% 
+  group_by(s,species,year,age) %>% summarize(M2=sum(M2,na.rm=TRUE))  %>% ungroup() %>% mutate(age=factor(age))
+xx
+
+  
+  
+ggplot(xx,aes(x=year,y=M2,shape=age,col=age))+
+  geom_point(size=2)  + geom_line()+labs(ylab='M2',xlab='Year')+
+  facet_wrap(vars(data$spNames[s]),ncol=2,scales="free_y")
+
+rep1$nlls
+rep1$availFood
+# p<-extractParameters(sdrep1)
+#view(p[[2]])
+
+save(parameters,data,obj1,my.map1,newPar1,lu,random,file=file.path(data.path,"multi_sp1.Rdata"))
 load(file=file.path(data.path,"multi_sp1.Rdata"),verbose=T)
 
-system.time(obj1 <- MakeADFun(func, parameters, random,silent=F,map=my.map1))
+##########################
+smsConf<-2L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+load(file=file.path(data.path,"multi_sp1.Rdata"),verbose=T)
 
-lu<-lowerUpper(obj1,data,parameters )
-system.time(opt1 <- nlminb(obj1$par, obj1$fn, obj1$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1300,eval.max=1300)))
-announce(opt1)
+inp$data$sms.mode<-smsConf
+data<-inp[['data']]
 
+parameters<-newPar1
 
-
-sdrep1 <- sdreport(obj1); 
-cat('Hesssian:',sdrep1$pdHess,'\n')
-sdrep1
-
-
-convert_var_yq<-function(x,val='M2') {
-  yq<-do.call(rbind,lapply(strsplit(names(x),'_'),function(x) data.frame(year=as.integer(x[1]),quarter=as.integer(x[2]))))
-  xx<-lapply(x,function(x) {
-    as.data.frame(x)  %>% mutate(species=rownames(x)) %>% 
-      pivot_longer(!species, names_to = "Age_idx", values_to = val)
-  })
-  for (i in (1:dim(yq)[[1]])) { xx[[i]]$year<-yq[i,'year'];xx[[i]]$quarter<-yq[i,'quarter']}
-  xx<-do.call(rbind,xx)%>% mutate(age=parse_number(Age_idx),Age_idx=NULL)
-  return(xx)
+my.map<-map_param(data,parameters)
+my.map2<-my.map
+lockParameters<-FALSE
+if (lockParameters) {
+  #lockP<-c('logCatchability','logSdLogN','logSdLogFsta','logSdLogObsSurvey','logSdLogObsCatch','rho','rec_loga','rec_logb')
+  lockP<-c('Uf','Un')
+  my.map2<-lock_param(data,parameters,my.map,lockP)
 }
 
+system.time(obj2 <- MakeADFun(func, parameters, random,silent=F,map=my.map2))
+
+lu<-lowerUpper(obj2,data,parameters)
+
+if (exists('opt2')) rm(opt2);if (exists('sdrep2')) rm(sdrep2);
+system.time(opt2 <- nlminb(obj2$par, obj2$fn, obj2$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1300,eval.max=1300)))
+announce(opt2)
+
+sdrep2 <- sdreport(obj2,ignore.parm.uncertainty=FALSE); # ignore.parm.uncertainty=TRUE to speed up
+cat('Hesssian:',sdrep2$pdHess,'\n')
+sdrep2
+
+a<-extractParameters(sdrep2)[[2]]
+arrange(a,desc(abs(gradient)))
 
 
-if (FALSE) {
+vulnerabilityTab<-function(sdrep,expIt=FALSE,asDF=FALSE) {
+  vul<-sdrep[['par.fixed']]
+  vul<-vul[names(vul)=='vulnera']
+  if (expIt) vul<-exp(vul)
+  vulnerability<-data$vulneraIdx
+  vulnerability[match(1:length(vul),vulnerability)]<-vul
+  vulnerability<-vulnerability[,data$preds]
 
-   res<-obj1$report();  
-   res$nlls; 
-   res$Zq; 
-   M2<-res$M2
-   
-
-   m2<-convert_var_yq(M2,val='M2')
-   
-   round(xtabs(M2~year+age,data=filter(m2,species=='COD' & M2>0)),6)
-   
-  
-}
-
-
-#sdrep <- sdreport(obj1); 
-sdrep <- sdreport(obj1,ignore.parm.uncertainty=TRUE); # ignore.parm.uncertainty=TRUE to speed up
-cat('Hesssian:',sdrep$pdHess,'\n')
-sdrep
-
-
-
-####  Re-run with estimated parameters
-if (FALSE) {
-  # using opt$par(with the estimated parameters) instead of  obj$par
-  system.time(opt1 <- nlminb(opt$par, obj$fn, obj$gr, lower=lower, upper=upper,control=list(iter.max=2000,eval.max=2000)))
-  announce(opt1)
-  sdrep <- sdreport(obj); cat('Hesssian:',sdrep$pdHess,'\n')
-
-  if (FALSE) { # another way of doing the same, requires call to MakeADFun, but faster optimization
-     # no need to repeat if sdreport done already
-    system.time(sdrep<-sdreport(obj,ignore.parm.uncertainty=TRUE))
+  if (asDF) {
+    vul.se<-sqrt(diag(sdrep$cov.fixed))
+    vul.se<-vul.se[names(vul.se)=='vulnera']
+    #if (expIt) vul.se<-exp(vul.se)
+    vulnerability.se<-data$vulneraIdx
+    vulnerability.se[match(1:length(vul.se),vulnerability.se)]<-vul.se
+    vulnerability.se<-vulnerability.se[,data$preds]
+    vulnerability.se<- array2DF(vulnerability.se)
+    colnames(vulnerability.se)<-c('prey','pred','vulnerability.se')
     
-    newPar<-as.list(sdrep, what="Est")  #parameters and random effects
-    system.time(obj2 <- MakeADFun(func, newPar, random,silent=T,map=my.map))
-     #obj2$simulate()
-    system.time(opt2 <- nlminb(obj2$par, obj2$fn, obj2$gr, lower=lower, upper=upper,control=list(iter.max=1300,eval.max=1300)))
-    announce(opt2)
-    sdrep <- sdreport(obj2); cat('Hesssian:',sdrep$pdHess,'\n')
-    data.frame(name=names(obj$par),ini=obj$par,opt=opt$par,exp_opt=exp(opt$par),opt1=opt1$par,opt2=opt2$par)
+    
+    vulnerability<- array2DF(vulnerability)
+    colnames(vulnerability)<-c('prey','pred','vulnerability')
+    
+    vulnerability<-left_join(vulnerability,vulnerability.se,by = join_by(prey, pred))
+    vulnerability<-filter( vulnerability,!(vulnerability==0))
   }
-}  
+  return(vulnerability)
+}
 
+vulnerabilityTab(sdrep1,expIt=TRUE,asDF=TRUE)
+round(vulnerabilityTab(sdrep1,expIt=TRUE,asDF=FALSE),3) 
+
+round(vulnerabilityTab(sdrep2,expIt=TRUE,asDF=FALSE),3) 
+
+overlapTab<-function(sdrep,expIt=FALSE) {
+  ov<-sdrep[['par.fixed']]
+  ov<-ov[names(ov)=='overlapP']
+  if (expIt) ov<-exp(ov)
+
+  overlap<-data$overlapIdx
+  overlap$overlap<-ov[overlap$overlap]
+
+  return(overlap)
+}
+
+overlapTab(sdrep=sdrep1,expIt=TRUE) 
+overlapTab(sdrep=sdrep2,expIt=TRUE) 
+
+
+if (FALSE) {
+   res<-obj2$report();  
+   resul<-res$res
+   resulAn<-res$resAnnual
+   filter(resul,species=='WHG' & quarter==3)
+   res$nlls; 
+ 
+   M2Graph<-function(preys='COD',inp=resul,annual=TRUE,maxAgePlot=4) {
+     res<-filter(inp,species %in% preys)
+     res<-res %>% filter(age<=maxAgePlot) %>% group_by(species,year,age) %>% summarize(M2=sum(M2))  %>% mutate(age=factor(age))
+    
+     p<-ggplot(data=res, aes(x=year, y=M2, group=age)) +
+       geom_line(aes(linetype=age,col=age))+
+       geom_point(aes(shape=age,col=age))+
+       facet_grid(species ~ ., scales="free_y")
+       #ggtitle(unlist(data[1,'species']))
+     print(p)
+    ftable(round(xtabs(M2~species+year+age,data=filter(res,year %in% c(1974:1979,2020:2022))),6))
+   }
+   
+   M2Graph(preys='COD') 
+   M2Graph(preys=c('COD','WHG')) 
+   M2Graph(preys=c('HER','NOP')) 
+   M2Graph(preys=c('NSA','SSA')) 
+ 
+   M2Graph(preys=c('HER')) 
+   M2Graph(preys=c('NOP'))  # age 3 is zero ???????
+}

@@ -1,3 +1,143 @@
+cleanrun<-function(silent=TRUE) {
+  dels<-c('obj','opt','sdrep','myRep','myMap')
+  for (i in dels) {
+    varName<-i
+    if (!silent) cat(varName,exists(varName),'\n')
+    if (exists(varName)) rm(list=as.character(substitute(varName)),pos=1) 
+  }
+}
+
+cleanup<-function(){for(i in dev.list()) if (names(dev.off())=='null device') break()}
+
+
+
+writeSeasonalF<-function(inp,outfile="proportion_of_annual_f.in",dir=data.path) {
+  load(file=file.path(data.path,paste0(inp,".Rdata")),verbose=T)
+  x<- sms[['rep']]$res %>% select(s,year,quarter,age,FisQ) %>% 
+    group_by(s,year,age) %>% 
+    mutate(FiProp=FisQ/sum(FisQ)) %>% mutate(FiProp=if_else(is.na(FiProp),0,FiProp),FisQ=NULL)
+  summary(x)
+  xx<-tapply(x$FiProp,list(x$s,x$year,x$quarter,x$age),sum)  
+  xx[is.na(xx)]<-0
+  xx[1,1,,]
+  d<-dim(xx)
+  dn<-dimnames(xx)
+  ofile<-file.path(dir,outfile)
+  spNames<-sms[['data']]$spNames
+  cat('### proportion of annual F\n',file=ofile)
+  for (s in seq_len(d[1])) {
+    cat("##  ",spNames[s], "## \n",file=ofile,append=TRUE)
+    for (y in  dn[[2]]) {
+      cat("#",spNames[s]," year:",y,'\n',file=ofile,append=TRUE)
+      p<-xx[s,y,,]
+      if (round(p[3,2],2) !=0.25) p<-round(p,4)
+      write.table(p,col.names=FALSE,row.names = FALSE,append=TRUE,quote=FALSE,file=ofile)
+    }
+  }
+  cat('-999  # checksum\n',file=ofile,append=TRUE)
+}  
+
+#writeSeasonalF(inp=runName)
+
+
+logLik.RSMS<-function(sms, ...){
+  ret<- -sms$opt$objective
+  attr(ret,"df")<-length(sms$opt$par)
+  attr(ret,"nall")<- length(sms$data$logCatchObs)+ length(sms$data$logSurveyObs)  #stomach obs are still missing
+  attr(ret,"nobs")<- length(sms$data$logCatchObs)+ length(sms$data$logSurveyObs)
+  class(ret)<-"logLik"
+  ret
+}
+
+
+AIC<-function(ll){
+  K<- attributes(ll)$df  # no of parameters
+ # n<- attributes(ll)$nobs
+  -2*ll[1] + 2*K
+}
+
+
+AICc<-function(ll){
+  K<- attributes(ll)$df
+  n<- attributes(ll)$nobs
+  -2* ll[1] + 2*K*(n /(n-K-1))
+}
+
+AICCompare<-function(inpRdata,labels, pval=TRUE) {
+  ll<-lapply( 1:length(inpRdata),function(i) {
+      load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
+      ll<-logLik.RSMS(sms)
+      AIC(ll)
+      AICc(ll)
+      data.frame(Model=labels[i],logL=-ll[1],npar=attributes(ll)$df, AIC=AIC(ll),AICc=AICc(ll))
+  })
+  out<-do.call(rbind,ll)
+
+  o <- dim(out)[[1]]
+  if(dim(out)[[1]]>=2 & pval){
+    out <-out %>% transmute(Model,logL,npar,AIC,AICc,D=NA,df=NA,Pval =NA)
+    out<-arrange(out,desc(npar))
+    for (x1 in (1:(o-1))) {
+      x2<-x1+1
+      if(out[x1,'npar']>out[x2,'npar']) {
+        df <- out[x1,'npar'] - out[x2,'npar']
+        D <- 2*(out[x1,'logL']-out[x2,'logL'])
+        P <- 1- pchisq(D,df)
+        out[x2,'Pval']<- P
+        out[x2,'df']<-df
+        out[x2,'D']<-D
+      }
+    }
+  }
+  out
+}
+
+
+write_proportion_of_annual_f<-function(data) {
+  outFile<-'proportion_of_annual_f.dat'
+  cat("# proportion af annaual F by season\n",file=outFile)
+  for (s in seq_len(data$nSpecies)) {
+    cat("################   ", data$spNames[s], "   ################\n",file=outFile,append=TRUE)
+    x<-data$seasFprop[[s]]
+    cat(paste0("#  ",data$speciesNames[s],"\n"),file=outFile,append=TRUE)
+    for (y in seq_len(data$nYear)){
+      cat('# Year',y-data$off.year,'\n',file=outFile,append=TRUE)
+      write.table(x[y,,],file=outFile,append=TRUE,row.names=FALSE,col.names=FALSE)
+    }
+  }
+  cat(-999, "  # check value",file=outFile,append=TRUE)
+}
+#write_proportion_of_annual_f(inp_all[['data']])
+
+transExternalData<-function(inp='summary.out',outSet='SMS_old_detailed',
+                               spNames='COD',
+                               exSpeciesNames=c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","WHM","NHM","GSE","HBP","HKE","COD","WHG","HAD","POK","MAC","HER","NSA","SSA","NOP","SPR","PLE","SOL")) {
+  a<-read.table(file=inp,header=TRUE) %>%as_tibble() %>%
+    transmute(year=Year,quarter=Quarter,age=Age,species=exSpeciesNames[Species.n],s=match(species,spNames),M2,N,FF=`F`) %>%
+    filter(!is.na(s) & M2>=0) 
+  
+  sms<-list(rep=list(res=a),data=list(allSpNames=spNames,allSpNamesLong=spNames))
+  save(sms,file=file.path(data.path,paste0(outSet,".Rdata")))
+}
+
+# transExternalData(inp='summary.out',outSet='SMS_old_detailed')
+
+
+transExternalSummary<-function(inp='summary_table_raw.out',outSet='ICES',
+                               spNames='COD',
+                              exSpeciesNames=c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","WHM","NHM","GSE","HBP","HKE","COD","WHG","HAD","POK","MAC","HER","NSA","SSA","NOP","SPR","PLE","SOL")) {
+  a<-read.table(file=inp,header=TRUE) %>%as_tibble() %>%
+    transmute(year=Year,species=exSpeciesNames[Species.n],SSB=SSB,recruit=Rec,Fbar=mean.F, yield=Yield,s=match(species,spNames)) %>%
+    filter(!is.na(s))
+
+ sms<-list(data=list(allSpNames=spNames,allSpNamesLong=spNames),rep=list(resSummary=a))
+ save(sms,file=file.path(data.path,paste0(outSet,".Rdata")))
+ #load(file=file.path(data.path,paste0(outSet,".Rdata")))
+}
+
+# transExternalSummary(inp='summary_table_raw.out',outSet='ICES_single_sp')
+                              
+
 calcCV<-function(sdrep,data) {
   cv_par<-function(par,key,type){
     species<-rownames(key)
@@ -40,8 +180,8 @@ calcCV<-function(sdrep,data) {
 
 
 
-readFleetCatch<-function(dir,of='new_fleet_info.dat', so='fleet_catch.in',condense=TRUE) {
-  a<-readNewFleetInfo(dir=dir,of=of,off.age=1,off.year=1)
+readFleetCatch<-function(dir,of='new_fleet_info.dat', so='fleet_catch.in',condense=TRUE,nSpecies=1,verbose=FALSE) {
+  a<-readNewFleetInfo(dir=dir,of=of,off.age=1,off.year=1,nSpecies,verbose)
   
   k<-a[['k']]
   notUse<-k[k[,'useFleet']==0,'f']
@@ -214,15 +354,12 @@ index_old_new<-function(dir,outDir=dir,sms.dat='sms.dat',of="new_fleet_info.dat"
 
 
 
-readNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',off.age,off.year,verbose=FALSE){
+readNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',off.age,off.year,nSpecies=1,verbose=FALSE){
   
+  #   a<-readNewFleetInfo(dir=dir,of=of,off.age=1,off.year=1)
+
   # dir=data.path; of='new_fleet_info.dat'; off.age=1;off.year=-1973; verbose=FALSE
-  
-  Init.function(dir=dir,sms.dat='sms.dat') # initialize SMS environment
-  #cat(SMS.control@species.names,'\n') # just checking
-  sms<-SMS.control  # just shorter name
-  nSpecies<-sms@no.species-first.VPA+1L  # species with analytically assessment
-  
+
   a<-scan(file=file.path(dir,of),comment.char = "#",quiet=TRUE)
   cv<-a[1]
   a<-a[-1]
@@ -274,7 +411,6 @@ readNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',off.age,off.year,verb
       if (verbose) cat(' done, check=:',chk,'\n')
       stopifnot(chk== -999)
       a<-a[-(1:i)]
-      
     }
   } 
   
@@ -297,7 +433,7 @@ writeNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',key,speciesNames){
   key.df<-as.data.frame(a) %>% tibble::rownames_to_column("fName") %>% mutate(species=speciesNames[s])
   
   ## fleets per species
-  b<-key.df %>% group_by(s,species) %>% summarize(n=dplyr::n()) %>% ungroup() %>% data.frame()
+  b<-key.df %>% group_by(s,species) %>% summarize(n=dplyr::n(),.groups='drop') %>% ungroup() %>% data.frame()
   
   cat("# File for configuration of survey observations\n",file=of,append=F)
   cat(key$cv, " # minimum CV of CPUE observations\n",file=of,append=T)
@@ -371,23 +507,38 @@ announce<-function(x) {
 
 inputToDF<-function(data) {
   a<-rbind(
-    list_rbind(lapply(data$catchMeanWeight,array2DF),names_to='s') %>% mutate(var="weca"),
-    list_rbind(lapply(data$catchNumber,array2DF),names_to='s') %>% mutate(var="canum"),
-    list_rbind(lapply(data$stockMeanWeight,array2DF),names_to='s') %>% mutate(var="west"),
-    list_rbind(lapply(data$propMat,array2DF),names_to='s') %>% mutate(var="propMat"),
-    list_rbind(lapply(data$propM,array2DF),names_to='s') %>% mutate(var="propM"),
-    list_rbind(lapply(data$propF,array2DF),names_to='s') %>% mutate(var="propF"),
-    list_rbind(lapply(data$natMor,array2DF),names_to='s') %>% mutate(var="M"),
-    list_rbind(lapply(data$seasFprop,array2DF),names_to='s') %>% mutate(var="seasFprop")
+  #  list_rbind(lapply(data$catchMeanWeight,array2DF),names_to='species') %>% mutate(var="weca"),
+    list_rbind(lapply(data$catchNumber,array2DF),names_to='species') %>% mutate(var="canum"),
+    list_rbind(lapply(data$stockMeanWeight,array2DF),names_to='species') %>% mutate(var="west"),
+    list_rbind(lapply(data$propMat,array2DF),names_to='species') %>% mutate(var="propMat"),
+    list_rbind(lapply(data$propM,array2DF),names_to='species') %>% mutate(var="propM"),
+    list_rbind(lapply(data$propF,array2DF),names_to='species') %>% mutate(var="propF"),
+    list_rbind(lapply(data$natMor,array2DF),names_to='species') %>% mutate(var="M"),
+    list_rbind(lapply(data$seasFprop,array2DF),names_to='species') %>% mutate(var="seasFprop"),
+    list_rbind(lapply(data$natMor1,array2DF),names_to='species') %>% mutate(var="M1")
+
 
   )
-  pivot_wider(a,names_from=var,values_from=Value) %>% mutate_if(is.character,as.integer) %>%
-    mutate(species=data$spNames[s], year=Var1-data$off.year, q=Var2,age=Var3-data$off.age) %>% 
-    mutate(Var1=NULL,Var2=NULL,Var3=NULL)
+  pivot_wider(a,names_from=var,values_from=Value) %>%
+    mutate(year=as.integer(Var1)-data$off.year, quarter=as.integer(Var2),age=as.integer(Var3)-data$off.age, 
+           Var1=NULL,Var2=NULL,Var3=NULL,s=match( species,data$spNames))
 }
 
 
 #a<-inputToDF(data)
+
+saveResults<-function(runName='nr1',data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep) {
+  a<-inputToDF(data)
+  x<- rep$res %>% select(s,year,quarter,age,FisQ) %>% group_by(s,year,age)%>% mutate(FiProp=FisQ/sum(FisQ)) %>% mutate(FiProp=if_else(is.na(FiProp),0,FiProp),FisQ=NULL)
+  a<-left_join(a,x,by = join_by(s, year, quarter, age))
+  rep$res<-left_join(rep$res,a,by = join_by(s,year, quarter, age, species))
+  
+  rep$resSurv <-rep$resSurv %>% mutate(fleetName=data$fleetNames[f],year=y-data$off.year,age=a-data$off.age,species=data$spNames[s],resid=logObs-logPred)
+  sms<-list(data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=map,random=random,rep=rep,sdrep=sdrep)
+  save(sms,file=file.path(data.path,paste0(runName,".Rdata")))
+  print(object.size(sms),units="Mb"); #lapply(sms,function(x) print(object.size(x),units="Mb"))
+  invisible(sms)
+}
 
 
 outputAnnuToDF<-function(obj) {
@@ -450,7 +601,7 @@ seasonalF<-function(obj,sdrep,data) {
 
 #b<-left_join(inputToDF(data),outputToDF(obj),by = join_by(species, year, q, age))
 
-plotF<-function(obj,sdrep,data,combineAges=FALSE,pLabel='') {
+plotF_age<-function(obj,sdrep,data,combineAges=FALSE,pLabel='') {
   ff<- FToDF(obj,sdrep,data) %>% mutate(species=data$spNames[s])
   
   a<-t(data$keyLogFsta)
@@ -458,6 +609,15 @@ plotF<-function(obj,sdrep,data,combineAges=FALSE,pLabel='') {
   a<-data.frame(a) %>% pivot_longer(cols=1:data$nSpecies) %>%rename(species=name,aGroup=value,age=Age) %>%   mutate(species=gsub('\\.',' ',species))
   
   ff<-left_join(ff,a,by = join_by(age, species)) %>% as_tibble()
+  
+  if (data$zeroCatchYearExists)  {
+    for (s in (1:data$nSpecies)) if (data$zeroCatchYearExistsSp[s]==1) {
+      zcy<-data$zeroCatchYear[[s]]-data$off.year
+      crit<- ff$year %in% zcy & ff$s==s
+      ff[crit,'FF']<-0.0
+    }
+  }
+  
   
   ag<-a%>%  group_by(species,aGroup) %>% summarise(mina=min(age),maxa=max(age)) %>% ungroup() %>%
     mutate(ages=paste(mina,maxa,sep='-'),mina=NULL,maxa=NULL)

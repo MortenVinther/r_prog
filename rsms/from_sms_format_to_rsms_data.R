@@ -1,20 +1,24 @@
 From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path,sms.dat="rsms.dat") {
   
-la<-SMS.control@max.age.all
-fa<-SMS.control@first.age
-rec.season <-SMS.control@rec.season
+  sms<-read.RSMS.control(dir,file=sms.dat)  
+  
+la<-sms@max.age.all
+fa<-sms@first.age
+rec.season <-sms@rec.season
 years<-c(1,1)
-years[1]<-SMS.control@first.year
-years[2]<-SMS.control@last.year
+years[1]<-sms@first.year
+years[2]<-sms@last.year
 ny<-years[2]-years[1]+1
-npr<-sum(SMS.control@species.info[,'predator']>=1)
-nsp<-SMS.control@no.species
-nq<-SMS.control@last.season
-noAreas<-SMS.control@no.areas
+npr<-sum(sms@species.info[,'predator']>=1)
+nsp<-sms@no.species
+nq<-sms@last.season
+noAreas<-1L #sms@no.areas
+
+first.VPA<-which(sms@species.info[,'predator'] %in% c(0,1))[1]
 
 #############  catch data
-scanData<-function(name='canum.in'){
-  cat('Reading ',name,'\n')
+scanData<-function(name='canum.in',announce=FALSE){
+  if (announce) cat('Reading ',name,'\n')
   x<-scan(file.path(dir,name),comment.char='#',quiet=TRUE)
   stopifnot(tail(x,1)== -999)
   x<-head(x,-1)
@@ -22,20 +26,22 @@ scanData<-function(name='canum.in'){
 CATCHN<-scanData('canum.in')
 WCATCH<-scanData('weca.in')
 Prop.landed<-scanData('proportion_landed.in'); Prop.landed<-Prop.landed[1:length(WCATCH)]
+Prop.seson.F<-scanData('proportion_of_annual_f.in'); Prop.season.F<-Prop.seson.F[1:length(WCATCH)]
 
 b<-expand.grid(sub_area=1:noAreas,species.n=first.VPA:nsp,year=years[1]:years[2],quarter=1:nq,age=fa:la)
 b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
-b<-data.frame(b,CATCHN=CATCHN,WCATCH=WCATCH,PROP_CAT=Prop.landed)
-b<-subset(b,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT))
+b<-data.frame(b,CATCHN=CATCHN,WCATCH=WCATCH,PROP_CAT=Prop.landed,PROP_SEASON_F=Prop.season.F)
+b<-subset(b,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT,PROP_SEASON_F))
 b$CATCHN<-catchMultiplier*b$CATCHN
 
-pf<-Read.summary.data(dir=dir) %>%  filter((Age>0 |Quarter>2) & Species.n>=first.VPA) %>% select(Species.n,Year,Quarter,Age,"F") %>% rename(FF="F") %>%
-  group_by(Species.n, Year,Age)%>%  mutate(propF=FF/sum(FF),FF=NULL) %>% as_tibble() %>% mutate(propF=if_else(is.na(propF),0,propF)) %>%
-  rename(year=Year,species.n=Species.n,age=Age,quarter=Quarter)
-
-b<-left_join(b,pf,by = join_by(year, species.n, quarter, age))
-b[is.na(b$propF),'propF']<-0
-
+if (FALSE) {
+  pf<-Read.summary.data(dir=dir) %>%  filter((Age>0 |Quarter>2) & Species.n>=first.VPA) %>% select(Species.n,Year,Quarter,Age,"F") %>% rename(FF="F") %>%
+    group_by(Species.n, Year,Age)%>%  mutate(propF=FF/sum(FF),FF=NULL) %>% as_tibble() %>% mutate(propF=if_else(is.na(propF),0,propF)) %>%
+    rename(year=Year,species.n=Species.n,age=Age,quarter=Quarter)
+  
+  b<-left_join(b,pf,by = join_by(year, species.n, quarter, age))
+  b[is.na(b$propF),'propF']<-0
+}
 out<-list(catch=b)
 ############## bio data
 WSEA<-scanData('west.in');WSEA<-WSEA[((first.VPA-1)*noAreas*ny*(la-fa+1)*nq+1):length(WSEA)]
@@ -47,7 +53,7 @@ PROP_M2<-scanData('n_proportion_m2.in')
 
 b<-expand.grid(sub_area=1:noAreas,species.n=first.VPA:nsp,year=years[1]:(years[2]),quarter=1:nq,age=fa:la)
 b<-b[order(b$sub_area,b$species.n,b$year,b$quarter,b$age),]
-length(WSEA);length(PROPMAT);length(M);length(PROP_M2)
+length(WSEA);length(PROPMAT);length(M);length(M1);length(PROP_M2);dim(b)[[1]]
 b<-data.frame(b,WSEA=WSEA, PROPMAT=PROPMAT,M=M,M1=M1,PROP_M2=PROP_M2)
 b<-subset(b,quarter>=rec.season | age>fa,select=c(year,species.n,quarter,age,sub_area,WSEA,PROPMAT,M,M1,PROP_M2))
 

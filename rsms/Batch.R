@@ -1,14 +1,11 @@
-
-
 #### prepare the "baseline run"
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.pso<-c(0L)
 
 
-
 smsControlFile<-'rsms.dat'
 
-
+################################
 # make default control file and run
 runName<-'RUN1'
 rsms<-batch_default_configuration(outfile=smsControlFile,writeConrol=T)
@@ -26,7 +23,7 @@ extractDataAndRun(
   smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 ) 
 
-
+###########################
 # Estimate seasonal F proportions from species with seasonal catches
 runName<-'RUN2'
 rsmsRun2<-batch_seasonal_catch_configuration(outfile=smsControlFile,dir=data.path,writeConrol=TRUE)
@@ -35,21 +32,46 @@ extractDataAndRun(
     runName,
     my.ps,my.ps0,
     doMultiExtract=extractMulti,
-    dir=data.path,
-    silent=TRUE,
     sms.dat=smsControlFile,
-    fleetIn="new_fleet_info.dat",
     smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 ) 
 
+writeSeasonalF(inp=runName,outfile="proportion_of_annual_f.in",dir=data.path) 
+#############################
 
+# make default control file and run again with the estimated seasona F proportions
+runName<-'RUN3'
+rsms<-batch_default_configuration(outfile=smsControlFile,writeConrol=T)
+extractDataAndRun(
+  runName,
+  my.ps,my.ps0,
+  doMultiExtract=extractMulti,
+  sms.dat=smsControlFile,
+  smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+) 
 
-
-inpRdata<- list('RUN1','RUN2')
-labels<- c('RUN1','RUN2')
+########
+inpRdata<- list('RUN2','RUN3')
+labels<- c('RUN2','RUN3')
 
 
 AICCompare(inpRdata,labels) 
+
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[2],showSpecies=1:12,
+                      inpRdata,
+                      labels,
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:4,
+                      longSpNames=FALSE, fileLabel='san')
+
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
+                      inpRdata=list('RUN3'),
+                      labels=c('RUN3'),
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:4,
+                      longSpNames=FALSE, fileLabel='san')
 
 
 

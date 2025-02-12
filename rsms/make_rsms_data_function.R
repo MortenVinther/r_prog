@@ -183,7 +183,7 @@ keylogSeasonF<-lapply(1:nSpecies,function(x) {
   tapply(y$qGrp,list(y$y,y$q),sum)
 })
 
-lapply()
+
 p<-0
 for (s in 1:nSpecies) if (dim(keylogSeasonF[[s]])[1]>0) p<-p+max(keylogSeasonF[[s]])
 #if (p>0)  logFSeasonal<-rep(0,p)  else  logFSeasonal<-numeric(0)  # parameter

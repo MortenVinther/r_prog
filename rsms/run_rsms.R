@@ -1,11 +1,11 @@
 
 
-if (TRUE) {
+if (FALSE) {
   sms.dat<-'rsms.dat'
-rsms<-batch_default_configuration(outfile=sms.dat,writeConrol=T)
+  rsms<-batch_default_configuration(outfile=sms.dat,writeConrol=T)
 
-rsms
-sms<-read.RSMS.control(dir=data.path,file="rsms.dat",test=F) # just checking
+ rsms
+ sms<-read.RSMS.control(dir=data.path,file=sms.dat,test=F) # just checking
 }
 ### Extract data from SMS
 doMultiExtract<-FALSE
@@ -34,6 +34,8 @@ my.ps<-c(1L:12L)
 my.ps=c(1,2,3,4,5,6,11,12)
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.ps=c(1,2,3,4,5)
+my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
+my.ps=c(1,6,7,8,9,10)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
@@ -74,51 +76,35 @@ announce(opt)
 system.time(sdrep <- sdreport(obj))
 cat('Hesssian:',sdrep$pdHess,'\n')
 
-# summary(sdrep,select = c("all", "fixed", "random", "report")[3])
-
 a<-extractParameters(sdrep,myMap,data)[[2]]
 print(a,n=300)
 
-#print(filter(a,name=="logFSeasonal"),n=50)
 myRep<-obj$report()
 a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
 sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
 
-names(sms[['rep']]$res)
-
-x<-sms[['rep']]$res %>% group_by(s,year,age)%>% mutate(FiProp=FisQ/sum(FisQ)) %>% mutate(FiProp=if_else(is.na(FiProp),0,FiProp))
-head(x)
-
-xx<-tapply(x$FiProp,list(x$species,x$year,x$quarter,x$age),sum)  
-round(xx[1,1,,],4)
-round(xx[1,10,,],4)
-round(xx[1,40,,],4)
-
-round(xx[2,1,,],4)
-round(xx[2,30,,],4)
 
 
-
-plotSeasonalData(inp=runName,Type="FiProp",showSpecies=1:100,
+plotSeasonalData(inp=runName,Type="FiProp", #Type="FiProp",
                  outFormat=c('screen','pdf','png')[1],
                  showAges=0:8,
                  multN=0.001,
                  ncols=3,
-                 cummulate=TRUE,
+                 cummulate=T,
                  fileLabel='pl')
 
 
  
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=1:12,
-                                 inpRdata=list("Single3","Single4"),
-                                 labels=c("single3","single4"),
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[2],showSpecies=1:12,
+                                 inpRdata=list("Single","SMS_old"),
+                                 labels=c("single","SMS_old"),
                                  outFormat=c('screen','pdf','png')[1],
                                  multN=0.000001,
                                  longSpNames=FALSE, fileLabel='single')
 
  
- (plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
                        inpRdata=list("Single"),
                        labels=c("single"),
                        outFormat=c('screen','pdf','png')[1],

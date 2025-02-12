@@ -422,7 +422,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
              if (expand) wr.list.expand(slot(control,x),"catch observations: number of separate catch variance groups by species (option catch.s2.group)",
                                         "first age group in each catch variance group",VPA.species)
              if (!expand) wr.list.nice(slot(control,x),"catch observations: number of separate catch variance groups by species",
-                                       "first age group in each catch variance group",VPA.species)
+                                       "first age group in each catch variance group (option catch.s2.group)",VPA.species)
            } else  wr.list(slot(control,x),"n.catch.s2.group",x)
            },
            

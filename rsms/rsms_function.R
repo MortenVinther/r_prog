@@ -183,6 +183,9 @@ func <- function(parameters) {
     }}}}
     
     
+    #consistency check: Error in FisQ[[s]][y, q, a] <- exp(logF[[s]][keyLogFsta[s, a], y] + logSeasFprop[[s]][y,  : 
+    #number of items to replace is not a multiple of replacement length
+    logSeasFprop[[1]][1,,]
     ##fishing mortality, seasonal
     for (y in seq_len(timeSteps)) {
       for (a in (info[s,'faf']:info[s,'la'])) {
@@ -191,7 +194,7 @@ func <- function(parameters) {
             if (SeparableMod &  a >=fSepar)  {
                FisQ[[s]][y,q,a] <- exp(logF[[s]][keyLogFsta[s,a],y] + logSeparF[keyLogSeparF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q]])
             } else {
-              FisQ[[s]][y,q,a]<-   exp(logF[[s]][keyLogFsta[s,a],y] + logSeasFprop[[s]][y,q,a])
+              FisQ[[s]][y,q,a]<-   exp(logF[[s]][keyLogFsta[s,a],y] + logSeasFprop[[s]][y,q,a]) 
               if (fModel==2) if (a >=fSepar) {
                  FisQ[[s]][y,q,a]<-FisQ[[s]][y,q,a] * exp(logSeparF[keyLogSeparF[[s]][y,a]])
               }

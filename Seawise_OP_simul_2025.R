@@ -414,13 +414,14 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
   p<-array2DF(p) %>% transmute(Species.n=as.integer(Var1)+off.sp,Age=as.integer(Var2),price=Value) %>% filter(price>0) %>% arrange(Species.n,Age)
   pop<-left_join(op,p,by = join_by(Species.n, Age)) %>% mutate(value=C*weca*price)
   
-  #             Cod  Whiting Haddock  Saithe  Mackerel Herring N.sandeel S.sandeel Nor.pout Sprat  Plaice Sole 
-  forageFish<-c(  0,       0,     0,       0,       0,       1,       1,         1,       1,    1,      0,   0) 
-  Pelagic   <-c(  0,       0,     0,       0,       1,       1,       0,         0,       1,    1,      0,   0) 
-  birdPrey  <-c(  0,       0,     0,       0,       0,       1,       1,         1,       0,    1,      0,   0) 
-  FMSYsp    <-c(  1,       1,     1,       1,       0,       1,       0,         0,       0,    0,      1,   1) 
-  SSBrecQ   <-c(  1,       1,     1,       1,       1,       1,       1,         1,       4,    1,      1,   1) 
-  justHER   <-c(  0,       0,     0,       0,       0,       1,       0,         0,       0,    0,      0,   0) 
+  #              Cod  Whiting Haddock  Saithe  Mackerel Herring N.sandeel S.sandeel Nor.pout Sprat  Plaice Sole 
+  forageFish <-c(  0,       0,     0,       0,       0,       1,       1,         1,       1,    1,      0,   0) 
+ #forageFish2<-c(  0,       0,     0,       0,       0,       1,       1,         1,       1,    1,      0,   0) 
+  Pelagic    <-c(  0,       0,     0,       0,       1,       1,       0,         0,       1,    1,      0,   0) 
+  birdPrey   <-c(  0,       0,     0,       0,       0,       1,       1,         1,       0,    1,      0,   0) 
+  FMSYsp     <-c(  1,       1,     1,       1,       0,       1,       0,         0,       0,    0,      1,   1) 
+  SSBrecQ    <-c(  1,       1,     1,       1,       1,       1,       1,         1,       4,    1,      1,   1) 
+  justHER    <-c(  0,       0,     0,       0,       0,       1,       0,         0,       0,    0,      0,   0) 
   
 
   yy<-2020:2060
@@ -442,7 +443,7 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
     rename(birdFoodBiomass=TSB)
   
   #Biomass forage fish available for birds
-  birdBiomass<-pop %>% mutate(repPeriod=period[as.character(Year)],forage=birdPrey[Species.n-off.sp]) %>% 
+  birdBiomass<- pop %>% mutate(repPeriod=period[as.character(Year)],forage=birdPrey[Species.n-off.sp]) %>% 
     filter(repPeriod!='out' & forage==1 & Quarter==1) %>%
     group_by(Species.n,repPeriod,Year) %>% summarize(TSB=sum(BIO),.groups='drop') %>%
     group_by(Species.n,repPeriod) %>% summarize(TSB=mean(TSB),.groups='drop') %>% 
@@ -450,13 +451,28 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
     mutate(scenario=scenario) %>%
     rename( forageBiomass=TSB)
   
+
+  #Biomass forage fish available for birds by predator species
+  birdBiomassAbsSp<- pop %>% mutate(repPeriod=period[as.character(Year)],forage=birdPrey[Species.n-off.sp]) %>% 
+    filter(repPeriod!='out' & forage==1 & Quarter==3) %>% mutate(Species.n=if_else(Species.n==23,22,Species.n)) %>%
+    group_by(Species.n,repPeriod,Year) %>% summarize(TSB=sum(BIO),.groups='drop') %>%
+    group_by(Species.n,repPeriod) %>% summarize(TSB=mean(TSB)/1000,.groups='drop') 
+  
+  a<-left_join(birdBiomassAbsSp,oneThird,by = join_by(Species.n)) %>% transmute(Species.n,repPeriod,oneThird=TSB/OTpct95)
+  
+  b<-a %>% group_by(repPeriod) %>% summarize(oneThirdAll=mean(oneThird),.groups='drop')
+  b<-left_join(b,a %>% filter(Species.n==21) %>%  transmute (repPeriod,oneThirdHER=oneThird),by = join_by(repPeriod))
+  b<-left_join(b,a %>% filter(Species.n==22) %>%  transmute (repPeriod,oneThirdSAN=oneThird),by = join_by(repPeriod))
+  b<-left_join(b,a %>% filter(Species.n==25) %>%  transmute (repPeriod,oneThirdSPR=oneThird),by = join_by(repPeriod))
+  oneThirdOut<-b %>% mutate(scenario=scenario)
+  
   
   ref<-as.data.frame(Read.reference.points.OP(dir=data.path))  %>% mutate(Species.n=(1:dplyr::n())+15L)
   Fages<-as.data.frame(SMS.control@avg.F.ages) %>% mutate(Species.n=(1:dplyr::n())+15L)
   rf<-left_join(ref,Fages,by=join_by(Species.n))
   res<-left_join(pop,rf,by = join_by(Species.n))
   
- 
+
    # F/FMSY average
   fFMSY<-res %>% mutate(repPeriod=period[as.character(Year)],fmsySp=FMSYsp[Species.n-off.sp],NageF=`last-age`-`first-age`+1 ,FF=`F`/NageF) %>%
     filter(repPeriod!='out',fmsySp==1 & Age>=`first-age` & Age <=`last-age`) %>% 
@@ -494,15 +510,24 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
     mutate(GES=SSB>Bpa & FF <Fpa) %>% group_by(repPeriod,GES) %>% summarize(value=sum(value),.groups='drop') %>%
     group_by(repPeriod) %>% mutate(pctValGes=value/sum(value)*100) %>% filter(GES) %>% mutate(scenario=scenario,GES=NULL)
   
+  
+  
    a<-left_join(forageBiomass,birdBiomass,by = join_by(repPeriod, scenario))
    a<-left_join(a,bBMSY,by = join_by(repPeriod, scenario))
    a<-left_join(a,fFMSY,by = join_by(repPeriod, scenario))
    a<-left_join(a,pctValGES,by = join_by(repPeriod, scenario))
    a<-left_join(a,SHI,by = join_by(repPeriod, scenario))
+   a<-left_join(a, oneThirdOut,by = join_by(repPeriod, scenario))
    return(a)
 }  
 
-justUseHER<-TRUE
+justUseHER<-FALSE
+load(file=file.path('one_third.Rdata'),verbose=TRUE)
+oneThird<- a %>% transmute(Species.n=if_else(Species.n==23,22,Species.n),oneThird,OTpct95) %>% unique() %>% arrange(Species.n) %>% 
+  group_by(Species.n) %>% summarize(OTpct95=sum(OTpct95),.groups='drop')
+oneThird
+oneThirdAll<-sum(oneThird$OTpct95)
+
 aa<-lapply(1:length(scenarios), function(x) do_scenario_indicators(scenarioNo=x,justUseHER=justUseHER))
 aaa<-do.call(rbind,aa) 
 sc<-sort(unique(aaa$scenario))
@@ -521,10 +546,10 @@ indicators<-aaa %>% mutate(scen=sc22[scenario],clima=sc12[scenario],scenario=sc2
 statusQuo<- indicators %>% filter(scenario=="noCC_Status-quo" &repPeriod=="2025-2030") %>%
   transmute(dummy=1,refbirdFoodBiomass=birdFoodBiomass, refforageBiomass=forageBiomass, refbBMSY=bBMSY,reffFMSY=fFMSY,refValue=value,refpctValGes=pctValGes,refSHI=SHI) 
  
-indicators <-transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,SHI,dummy=1)
+indicators <-transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,SHI,oneThirdAll,oneThirdHER,oneThirdSAN,oneThirdSPR,dummy=1)
 
 indicators <-left_join(indicators,statusQuo,by = join_by(dummy)) %>% 
-  transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,
+  transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,oneThirdAll,oneThirdHER,oneThirdSAN,oneThirdSPR,
             relbirdFoodBiomass=birdFoodBiomass/refbirdFoodBiomass*100, 
             relforageBiomass=forageBiomass/refforageBiomass*100,
             relbBMSY=bBMSY/refbBMSY*100,

@@ -183,6 +183,7 @@ keylogSeasonF<-lapply(1:nSpecies,function(x) {
   tapply(y$qGrp,list(y$y,y$q),sum)
 })
 
+lapply()
 p<-0
 for (s in 1:nSpecies) if (dim(keylogSeasonF[[s]])[1]>0) p<-p+max(keylogSeasonF[[s]])
 #if (p>0)  logFSeasonal<-rep(0,p)  else  logFSeasonal<-numeric(0)  # parameter
@@ -534,14 +535,16 @@ if (multi) {
   b<-full_join(b,b2,join_by(year, species.n, quarter, sub_area, age))
 }
 
-a<-data.frame(species.n=first.VPA:nsp,annualC=sms@combined.catches)
+a<-data.frame(species.n=first.VPA:nsp,annualC=sms@combined.catches,FfromSeparableModel=FfromSeparableModel)
 b<-left_join(b,a,by = join_by(species.n))
 #head(b)
+FfromSeparableModel
 
 summary(filter(b,species.n==17))
 #x<-b$age==fa & b$quarter < recSeason & b$annualC==0
-#b[x,'CATCHN']<-0
-#b[x,'WCATCH']<-0
+ x<-b$age==fa & b$quarter < recSeason & b$FfromSeparableModel==1
+b[x,'CATCHN']<-0
+b[x,'WCATCH']<-0
 
 #    0=annual catches in likelihood, with seasonal proportions of annual F at age derived from seasonal catch N / sum(all seasonal catch N)
 b0<-filter(b,annualC==0) %>% group_by(year,species.n, sub_area, age) %>% mutate(seasFprop=CATCHN/sum(CATCHN,na.rm=T)) %>% ungroup() %>%
@@ -554,7 +557,8 @@ b1<-filter(b,annualC==1) %>%  dplyr::select(year, species.n, quarter, sub_area,a
 
 #    2=annual catches in likelihood with seasonal proportions of annual F at age from file proportion_of_annual_f.dat (not implemented yet)
 
-b2<-filter(b,annualC==2) %>%  dplyr::select(year, species.n, quarter, sub_area,age, annualC,PROP_SEASON_F) %>% mutate(seasFprop=PROP_SEASON_F,PROP_SEASON_F=NULL) 
+b2<-filter(b,annualC==2) %>%  dplyr::select(year, species.n, quarter, sub_area,age, annualC,PROP_SEASON_F) %>% mutate(seasFprop=PROP_SEASON_F,PROP_SEASON_F=NULL) %>%
+  filter((age==fa & quarter>=recSeason) | age>fa)
 
 #    3=seasonal catch in likelihood with estimation of seasonal F from separable F-model 
 b3<-filter(b,annualC==3) %>% group_by(year,species.n, sub_area, quarter,age) %>% mutate(seasFprop=CATCHN/sum(CATCHN,na.rm=T)) %>% ungroup() %>%
@@ -582,8 +586,10 @@ b4<-filter(b,annualC==4) %>% group_by(year,species.n, sub_area, quarter,age) %>%
 #filter(b,species.n==22)
 bb<-rbind(b0,b1,b2,b3,b4) 
 
-summary(filter(b,species.n==17))
-summary(filter(bb,species.n==17))
+#filter(b,species.n==17 & age==0 & year==1974)
+#filter(bb,species.n==17 & age==0 & year==1974)
+#summary(filter(b,species.n==17 & age==0))
+#summary(filter(bb,species.n==17))
 
 #filter(bb,species.n==22)
 b<-b %>% mutate(PROP_SEASON_F=NULL)

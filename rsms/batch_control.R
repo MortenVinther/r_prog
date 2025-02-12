@@ -1,3 +1,43 @@
+extractDataAndRun<-function(runName='Single',
+                            my.ps=1,my.pso=0,
+                            doMultiExtract=FALSE,
+                            dir=data.path,
+                            silent=TRUE,
+                            sms.dat='rsms.dat',
+                            fleetIn="new_fleet_info.dat",
+                            smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+) 
+{
+  
+  inp_all<-make_rsms_data(dir,sms.dat,fleetIn=fleetIn,multi=doMultiExtract) 
+  inp<-pick_species(ps=my.ps,pso=my.pso, inp=inp_all,smsConf) 
+  
+  inp$data$sms.mode<-smsConf
+  
+  #### prepare to run
+  data<-inp[['data']]
+  data$silent<-FALSE
+  parameters<-inp[['parameters']]
+  
+  myMap<-map_param(data,parameters)
+  random=c("Un","Uf")
+  environment(func) <- environment() # see https://github.com/kaskr/RTMB/issues/26
+  system.time(obj <- MakeADFun(func, parameters, random,silent=silent,map=myMap))
+  
+  lu<-lowerUpper(obj,data,parameters )
+  opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1000,eval.max=1000))
+  announce(opt)
+  
+  sdrep <- sdreport(obj)
+  cat('Hesssian:',sdrep$pdHess,'\n')
+  
+  myRep<-obj$report()
+  saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
+  
+  return(TRUE)
+}
+
+
 # make default rsms.dat (control) file
 batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeConrol=TRUE) {
   
@@ -20,6 +60,12 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
   
   no.other.predators<-sum(a@species.info[,'predator']==2)
   
+  a@rec.season<-3L
+  
+  
+                 #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@SSB.R<-as.integer(c(0,    0,    0,    1,    0,    1,    1,    1,    2,    2,    0,    0) )
+  
   
   bySpAge<-list(
     c(1,2,4), #COD   
@@ -27,20 +73,24 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
     c(0,1,2), #HAD   
     c(3,4), #POK   
     c(1,2), #MAC   
-    c(0,1), #HER   
+    c(0,1, 4), #HER   
     c(0,1), #NSA
-    c(0,1), #SSA   
+    c(1,3), #SSA   
     c(0,1), #NOP
     c(0,1), #SPR
-    c(0,1), #PLE
-    c(0,1)  #SOL 
+    c(0,1,5), #PLE
+    c(0,1,5)  #SOL 
   )
   a@catch.s2.group<-bySpAge
   
-   
-                 #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
-  a@SSB.R<-as.integer(c(0,    0,    0,    1,    0,    1,    1,    1,    2,    2,    0,    0) )
   
+  
+                             #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@incl.process.noise<-as.integer(c(1,    1,    1,    1,    1,    1,    2,    1,    1,    1,    1,    1) )
+  
+  
+  
+ 
   
   bySpAge<-list(
     c(0,1), #COD   
@@ -49,7 +99,7 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
     c(0,3), #POK   
     c(0,1), #MAC   
     c(0,1), #HER   
-    c(0,1), #NSA
+    c(0), #NSA
     c(0,1), #SSA   
     c(0,1), #NOP
     c(0,1), #SPR
@@ -64,7 +114,7 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
     c(0,1,2),   #HAD   
     c(3,4,5),   #POK   
     c(1),   #MAC   
-    c(0,1,2,4), #HER   
+    c(0,1,2), #HER   
     c(0,1),   #NSA
     c(1,2),   #SSA   
     c(0,1,2), #NOP
@@ -95,6 +145,130 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
   )),ncol=2, byrow = TRUE)
   dimnames(avgF)<-dimnames(a@avg.F.ages)
   a@avg.F.ages<-avgF
+  
+  if (writeConrol) write.RSMS.control(a,file=file.path(data.path,outfile))
+  invisible(a)
+}
+
+
+
+
+# make  rsms.dat (control) file for estimation of proportion of F by season for species with seasonal catches
+batch_seasonal_catch_configuration <-function(outfile='rsms.dat',dir=data.path,writeConrol=TRUE) {
+  
+  # use the default control file as starting point
+  a<-batch_default_configuration(outfile='rsms.dat',dir=data.path,writeConrol=FALSE)
+  
+  
+                           #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@combined.catches<-as.integer(c(2,    2,    2,    2,    2,    3,    3,    3,    3,    3,    1,    1) )
+  
+  
+                   #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@fModel  <-as.integer(c(1,    1,    1,    1,    1,    2,    2,    2,    2,    2,    1,    1) )
+  
+  bySpAge<-list(
+    c(1,2,3), #COD   
+    c(0,1,2),     #WHG   
+    c(0,1,2),   #HAD   
+    c(3,4,5),   #POK   
+    c(1),   #MAC   
+    c(0), #HER   
+    c(0),   #NSA
+    c(1),   #SSA   
+    c(0), #NOP
+    c(1),     #SPR
+    c(1,2,3), #PLE
+    c(1,2,3)  #SOL 
+  );
+  a@keyLogFsta<-bySpAge
+  
+  
+  #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@incl.process.noise<-as.integer(c(1,    1,    1,    1,    1,    1,    2,    1,    1,    1,    1,    1) )
+ 
+  
+  #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@incl.process.noise<-as.integer(c(1,    1,    1,    1,    1,    1,    2,    1,    1,    1,    1,    1) )
+ 
+  
+  bySpAge<-list(
+    c(0,1), #COD   
+    c(0,1),   #WHG   
+    c(0,1), #HAD   
+    c(0,3), #POK   
+    c(0,1), #MAC   
+    c(0,1), #HER   
+    c(0), #NSA
+    c(0,1), #SSA   
+    c(0,1), #NOP
+    c(0,1), #SPR
+    c(0,1), #PLE
+    c(0,1)  #SOL 
+  )
+  a@keyVarLogN<-bySpAge
+  
+  bySpAge<-list(
+    c(1,2,3), #COD   
+    c(0,1,2),     #WHG   
+    c(0,1,2),   #HAD   
+    c(3,4,5),   #POK   
+    c(1),   #MAC   
+    c(0,1,2), #HER   
+    c(0,1),   #NSA
+    c(1,2),   #SSA   
+    c(0,1,2), #NOP
+    c(1),     #SPR
+    c(1,2,3), #PLE
+    c(1,2,3)  #SOL 
+  );
+  a@keyLogFsta<-bySpAge
+  
+ a@firstAgeYearEffect
+ 
+ #                                COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+ a@firstAgeYearEffect<-as.integer(c(0,    0,    0,    0,    0,    0,    0,    1,    0,    1,    0,    0) )
+ 
+   
+  #                      COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@use.rho<-as.integer(c(1,    1,    0,    0,    0,    1,    0,    0,    0,    0,    1,    1) )
+  
+  
+  bySpAge<-list(
+    c(0), #COD   
+    c(0),     #WHG   
+    c(0),   #HAD   
+    c(0),   #POK   
+    c(0),   #MAC   
+    c(0,1,2), #HER   
+    c(0,1,3),   #NSA
+    c(1,2),   #SSA   
+    c(0,1,3), #NOP
+    c(1,3),     #SPR
+    c(0), #PLE
+    c(0)  #SOL 
+  );
+ a@catch.sep.age<-  bySpAge
+  
+  bySpYear<-list(
+    c(1974), #COD   
+    c(1974),     #WHG   
+    c(1974),   #HAD   
+    c(1974),   #POK   
+    c(1974),   #MAC   
+    c(1974,1983,1998), #HER   
+    c(1974,2005),   #NSA
+    c(1974,2005),   #SSA   
+    c(1974,2003), #NOP
+    c(1974),     #SPR
+    c(1974), #PLE
+    c(1974)  #SOL 
+  );
+  a@catch.sep.year<-bySpYear
+  
+  #                      COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@use.rho<-as.integer(c(1,    1,    0,    0,    0,    0,    0,    0,    0,    0,    1,    1) )
+  
   
   if (writeConrol) write.RSMS.control(a,file=file.path(data.path,outfile))
   invisible(a)

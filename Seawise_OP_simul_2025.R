@@ -422,8 +422,8 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
   FMSYsp     <-c(  1,       1,     1,       1,       0,       1,       0,         0,       0,    0,      1,   1) 
   SSBrecQ    <-c(  1,       1,     1,       1,       1,       1,       1,         1,       4,    1,      1,   1) 
   justHER    <-c(  0,       0,     0,       0,       0,       1,       0,         0,       0,    0,      0,   0) 
-  
-
+  mealsFac  <- c(  0,       0,     0,       0,       0,    4.333,   2.707,    2.707,    2.514, 2.707,    0,   0) 
+ 
   yy<-2020:2060
   period<-rep('out',length(yy)); names(period)<-yy
   period[as.character(2025:2030)] <-"2025-2030"
@@ -433,6 +433,14 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
 
   if (justUseHER) pop<-pop %>% mutate(incl=justHER[Species.n-off.sp]) %>% filter(incl==1) %>% mutate(incl=NULL)
   
+  #meals
+ Meals<- pop %>% mutate(repPeriod=period[as.character(Year)],doMeals=mealsFac[Species.n-off.sp]) %>% 
+    filter(repPeriod!='out' & doMeals>0) %>% mutate(Meals=Yield*doMeals) %>%
+    group_by(Species.n,repPeriod,Year) %>% summarize(Meals=sum(Meals),Yield=sum(Yield),.groups='drop') %>%
+    group_by(Species.n,repPeriod) %>% summarize(Meals=mean(Meals)*1000,Yield=mean(Yield),.groups='drop') %>% 
+    group_by(repPeriod) %>% summarize(Meals=sum(Meals),Yield=sum(Yield),.groups='drop') %>%
+    mutate(scenario=scenario) %>% rename(lanHerSprNopSan=Yield)
+    
   #Biomass forage fish
   forageBiomass<-pop %>% mutate(repPeriod=period[as.character(Year)],forage=forageFish[Species.n-off.sp]) %>% 
     filter(repPeriod!='out' & forage==1 & Quarter==1) %>%
@@ -518,6 +526,7 @@ do_scenario_indicators<-function(scenarioNo,justUseHER=FALSE) {
    a<-left_join(a,pctValGES,by = join_by(repPeriod, scenario))
    a<-left_join(a,SHI,by = join_by(repPeriod, scenario))
    a<-left_join(a, oneThirdOut,by = join_by(repPeriod, scenario))
+   a<-left_join(a, Meals,by = join_by(repPeriod, scenario))
    return(a)
 }  
 
@@ -546,10 +555,11 @@ indicators<-aaa %>% mutate(scen=sc22[scenario],clima=sc12[scenario],scenario=sc2
 statusQuo<- indicators %>% filter(scenario=="noCC_Status-quo" &repPeriod=="2025-2030") %>%
   transmute(dummy=1,refbirdFoodBiomass=birdFoodBiomass, refforageBiomass=forageBiomass, refbBMSY=bBMSY,reffFMSY=fFMSY,refValue=value,refpctValGes=pctValGes,refSHI=SHI) 
  
-indicators <-transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,SHI,oneThirdAll,oneThirdHER,oneThirdSAN,oneThirdSPR,dummy=1)
+indicators <-transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,SHI,
+                       oneThirdAll,oneThirdHER,oneThirdSAN,oneThirdSPR,Meals,lanHerSprNopSan,dummy=1)
 
 indicators <-left_join(indicators,statusQuo,by = join_by(dummy)) %>% 
-  transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,oneThirdAll,oneThirdHER,oneThirdSAN,oneThirdSPR,
+  transmute(indicators,scenario, scen,clima,repPeriod, birdFoodBiomass,forageBiomass,bBMSY,fFMSY,value, pctValGes,oneThirdAll,oneThirdHER,oneThirdSAN,oneThirdSPR,Meals,lanHerSprNopSan,
             relbirdFoodBiomass=birdFoodBiomass/refbirdFoodBiomass*100, 
             relforageBiomass=forageBiomass/refforageBiomass*100,
             relbBMSY=bBMSY/refbBMSY*100,

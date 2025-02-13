@@ -400,7 +400,7 @@ func <- function(parameters) {
       var <- varLogObsSurvey[keyVarObsSurvey]
       llh<- sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
       ans <- ans -llh
-      nlls[s,'survey']<- nlls[s,'survey']-llh
+      nlls[s,'survey']<- nlls[s,'survey'] - llh
     } else if (surveyType[fl]==4) {  # effort index, one "catchability" by age group
       for (a in mina[fl]:maxa[fl]) {
         keysA<-keys[keys[,"a"]==a, ]
@@ -417,7 +417,7 @@ func <- function(parameters) {
         var <- varLogObsSurvey[keyVarObsSurvey]
         llh<-sum(dnorm(logSurveyObs[obs.no],predSurveyObs[obs.no],sqrt(var),log=TRUE))
         ans <- ans -llh
-        nlls[s,'survey']<- nlls[s,'survey'] -llh
+        nlls[s,'survey']<- nlls[s,'survey'] - llh
       }
     } else if (surveyType[fl]==5) {  # effort used as index for Fbar
       flYears<-keys[,'y']

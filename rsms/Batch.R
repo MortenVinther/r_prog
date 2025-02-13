@@ -3,22 +3,22 @@ my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.pso<-c(0L)
 
 
-smsControlFile<-'rsms.dat'
+rsmsControl<-'rsms.dat'
+
+doMultiExtract<-FALSE
 
 ################################
 # make default control file and run
 runName<-'RUN1'
-rsms<-batch_default_configuration(outfile=smsControlFile,writeConrol=T)
+rsms<-batch_default_configuration(outfile=rsmsControl,writeConrol=T)
 
-extractMulti<-FALSE
-
-extractDataAndRun(
+extractDataAndRunSingle(
   runName,
   my.ps,my.ps0,
-  doMultiExtract=extractMulti,
+  rsmsControl,
+  doMultiExtract,
   dir=data.path,
   silent=TRUE,
-  sms.dat=smsControlFile,
   fleetIn="new_fleet_info.dat",
   smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 ) 
@@ -26,33 +26,68 @@ extractDataAndRun(
 ###########################
 # Estimate seasonal F proportions from species with seasonal catches
 runName<-'RUN2'
-rsmsRun2<-batch_seasonal_catch_configuration(outfile=smsControlFile,dir=data.path,writeConrol=TRUE)
-
-extractDataAndRun(
-    runName,
-    my.ps,my.ps0,
-    doMultiExtract=extractMulti,
-    sms.dat=smsControlFile,
-    smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
-) 
+rsmsRun2<-batch_seasonal_catch_configuration(outfile=rsmsControl,writeConrol=TRUE)
+extractDataAndRunSingle(runName, my.ps, my.ps0, rsmsControl)
 
 writeSeasonalF(inp=runName,outfile="proportion_of_annual_f.in",dir=data.path) 
 #############################
 
-# make default control file and run again with the estimated seasona F proportions
+# make default control file and run again with the estimated seasonal F proportions
 runName<-'RUN3'
+rsms<-batch_default_configuration(outfile=rsmsControl,writeConrol=T)
+extractDataAndRunSingle(runName, my.ps, my.ps0, rsmsControl)
+
+########
+# final fine tuning
+runName<-'Single'
+batch_final_single_configuration(outfile=rsmsControl,dir=data.path,writeConrol=TRUE) 
+extractDataAndRunSingle(runName, my.ps, my.ps0, rsmsControl)
+
+###############  Multi sp 
+
+runName<-'Multi'
+
+my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
+my.pso<-c(0L)
+#my.pso<-13L:27L
+
+extractMulti<-TRUE
+
 rsms<-batch_default_configuration(outfile=smsControlFile,writeConrol=T)
+
 extractDataAndRun(
   runName,
   my.ps,my.ps0,
   doMultiExtract=extractMulti,
-  sms.dat=smsControlFile,
-  smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+  dir=data.path,
+  silent=TRUE,
+  smsControlFile=my.smsControlFile,
+  fleetIn="new_fleet_info.dat",
+  smsConf=1 # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 ) 
 
-########
-inpRdata<- list('RUN2','RUN3')
-labels<- c('RUN2','RUN3')
+
+
+
+
+
+
+extractDataAndRun<-function(runName=runName,
+                            my.ps=1,my.pso=0,
+                            doMultiExtract=FALSE,
+                            dir=data.path,
+                            silent=TRUE,
+                            sms.dat='rsms.dat',
+                            fleetIn="new_fleet_info.dat",
+                            smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+) 
+  
+ 
+
+
+  
+inpRdata<- list('RUN3','Single')
+labels<- c('RUN3','Single')
 
 
 AICCompare(inpRdata,labels) 
@@ -62,7 +97,7 @@ plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","c
                       inpRdata,
                       labels,
                       outFormat=c('screen','pdf','png')[1],
-                      showAges=0:4,
+                      showAges=0:7,
                       longSpNames=FALSE, fileLabel='san')
 
 

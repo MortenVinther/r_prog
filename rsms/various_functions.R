@@ -502,7 +502,7 @@ writeNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',key,speciesNames){
 
 
 announce<-function(x) {
-  cat("\nobjective:",x$objective,"  convergence:",x$convergence, "  ", x$message, "  iterations:",x$iterations, "  evaluations:",x$evaluations)
+  cat("\nobjective:",x$objective,"  convergence:",x$convergence, "  ", x$message, "  iterations:",x$iterations, "  evaluations:",x$evaluations,'\n')
 }
 
 inputToDF<-function(data) {

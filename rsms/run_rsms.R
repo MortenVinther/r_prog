@@ -1,19 +1,19 @@
 
 
 if (FALSE) {
-  sms.dat<-'rsms.dat'
-  rsms<-batch_default_configuration(outfile=sms.dat,writeConrol=T)
+  rsmsControl<-'rsms.dat'
+  rsms<-batch_default_configuration(outfile=rsmsControl,writeConrol=T)
 
  rsms
- sms<-read.RSMS.control(dir=data.path,file=sms.dat,test=F) # just checking
+ sms<-read.RSMS.control(dir=data.path,file=rsmsControl,test=F) # just checking
 }
 ### Extract data from SMS
 doMultiExtract<-FALSE
 
 if (TRUE) {  # transform  SMS data into RSMS format 
   switch(my.stock.dir,
-   "rsms_input"       = inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',multi=doMultiExtract),
-   "rsms_SAN-area-1r"       = inp_all<-make_rsms_data(dir=data.path,sms.dat='rsms.dat',multi=FALSE),
+   "rsms_input"       = inp_all<-make_rsms_data(dir=data.path,rsmsControl='rsms.dat',multi=doMultiExtract),
+   "rsms_SAN-area-1r"       = inp_all<-make_rsms_data(dir=data.path,rsmsControl='rsms.dat',multi=FALSE),
     stop(paste0("Not valid stock dir: ",my.stock.dir))
   ) #end switch
   save(inp_all,file=file.path(data.path,"rsms_input_all.Rdata")) 

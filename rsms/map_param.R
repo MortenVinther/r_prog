@@ -29,7 +29,7 @@ map_param<-function(data,parameters) {
       fSepar<-data$info[s,'fSepar']
       if (fSepar<99) {
         ii<- max(data$nlogFfromTo[s,]) # last random walk group for the species is used as a year effect in separable F model
-        cat('ii:',ii,'\n')
+        #cat('ii:',ii,'\n')
         parameters$Uf[ii,1]<-0.0  
         UfMap[ii,1]<-NA
       }

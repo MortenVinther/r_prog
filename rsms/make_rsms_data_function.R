@@ -1,13 +1,13 @@
-make_rsms_data<-function(dir,sms.dat='sms.dat',fleetIn="new_fleet_info.dat",multi=FALSE) {
+make_rsms_data<-function(dir=data.path,rsmsControl='rsms.dat',fleetIn="new_fleet_info.dat",multi=FALSE) {
  
  # TEST single species and one species
-#  dir=data.path; sms.dat='rsms.dat';multi=FALSE
+#  dir=data.path; rsmsControl='rsms.dat';multi=FALSE
   
   
- #TEST    dir=data.path; sms.dat='rsms.dat';multi=FALSE; fleetIn="new_fleet_info.dat"
+ #TEST    dir=data.path; rsmsControl='rsms.dat';multi=FALSE; fleetIn="new_fleet_info.dat"
 
 
-sms<-read.RSMS.control(dir=dir,file=sms.dat,test=FALSE)
+sms<-read.RSMS.control(dir=dir,file=rsmsControl,test=FALSE)
 
 info<-sms@species.info
 first.VPA<-which(info[,'predator'] %in% c(0,1))[1]

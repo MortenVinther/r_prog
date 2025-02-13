@@ -39,6 +39,7 @@ extractDataAndRunSingle<-function(runName='Single',
 
 extractDataAndRunMulti<-function(runName='Multi',
                             my.ps=1,my.pso=0,
+                            rsmsControl,
                             doMultiExtract=TRUE,
                             dir=data.path,
                             silent=TRUE,
@@ -50,7 +51,7 @@ extractDataAndRunMulti<-function(runName='Multi',
 {
   load(file=file.path(data.path,paste0(singleRun,".Rdata")),verbose=TRUE)
   
-  cleanrun(silent=FALSE)
+  cleanrun(silent)
   
   sdrep<-sms$sdrep # from single species run
   cat('Hesssian from Single run:',sdrep$pdHess,'\n')

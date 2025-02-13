@@ -53,36 +53,21 @@ my.pso<-c(0L)
 
 extractMulti<-TRUE
 
-rsms<-batch_default_configuration(outfile=smsControlFile,writeConrol=T)
+rsms<-batch_final_single_configuration(outfile=rsmsControl,writeConrol=T)
 
-extractDataAndRun(
+extractDataAndRunMulti(
   runName,
   my.ps,my.ps0,
+  rsmsControl=my.smsControlFile,
   doMultiExtract=extractMulti,
+  singleRun="Single",
   dir=data.path,
   silent=TRUE,
-  smsControlFile=my.smsControlFile,
   fleetIn="new_fleet_info.dat",
   smsConf=1 # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 ) 
 
 
-
-
-
-
-
-extractDataAndRun<-function(runName=runName,
-                            my.ps=1,my.pso=0,
-                            doMultiExtract=FALSE,
-                            dir=data.path,
-                            silent=TRUE,
-                            sms.dat='rsms.dat',
-                            fleetIn="new_fleet_info.dat",
-                            smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
-) 
-  
- 
 
 
   

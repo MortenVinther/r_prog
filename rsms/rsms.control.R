@@ -99,7 +99,7 @@ setClass("RSMS.control",
         incl.stom.all   =0L, 
         use.Nbar        =0L,
         M2.iterations   =3L,
-        max.M2.sum2     =0.0, 
+        max.M2.sum2     =0.001, 
         stomach.variance    =as.vector(0,mode="numeric"),                                              
         simple.ALK          =0L, 
         consum              =0L,                                            
@@ -1088,14 +1088,14 @@ RSMS.control <- function(
               
               #multi
               stomach.variance=rep(1L, no.predators),
-              size.selection=rep(1L, no.predators),
+              size.selection=rep(0L, no.predators),
               size.range.lower=rep(0, no.predators),
               size.range.upper=rep(100, no.predators),
               sum.stom.like=rep(1L, no.predators),
               stom.max.sumP=rep(100, no.predators),
               size.other.food.suit=rep(0L, no.predators),
               min.stom.cont       =rep(1E-4,no.predators),
-              max.stom.sampl      =rep(1E4,no.predators),
+              max.stom.sampl      =rep(1E3,no.predators),
               prey.pred.size.fac  =rep(0.5,no.predators),
               stom.type.include   =rep(1L,no.predators)
                               

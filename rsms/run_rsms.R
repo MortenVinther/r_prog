@@ -35,7 +35,7 @@ my.ps=c(1,2,3,4,5,6,11,12)
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.ps=c(1,2,3,4,5)
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
-my.ps=c(1,6,7,8,9,10)
+my.ps=c(1,6,7,8)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
@@ -84,6 +84,12 @@ a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
 sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
 
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=1:12,
+                      inpRdata=list("Single"),
+                      labels=c("single"),
+                      outFormat=c('screen','pdf','png')[1],
+                      multN=0.000001,
+                      longSpNames=FALSE, fileLabel='single')
 
 
 plotSeasonalData(inp=runName,Type="FiProp", #Type="FiProp",
@@ -189,7 +195,7 @@ smsConf<-1L # 0=single species, 1=multi species, but fixed single species parame
 cleanrun(silent=FALSE)
 
 sdrep<-sms$sdrep # from single species run
-cat('Hesssian:',sdrep$pdHess,'\n')
+cat('Hesssian,single:',sdrep$pdHess,'\n')
 
 newPar<-as.list(sms$sdrep, what="Est")  #parameters and random effects
 

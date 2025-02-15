@@ -10,6 +10,16 @@ cleanrun<-function(silent=TRUE) {
 cleanup<-function(){for(i in dev.list()) if (names(dev.off())=='null device') break()}
 
 
+getParameters<-function(runName,printIt=TRUE){
+ load(file=file.path(data.path,paste0(runName,".Rdata")),verbose=FALSE)
+  cat('Hesssian:',sms$sdrep$pdHess,'\n')
+  a<-extractParameters(sms$sdrep, sms$map,sms$data)[[2]]
+  if (printIt) print(a,n=500)
+  invisible(a)
+}
+
+
+
 
 writeSeasonalF<-function(inp,outfile="proportion_of_annual_f.in",dir=data.path) {
   load(file=file.path(data.path,paste0(inp,".Rdata")),verbose=T)

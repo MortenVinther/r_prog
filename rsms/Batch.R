@@ -43,52 +43,91 @@ runName<-'Single'
 batch_final_single_configuration(outfile=rsmsControl,dir=data.path,writeConrol=TRUE) 
 extractDataAndRunSingle(runName, my.ps, my.ps0, rsmsControl)
 
+# getParameters(runName)
+
+########
+# final fine tuning testing
+runName<-'Single_test'
+batch_final_single_configuration2(outfile=rsmsControl,dir=data.path,writeConrol=TRUE) 
+extractDataAndRunSingle(runName, my.ps, my.ps0, rsmsControl)
+
+
+inpRdata<- list('Single','Single_test')
+labels<-      c('Single',"Single_test")
+
+AICCompare(inpRdata,labels) 
+
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[2],showSpecies=8,
+                      inpRdata,
+                      labels,
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:4,
+                      longSpNames=FALSE, fileLabel='san')
+
 ###############  Multi sp 
 
-runName<-'Multi'
-
+runName<-'Multi1'
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
 extractMulti<-TRUE
-
 rsms<-batch_final_single_configuration(outfile=rsmsControl,writeConrol=T)
 
 extractDataAndRunMulti(
   runName,
-  my.ps,my.ps0,
-  rsmsControl=my.smsControlFile,
+  my.ps,my.pso,
+  rsmsControl,
   doMultiExtract=extractMulti,
-  singleRun="Single",
+  parametersFrom="Single",
+  doLock=TRUE,
   dir=data.path,
   silent=TRUE,
   fleetIn="new_fleet_info.dat",
-  smsConf=1 # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+  smsConf=1L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+) 
+
+
+runName<-'Multi2'
+extractDataAndRunMulti(
+  runName,
+  my.ps,my.pso,
+  rsmsControl,
+  doMultiExtract=extractMulti,
+  parametersFrom="Multi1",
+  doLock=FALSE,
+  dir=data.path,
+  silent=TRUE,
+  fleetIn="new_fleet_info.dat",
+  maxIter=3000,
+  smsConf=2L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 ) 
 
 
 
 
-  
-inpRdata<- list('RUN3','Single')
-labels<- c('RUN3','Single')
+getParameters(runName)
 
 
-AICCompare(inpRdata,labels) 
+inpRdata<- list('Single','Multi2')
+labels<-      c('single','Multi2')
 
 
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[2],showSpecies=1:12,
+#AICCompare(inpRdata,labels) 
+
+
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=8,
                       inpRdata,
                       labels,
                       outFormat=c('screen','pdf','png')[1],
-                      showAges=0:7,
+                      showAges=0:4,
                       longSpNames=FALSE, fileLabel='san')
 
 
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
-                      inpRdata=list('RUN3'),
-                      labels=c('RUN3'),
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=8,
+                      inpRdata=list('Multi2'),
+                      labels=c('Multi2'),
                       outFormat=c('screen','pdf','png')[1],
                       showAges=0:4,
                       longSpNames=FALSE, fileLabel='san')

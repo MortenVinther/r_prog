@@ -1,4 +1,4 @@
-pick_species<-function(ps=c(1L), pso=c(0L),inp,smsConf=0L) {
+pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
 
 
  #test_multi  ps<-my.ps; pso=my.pso; inp=inp_all; smsConf=1L ;ps; pso

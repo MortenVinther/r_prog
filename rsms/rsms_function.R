@@ -100,7 +100,7 @@ func <- function(parameters) {
  
   noCatch<-0
   
-  nlls<-matrix(0,ncol=4,nrow=nSpecies,dimnames=list(species=spNames,nll=c("catch","F","N","survey")))
+  nlls<-matrix(0,ncol=4,nrow=nSpecies+nOthSpecies,dimnames=list(species=allSpNames,nll=c("catch","F","N","survey")))
   if (any(inclSsbR>0)) nlls<-cbind(nlls,SSB.R=rep(0,nSpecies)) 
   
   # survey initialization

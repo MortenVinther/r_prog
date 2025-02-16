@@ -65,7 +65,7 @@ func <- function(parameters) {
   # and then the F states
   # with seasonal data, logF is redefined as the sum of seasonal F values (which is not the same as the annual F)
   logF<-list()
-  for (s in seq_len(nSpecies)) logF<-c(logF, list(Uf[(nlogFfromTo[s,1]:nlogFfromTo[s,2]),,drop=FALSE]))
+  for (s in seq_len(nSpecies)) if (nlogFfromTo[s,1]>0) logF<-c(logF, list(Uf[(nlogFfromTo[s,1]:nlogFfromTo[s,2]),,drop=FALSE]))
   
   timeSteps <- nYears
   stateDimF <- nlogF
@@ -170,7 +170,8 @@ func <- function(parameters) {
     fSepar <- as.integer(info[s,'fSepar'])
     seasonalCatch<-seasonalCatches[s]==1
     SeparableMod<-FfromSeparableModel[s]==1
-   
+    useFrandom<-useFrandomWalk[s]
+    idxFY<-idxLogYearEffectF[s]
     
     # Natural mortalities
     if (sms.mode>0) {
@@ -185,48 +186,79 @@ func <- function(parameters) {
     
     #consistency check: Error in FisQ[[s]][y, q, a] <- exp(logF[[s]][keyLogFsta[s, a], y] + logSeasFprop[[s]][y,  : 
     #number of items to replace is not a multiple of replacement length
-    logSeasFprop[[1]][1,,]
+    # str(logSeparF,1)
+    # str(keyLogSeparF,1)
+    # 
+    # str(logFSeasonal,1)
+    # str(keylogSeasonF,1)  # kan være tom, hvis ikke den benyttes, MÅSKE er det der giver fejlen?
+    
+    
+    y=3
+    cat('\n')
+    for (a in (info[s,'faf']:info[s,'la'])) {
+      q=3
+      cat('sp:',s, "a:",a,"  useFrandom:",useFrandom," SeparableMod:",SeparableMod," fModel:",fModel," fSepar:",fSepar, " a >=fSepar:",a >=fSepar,'\n')
+    }
     ##fishing mortality, seasonal
     for (y in seq_len(timeSteps)) {
       for (a in (info[s,'faf']:info[s,'la'])) {
         for (q in fqa[a]:lq)  {
           if (seasFprop[[s]][y,q,a]>0) {
+            if (useFrandom)  FisQ[[s]][y,q,a]= logF[[s]][keyLogFsta[s,a],y] else FisQ[[s]][y,q,a]=logYearEffectF[idxFY,y]
             if (SeparableMod &  a >=fSepar)  {
-               FisQ[[s]][y,q,a] <- exp(logF[[s]][keyLogFsta[s,a],y] + logSeparF[keyLogSeparF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q]])
+               FisQ[[s]][y,q,a] <- exp(FisQ[[s]][y,q,a] + logSeparF[keyLogSeparF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q]])
             } else {
-              FisQ[[s]][y,q,a]<-   exp(logF[[s]][keyLogFsta[s,a],y] + logSeasFprop[[s]][y,q,a]) 
-              if (fModel==2) if (a >=fSepar) {
+              FisQ[[s]][y,q,a]<-   exp(FisQ[[s]][y,q,a] + logSeasFprop[[s]][y,q,a]) 
+              if (fModel==2 | fModel==3) if (a >=fSepar) {
                  FisQ[[s]][y,q,a]<-FisQ[[s]][y,q,a] * exp(logSeparF[keyLogSeparF[[s]][y,a]])
               }
             }
           } else FisQ[[s]][y,q,a]<- 0.0
     }}}
 
-  
+    # logYearEffectF
+    # ##fishing mortality, seasonal
+    # for (y in seq_len(timeSteps)) {
+    #   for (a in (info[s,'faf']:info[s,'la'])) {
+    #     for (q in fqa[a]:lq)  {
+    #       if (seasFprop[[s]][y,q,a]>0) {
+    #         if (SeparableMod &  a >=fSepar)  {
+    #           FisQ[[s]][y,q,a] <- exp(logF[[s]][keyLogFsta[s,a],y] + logSeparF[keyLogSeparF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q]])
+    #         } else {
+    #           FisQ[[s]][y,q,a]<-   exp(logF[[s]][keyLogFsta[s,a],y] + logSeasFprop[[s]][y,q,a]) 
+    #           if (fModel==2) if (a >=fSepar) {
+    #             FisQ[[s]][y,q,a]<-FisQ[[s]][y,q,a] * exp(logSeparF[keyLogSeparF[[s]][y,a]])
+    #           }
+    #         }
+    #       } else FisQ[[s]][y,q,a]<- 0.0
+    #     }}}
+    
+    
     ## First take care of F
-    fsd <- sdLogFsta[keyLogFstaSd[s,keyLogFstaSd[s,]>0]]
-    if (useRho[s]==0) {  # no correlation
-         fvar <- diag(fsd[1:stateDimF[s]]*fsd[1:stateDimF[s]],ncol=stateDimF[s], nrow=stateDimF[s])
-    } else if (useRho[s]==1) {  # compound_symmetry
-         fcor <- outer(1:stateDimF[s],
-                       1:stateDimF[s],
-                       function(i,j)(i!=j)*rho[s] + (i==j))
-         fvar <- outer(1:stateDimF[s],
-                       1:stateDimF[s],
-                       function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])  
-    } else if (useRho[s]==2) {  # AR(1)
-         fcor<-rho^(abs(matrix(1:stateDimF[s] - 1, nrow = stateDimF[s], ncol = stateDimF[s], byrow = TRUE) - 1:stateDimF[s] - 1))
-         fvar <- outer(1:stateDimF[s],
-                       1:stateDimF[s],
-                       function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])  
-     } else  stop(paste0("No handler for useRho", useRho[s],'\n'))
-    
-    if (zeroCatchYearExistsSp[s]==1)  llh<- sum(dmvnorm( diff( t(logF[[s]][,-zeroCatchYear[[s]]])),mu=0, Sigma=fvar, log=TRUE)) else {
-                                      llh<- sum(dmvnorm( diff( t(logF[[s]])),mu=0, Sigma=fvar, log=TRUE))
-    }
-    ans<-ans-llh
-    nlls[s,"F"]<- nlls[s,"F"] - llh
-    
+    if (useFrandomWalk[s]) {
+      fsd <- sdLogFsta[keyLogFstaSd[s,keyLogFstaSd[s,]>0]]
+      if (useRho[s]==0) {  # no correlation
+           fvar <- diag(fsd[1:stateDimF[s]]*fsd[1:stateDimF[s]],ncol=stateDimF[s], nrow=stateDimF[s])
+      } else if (useRho[s]==1) {  # compound_symmetry
+           fcor <- outer(1:stateDimF[s],
+                         1:stateDimF[s],
+                         function(i,j)(i!=j)*rho[s] + (i==j))
+           fvar <- outer(1:stateDimF[s],
+                         1:stateDimF[s],
+                         function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])  
+      } else if (useRho[s]==2) {  # AR(1)
+           fcor<-rho^(abs(matrix(1:stateDimF[s] - 1, nrow = stateDimF[s], ncol = stateDimF[s], byrow = TRUE) - 1:stateDimF[s] - 1))
+           fvar <- outer(1:stateDimF[s],
+                         1:stateDimF[s],
+                         function(i,j)fcor[cbind(i,j)]*fsd[i]*fsd[j])  
+       } else  stop(paste0("No handler for useRho", useRho[s],'\n'))
+      
+      if (zeroCatchYearExistsSp[s]==1)  llh<- sum(dmvnorm( diff( t(logF[[s]][,-zeroCatchYear[[s]]])),mu=0, Sigma=fvar, log=TRUE)) else {
+                                        llh<- sum(dmvnorm( diff( t(logF[[s]])),mu=0, Sigma=fvar, log=TRUE))
+      }
+      ans<-ans-llh
+      nlls[s,"F"]<- nlls[s,"F"] - llh
+    } 
   
     #####  Now take care of N
     if (doProcessN_any[s]) {

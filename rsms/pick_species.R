@@ -59,7 +59,9 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   d$zeroCatchYear<-data$zeroCatchYear[ps]
   d$seasonalCatches<-data$seasonalCatches[ps]
   d$FfromSeparableModel<-data$FfromSeparableModel[ps]
+  d$useFrandomWalk<-data$useFrandomWalk[ps]
 
+  d$catchSepYear<-lapply(ps,function(s) data$catchSepYear[[s]])
   
   dm<- dimnames(data$zeroCatchSeasonAge)
   d$zeroCatchSeasonAge<-data$zeroCatchSeasonAge[ps,,]
@@ -108,14 +110,15 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   d$seasonalCatches<-data$seasonalCatches[ps]
   d$keyLogFstaSd<-cut_tab(data$keyLogFstaSd,reNumber=TRUE)
 
-  d$nlogFfromTo<-cutFromTo(data$nlogFfromTo)
+  d$nlogFfromTo<-cutFromTo0(data$nlogFfromTo)
   d$nlogNfromTo<-cutFromTo0(data$nlogNfromTo)
   d$logNfirstYparamfromTo<-cutFromTo0(data$logNfirstYparamfromTo)
   d$logNrecruitParamfromTo<-cutFromTo0(data$logNrecruitParamfromTo)
   d$inclSsbR<-data$inclSsbR[ps]
    
   
-  d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ 1L
+  #d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ 1L
+  d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ ifelse(apply(d$nlogFfromTo,1,sum)>0,1L,0L)
   d$nlogN <- d$nlogNfromTo[,2]- d$nlogNfromTo[,1]+ ifelse(apply(d$nlogNfromTo,1,sum)>0,1L,0L)
   
   cut_tab_3<-function(tab,reNumber=FALSE) {
@@ -148,7 +151,9 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   
   d$keyVarObsCatch.df<-left_join(filter(data$keyVarObsCatch.df, s %in% ps) %>% 
                                    mutate(varGroup=if_else(vari,1,0), varGroup=cumsum(varGroup)),transmute(d$sOldNew,oldNo,newNo),by = join_by(s==oldNo)) %>% mutate(s=newNo,newNo=NULL)
-   
+  
+  x<-data$idxLogYearEffectF[ps]; x[x>0]<-1L;x<-cumsum(x)
+  d$idxLogYearEffectF<- x 
   d$propMat<-data$propMat[ps]; names(d$propMat)<-d$spNames
   d$stockMeanWeight<-data$stockMeanWeight[ps]; names(d$stockMeanWeight)<-d$spNames
   d$catchMeanWeight<-data$catchMeanWeight[ps]; names(d$catchMeanWeight)<-d$spNames
@@ -413,13 +418,20 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   p$logSdLogObsCatch<-parameters$logSdLogObsCatch[1:max(d$keyCatch[,'keyVarObsCatch'] )]
   
   p$logCatchability<-parameters$logCatchability[1:max(d$keyCatchability)] 
-  p$logSdLogObsSurvey<-parameters$logSdLogObsSurvey[1:max(d$keyVarObsSurvey)] 
-  p$logSdLogFsta<-parameters$logSdLogFsta[1:max(d$keyLogFstaSd)]  
+  p$logSdLogObsSurvey<-parameters$logSdLogObsSurvey[1:max(d$keyVarObsSurvey)]
+  
+  if (max(d$keyLogFstaSd) >0) p$logSdLogFsta<-parameters$logSdLogFsta[1:max(d$keyLogFstaSd)] else p$logSdLogFsta<-numeric(0) 
   if (max(d$keyVarLogN)<0)  p$logSdLogN<-rep(0,0) else p$logSdLogN<-parameters$logSdLogN[1:max(d$keyVarLogN)]  
   
   x<-do.call(c,lapply(d$keyLogSeparF,function(x) unique(as.vector(x)))); x<-x[x>0]
   if (length(x)>0) p$logSeparF<-parameters$logSeparF[1:length(x)] else  p$logSeparF<-numeric(0)
   
+  
+  if (any(d$spNames %in% rownames(parameters$logYearEffectF))) {
+   x<-intersect(d$spNames,rownames(parameters$logYearEffectF) )
+   p$logYearEffectF<-parameters$logYearEffectF[x,,drop=FALSE]
+  }
+  else p$logYearEffectF<-numeric(0)
  
   if (sum(d$inclSsbR)==0) p$logSsbRsd<-numeric(0) else p$logSsbRsd<-rep(0.3,sum(d$inclSsbR>0))
   p$rho<-parameters$rho[ps] 
@@ -427,7 +439,7 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   p$rec_logb<-parameters$rec_logb[ps] 
   if (sum(foundTC)>0) p$logTechCreep<-parameters$logTechCreep[1:sum(foundTC)] else p$logTechCreep<-numeric(0)
   if (sum(d$nlogN) >0) p$Un<-parameters$Un[1:sum(d$nlogN),,drop=FALSE]   else p$Un<-numeric(0)
-  p$Uf<-parameters$Uf[1:sum(d$nlogF),,drop=FALSE]  
+  if (sum(d$nlogF) >0) p$Uf<-parameters$Uf[1:sum(d$nlogF),,drop=FALSE]  else p$Uf<-numeric(0)
   
  
   x<-numeric(0)

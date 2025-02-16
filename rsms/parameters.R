@@ -6,6 +6,10 @@ extractParameters<-function(sdrep,myMap,data) {
   transKey<-function(key,pp,type) {
     array2DF(key) %>% filter(Value>0) %>%mutate(param=pp,type=type)
   }
+  transKeyNoNA<-function(key,pp,type) {
+    array2DF(key)%>%filter(!is.na(Value))%>% mutate(param=pp,type=type)
+  }
+  
   parName<-unique(a$name)
   keys<-NULL
   
@@ -34,6 +38,15 @@ extractParameters<-function(sdrep,myMap,data) {
     keys<-rbind(keys,transKey(key=k,pp='logSdLogFsta', type='species'))
   }
 
+  if ('logYearEffectF' %in% parName) {
+    x<-parameters$logYearEffectF
+    x[!is.na( myMap$logYearEffectF)]<-1:sum(!is.na(myMap$logYearEffectF))   
+    x[is.na( myMap$logYearEffectF)]<-NA
+    transKeyNoNA(key=x,pp="logYearEffectF",type='species')
+    keys<-rbind(keys,transKeyNoNA(key=x,pp="logYearEffectF",type='species'))
+  }
+  
+  
  
   if ('logNrecruitParam' %in% parName) keys<-rbind(keys,do.call(rbind,lapply(data$spNames,function(x) 
     data.frame(Var1=x,Var2=seq(1,data$logNrecruitParamfromTo[x,2]-data$logNrecruitParamfromTo[x,1]+1)-data$off.year,

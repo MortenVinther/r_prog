@@ -400,8 +400,9 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            "fModel"   ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## Model for F (default=1) (option fModel):\n",
-                 "#   1=random walk (deafult SAM)\n",
-                 "#   2=random walk used as year effect in separable F model for some or all ages\n",
+                 "#   1=random walk F (deafult SAM)\n",
+                 "#   2=random walk F used as year effect in separable F model for some or all ages\n",
+                 "#   3=year effect in separable model is estimated as a fixed parameter\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
@@ -428,7 +429,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            
            "firstAgeYearEffect" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             cat("## First age in separable model (in case of fModel==2), (option firstAgeYearEffect))\n",
+             cat("## First age in separable model (in case of fModel==2|3), (option firstAgeYearEffect))\n",
                  file=file,append=T,sep="")   
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
@@ -437,20 +438,20 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
 
            "catch.sep.age"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2) (option catch.sep.age)",
+             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2|3) (option catch.sep.age)",
                                         "first age in each group (option catch.sep.age)",VPA.species)                                
              
-             if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2)",
+             if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2|3)",
                                        "first age in each group (option catch.sep.age)",VPA.species)
            } else  wr.list(slot(control,x),"catch.sep.age",x)
            },
            
            "catch.sep.year"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2) (option catch.sep.year)",
+             if (expand) wr.list.expand(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2|3) (option catch.sep.year)",
                                         "first year in each group (option catch.sep.year)",VPA.species)                                
              
-             if (!expand) wr.list.nice(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2)",
+             if (!expand) wr.list.nice(slot(control,x),"number of year groups with the same age selection (used  in case of fModel==2|3)",
                                        "first year in each group (option catch.sep.year)",VPA.species)
            } else  wr.list(slot(control,x),"catch.sep.year",x)
            },

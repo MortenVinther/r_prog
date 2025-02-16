@@ -1,44 +1,33 @@
-lock_param<-function(data,parameters,my.map,lockP){
-  for (p in lockP) {
-    if (p %in% names(my.map)) {
-      my.map[[p]][]<-NA
-      my.map[[p]]<- factor(my.map[[p]])
-    } else {
-      m<-1L:length(parameters[[p]])
-      m[]<-NA
-      my.map[[p]]<-factor(m)
-    }
-  }
-  return(my.map)
-}
 
 map_param<-function(data,parameters) {
   
   my.map<-lapply(parameters,function(x) {if (length(x)>0) a<-factor(1L:length(x)) else a<-factor(numeric(0)); a})
   
   # adjust if the are species/year combination with zero catches (or assumed F is very low and highly uncertain)
-  if (data$zeroCatchYearExists==1 |length(parameters$logSeparF)>0) {
-    UfMap<-matrix(1L:(dim(parameters$Uf)[[1]]*dim(parameters$Uf)[[2]]),nrow=sum(data$nlogF),byrow=TRUE)
-    for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
-      zy<-data$zeroCatchYear[[s]]
-      fromTo<-data$nlogFfromTo[s,]
-      UfMap[fromTo[1]:fromTo[2],zy]<-NA
-      parameters$Uf[fromTo[1]:fromTo[2],zy]<-log(0.001)
-    }
-    if (length(parameters$logSeparF)>0) for (s in 1:data$nSpecies){
-      fSepar<-data$info[s,'fSepar']
-      if (fSepar<99) {
-        ii<- max(data$nlogFfromTo[s,]) # last random walk group for the species is used as a year effect in separable F model
-        #cat('ii:',ii,'\n')
-        parameters$Uf[ii,1]<-0.0  
-        UfMap[ii,1]<-NA
+  if (data$zeroCatchYearExists==1 | length(parameters$logSeparF)>0 ) {
+    if (any(data$nlogF>0)) {
+      UfMap<-matrix(1L:(dim(parameters$Uf)[[1]]*dim(parameters$Uf)[[2]]),nrow=sum(data$nlogF),byrow=TRUE)
+      for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
+        zy<-data$zeroCatchYear[[s]]
+        fromTo<-data$nlogFfromTo[s,]
+        UfMap[fromTo[1]:fromTo[2],zy]<-NA
+        parameters$Uf[fromTo[1]:fromTo[2],zy]<-log(0.001)
       }
+      if (length(parameters$logSeparF)>0) for (s in 1:data$nSpecies){
+        fSepar<-data$info[s,'fSepar']
+        if (fSepar<99) {
+          ii<- max(data$nlogFfromTo[s,]) # last random walk group for the species is used as a year effect in separable F model
+          #cat('ii:',ii,'\n')
+          parameters$Uf[ii,1]<-0.0  
+          UfMap[ii,1]<-NA
+        }
+      }
+      UfMap<-factor(UfMap)
     }
-    UfMap<-factor(UfMap)
   }
  
  
-  if (data$zeroCatchYearExists==1 | length(parameters$logSeparF)>0) my.map<-purrr::assign_in(my.map,'Uf',UfMap)
+  if ((data$zeroCatchYearExists==1 | length(parameters$logSeparF)>0) & (any(data$nlogF>0)))  my.map<-purrr::assign_in(my.map,'Uf',UfMap)
 
   
   # my.map<-list(Uf=UfMap) else my.map=list()
@@ -64,7 +53,6 @@ map_param<-function(data,parameters) {
   }
   #FfromSeparableModel
   if (any(data$FfromSeparableModel)) {
-    
     # set the last quarter (used) to NA (to fix this parameter to 1.0)
     key<-data$keylogSeasonF
      if (data$nSpecies==1) spl<-1 else spl<-c(1,2)
@@ -115,14 +103,53 @@ map_param<-function(data,parameters) {
        }
      } 
      sepMap<-factor(sepMap)
-     my.map<-c(my.map,list(logSeparF=sepMap))
+     my.map<-purrr::assign_in(my.map,'logSeparF',sepMap)
+     #my.map<-c(my.map,list(logSeparF=sepMap))
    }
-  
   #grep('logSeparF',nl)
   
-  # #sandeel test
-  # i<-grep('logSeparF',nl)[2]
-  # lower[i]<-0
-  # upper[i]<-0
+
+ if (length(parameters$logYearEffectF) >0) {
+   yfMap<-matrix(1L:length(parameters$logYearEffectF),ncol=data$nYears,nrow=max(data$idxLogYearEffectF),byrow=TRUE)
+   rownames(yfMap)<-rownames(parameters$logYearEffectF)
+   yfMap[,1]<-NA
+   
+   if (data$zeroCatchYearExists==1) {
+      for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
+       zy<-data$zeroCatchYear[[s]]
+       yfMap[data$spNames[s],zy]<-NA
+      }} 
+   
+   yfMap
+   sp<-match(rownames(parameters$logYearEffectF),data$spNames)
+   for (s in sp) {
+     ll<-length(data$catchSepYear[[s]])
+     if (ll>1) {
+      for (y in (2:ll) ) yfMap[data$spNames[s],data$catchSepYear[[s]][y]+data$off.year ]<-NA
+     }
+   }
+   
+   yfMap<-factor(yfMap)
+   my.map<-purrr::assign_in(my.map,'logYearEffectF',yfMap)
+ }
+ 
+
+   #mapply(function(x,y) length(x)==length(y),parameters,my.map) 
+
+  return(my.map)
+}
+
+
+lock_param<-function(data,parameters,my.map,lockP){
+  for (p in lockP) {
+    if (p %in% names(my.map)) {
+      my.map[[p]][]<-NA
+      my.map[[p]]<- factor(my.map[[p]])
+    } else {
+      m<-1L:length(parameters[[p]])
+      m[]<-NA
+      my.map[[p]]<-factor(m)
+    }
+  }
   return(my.map)
 }

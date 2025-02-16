@@ -21,12 +21,10 @@ if (TRUE) {  # transform  SMS data into RSMS format
 
 
 smsConf<-0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
-annualData<-FALSE
 
-# select a combination of species from the (full) data set, also including multi species information
 
 runName<-'Single'
-
+# select a combination of species from the (full) data set, also including multi species information
 my.ps<-c(1L,2L,3L,4L,5L,6L,7L,8L,9L,10L,11L,12L)
 #my.ps<-c(1L,7L,8L)
 my.ps<-c(1L,2L,3L,4L,6L,7L,8L,9L,10L)
@@ -35,7 +33,8 @@ my.ps=c(1,2,3,4,5,6,11,12)
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.ps=c(1,2,3,4,5)
 my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
-my.ps=c(1,6,7,8)
+my.ps=c(1,2,6,7,8)
+my.ps=c(7,8)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
@@ -63,7 +62,10 @@ if (FALSE) {
 cleanrun(silent=TRUE)
 
 myMap<-map_param(data,parameters)
-random=c("Un","Uf")
+
+random=c("Un")
+if (length(myMap$Uf)>0) random=c(random,"Uf")
+
 
 system.time(obj <- MakeADFun(func, parameters, random,silent=T,map=myMap))
 
@@ -84,7 +86,7 @@ a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
 sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
 
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[4],showSpecies=1:12,
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
                       inpRdata=list("Single"),
                       labels=c("single"),
                       outFormat=c('screen','pdf','png')[1],

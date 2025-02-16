@@ -61,7 +61,7 @@ fa<-sms@first.age
 fqa<-rep(1L,max(info[,'last-age'])+off.age); fqa[1]<-recSeason
 
 info<-cbind(info,fModel=c(sms@fModel,rep(-9,nOthSpecies)))
-fSepar<-if_else(sms@fModel==2,sms@firstAgeYearEffect+off.age,99L)
+fSepar<-if_else(sms@fModel %in% c(2,3),sms@firstAgeYearEffect+off.age,99L)
 info<-cbind(info,fSepar=c(fSepar,rep(-9,nOthSpecies)))
 
 spNames<-dimnames(info)[[1]][1:nSpecies]
@@ -126,20 +126,38 @@ keyLogFsta.list<-by(keyLogFsta.df,keyLogFsta.df$s,function(x) as.vector(x$keyLog
 # not used  keyLogFstaSeason<-lapply(1:nSeasons,function(q) keyLogFsta)
 
 
+useFrandomWalk<- ! info[1:nSpecies,'fModel']==3
+
 nlogF<-unlist(lapply(sms@keyLogFsta,length))
-nlogFto<-cumsum(nlogF)  
+nlogF[!useFrandomWalk]<-0
+nlogFto<-cumsum(nlogF)
+nlogFto[!useFrandomWalk]<-NA
 nlogFfrom<- c(1,head(cumsum(nlogF),-1)+1 )
 nlogFfromTo<-matrix(c(as.integer(nlogFfrom),as.integer(nlogFto)),ncol=2)
+nlogFfromTo[is.na(nlogFfromTo[,2]),]<- 0
+nlogFfromTo
 
 
 keyLogFstaSd<-keyLogFsta
 keyLogFstaSd[keyLogFstaSd<0]<- -9999L
 keyLogFstaSd<-keyLogFstaSd+nlogFfrom-1
 keyLogFstaSd[keyLogFstaSd<0]<- -1L
-#keyLogFstaSd
+
+keyLogFstaSd[!useFrandomWalk,] <--1L
+keyLogFstaSd
+
 logSdLogFsta<-rep(-0.7,max(keyLogFstaSd))
 
+x<-as.integer(!useFrandomWalk)
+idxLogYearEffectF<-cumsum(x)
+idxLogYearEffectF[useFrandomWalk]<-0L
 
+logYearEffectF<-  matrix(log(1),ncol=nYears,nrow=max(idxLogYearEffectF))
+rownames(logYearEffectF)<-spNames[!useFrandomWalk]
+colnames(logYearEffectF)<-as.character(years)
+
+
+# useFrandomWalk
 ##### year and Ages in separable F-Model
 # use sms@catch.sep.year and sms@catch.sep.age
 
@@ -147,7 +165,7 @@ x<-map2(sms@catch.sep.age,sms@catch.sep.year,function(x,y) {
   xx<-expand.grid(age=x,year=y)
 })
 for (s in 1:nSpecies) x[[s]]<-data.frame(x[[s]],s=s,fModel=info[s,'fModel'])
-ay<-do.call(rbind,x) %>% filter(fModel==2) %>%arrange (s,age,year) 
+ay<-do.call(rbind,x) %>% filter(fModel %in% c(2,3)) %>%arrange (s,age,year) 
 if (dim(ay)[[1]]>0) ay<-  ay %>%  mutate(index=1:dplyr::n(), y=year-sms@first.year.model+1,a=age-sms@first.age+1)
 x<-lapply(1:nSpecies,function(x) {
   matrix(-1L,ncol=info[x,'last-age']-sms@first.age+1L,nrow=nYears,dimnames=list(years,paste('age',sms@first.age:info[x,'last-age'])))
@@ -162,6 +180,7 @@ x<-lapply(x,function(xx){
 keyLogSeparF<- x
 if (dim(ay)[[1]]>0) logSeparF<-rep(log(0.1),max(ay$index)) else logSeparF<-numeric(0)
 
+# keyLogSeparF[[7]]
 
 ##### year and season in separable F-Model
 # use sms@catch.sep.year and quarters
@@ -182,6 +201,8 @@ keylogSeasonF<-lapply(1:nSpecies,function(x) {
   y<-filter(xx,s==x)
   tapply(y$qGrp,list(y$y,y$q),sum)
 })
+
+keylogSeasonF
 
 
 p<-0
@@ -725,11 +746,6 @@ seasFprop <-by(y,y$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); 
 
 # does not include years with no catches
 #seasFprop <-by(catch2,catch2$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y}) 
-
-seasFprop[[6]][2,,]
-seasFprop[[6]][5,,]
-seasFprop[[7]][5,,]
-seasFprop[[8]][5,,]
 
 #ageQCatchMis<-lapply(seasFprop,function(x) apply(x,c(1,3),function(x){sum(x)<=0}))
 
@@ -1460,7 +1476,10 @@ rl<-list(
      #off.species=off.species,
      #off.oths=off.oths,                          
      seasonalCatches=seasonalCatches,                  # are seasonal catches used in the catch observation likelihood
+     catchSepYear=sms@catch.sep.year,
      FfromSeparableModel=FfromSeparableModel,         # are seasonal F derived from seasonal catch observations
+     useFrandomWalk=useFrandomWalk,
+     idxLogYearEffectF=idxLogYearEffectF,
      doProcessNoise=inclProcess,
      doProcessN_any=inclProcess %in% c(1,2),
      doProcessN_old=inclProcess %in% c(1),
@@ -1518,6 +1537,7 @@ rl<-list(
       logSdLogObsSurvey=logSdLogObsSurvey,
       logQpow=logQpow,
       logSeparF=logSeparF,
+      logYearEffectF=logYearEffectF,
       logTechCreep=logTechCreep,
       logSdLogFsta=logSdLogFsta,
       logSdLogN=logSdLogN,

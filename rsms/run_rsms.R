@@ -29,7 +29,7 @@ smsConf<-0L # 0=single species, 1=multi species, but fixed single species parame
 #runName<-'Single'
 # select a combination of species from the (full) data set, also including multi species information
 my.ps=c(1,2,6,7,8)
-my.ps=c(7,8)
+my.ps=c(1,7,8)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
@@ -81,14 +81,13 @@ a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
 sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
 
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN","compExpPat")[1],showSpecies=1:12,
-                      inpRdata=list(runName),
-                      labels=c(runName),
+plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[2],showSpecies=1:12,
+                      inpRdata=list(runName,"SMS_old"),
+                      labels=c(runName,"SMS_old"),
                       outFormat=c('screen','pdf','png')[1],
-                      multN=0.000001,
                       showAges=0:10, ncol=3,allInOne=T,
                       longSpNames=FALSE, fileLabel='single')
-
+-
 
 plotSeasonalData(inp=runName,Type="FiProp", #Type="FiProp",
                  outFormat=c('screen','pdf','png')[1],
@@ -100,7 +99,7 @@ plotSeasonalData(inp=runName,Type="FiProp", #Type="FiProp",
 
 
  
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[2],showSpecies=1:12,
+plotCompareRunSummary(Type=c(c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat"))[2],showSpecies=1:12,
                                  inpRdata=list("Single","SMS_old"),
                                  labels=c("single","SMS_old"),
                                  outFormat=c('screen','pdf','png')[1],
@@ -108,7 +107,7 @@ plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","c
                                  longSpNames=FALSE, fileLabel='single')
 
  
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
+plotCompareRunSummary(Type=c(c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat"))[1],showSpecies=1:12,
                        inpRdata=list("Single"),
                        labels=c("single"),
                        outFormat=c('screen','pdf','png')[1],

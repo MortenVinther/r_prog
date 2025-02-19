@@ -118,25 +118,47 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
   
   no.other.predators<-sum(a@species.info[,'predator']==2)
   
-  
-                 #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
-  a@SSB.R<-as.integer(c(0,    0,    0,    1,    0,    1,    1,    1,    2,    2,    0,    0) )
+  #                    COD       WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@SSB.R<-as.integer(c(6,         6,    3,    3,    3,    1,    1,    1,    6,    6,    1,    1) )
+  a@SSB.R.add<-       c(86000,119970,    0,    0,    0,    0,  1E5,  1E5,80000,94000,    0,    0) 
   
   a@rec.season<-3L
   
+  #                              COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@combined.catches<-as.integer(c(2,    2,    2,    2,    2,    3,    3,    3,    3,    3,    2,    2) )
+  
+  #                                COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@incl.process.noise<-as.integer(c(3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3) )
+  
   bySpAge<-list(
-    c(1,2,4), #COD   
-    c(0,1,3),   #WHG   
-    c(0,1,2), #HAD   
-    c(3,4), #POK   
+    c(0), #COD   
+    c(0),     #WHG   
+    c(0),   #HAD   
+    c(0),   #POK   
+    c(0),   #MAC   
+    c(0),   #HER   
+    c(0),   #NSA
+    c(0),   #SSA   
+    c(0),   #NOP
+    c(0),   #SPR
+    c(0),   #PLE
+    c(0)   #SOL 
+  );   a@keyVarLogN<-  bySpAge
+  
+  
+  bySpAge<-list(
+    c(1,2,7, 9), #COD   
+    c(0,1,5),   #WHG   
+    c(0,1,2,6,8), #HAD   
+    c(3,5,8), #POK   
     c(1,2), #MAC   
-    c(0,1, 4), #HER   
-    c(0,1), #NSA
-    c(1,3), #SSA   
-    c(0,1), #NOP
-    c(0,1), #SPR
-    c(0,1,5), #PLE
-    c(0,1,5)  #SOL 
+    c(0,1, 8), #HER   
+    c(0,1,4), #NSA
+    c(1,4), #SSA   
+    c(0,1,3), #NOP
+    c(1,3), #SPR
+    c(1,2,3), #PLE
+    c(1,2,3)  #SOL 
   )
   a@catch.s2.group<-bySpAge
  
@@ -472,8 +494,8 @@ batch_SMS_old_like_configuration <-function(outfile='rsms.dat',dir=data.path,wri
   a<-batch_final_single_configuration(outfile,dir=data.path,writeConrol=FALSE)
   
   #                    COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
-  a@SSB.R<-as.integer(c(6,    2,    2,    2,    2,    2,    6,    6,    2,    2,    2,    2) )
-  a@SSB.R.add<-       c(86000,0,    0,    0,    0,    0,100000,1000000,    0,    0,    0,    0) 
+  a@SSB.R<-as.integer(c(2,    2,    2,    2,    2,    2,    6,    6,    2,    2,    2,    2) )
+  a@SSB.R.add<-       c(0,    0,    0,    0,    0,    0,  1E5,  1E5,    0,    0,    0,    0) 
   
   
   

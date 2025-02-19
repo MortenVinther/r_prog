@@ -20,6 +20,31 @@ plotSSB<-function(x,sp,mult=1E-3,tit='SSB') {
   a
 }
 
+SSB_R<-function(SSB,model,a,b) {
+  switch( as.character(model),
+          "0"=  NA,                                                          ## straight RW
+          "1"=  exp(a+log(SSB)-exp(b)*SSB),          ## Ricker
+          "2"=  exp(a+log(SSB)-log(1+exp(b)*SSB)),   ## B&H
+          "3"=  exp(a),                                                                ## GM
+          "4"=  exp(a-b+log(SSB-(0.5*(SSB-exp(b)+abs(SSB-exp(b)))))),  #Hockey stick
+          "6"=  exp(a-b+log(SSB-(0.5*(SSB-exp(b)+abs(SSB-exp(b)))))),  #Hockey stick
+          stop(paste0("SR model code ",model," not recognized"))          ## error
+  )
+}
+
+plotSSBR<-function(x,sp,multN=1E-3,multBIO=1E-3,tit='SSB recruitment',titSp='cod') {
+  x<-filter(x,s==sp)
+  tit<-paste(tit, titSp[sp])
+  sr<-filter(SR,s==sp)
+  a<-ggplot(data=x, aes(x=SSB*multBIO, y=recruit*multN,col=run,shape=run,group=run)) +
+    #geom_line()+
+    geom_point()+
+    geom_line(mapping = aes(x =SSB*multBIO,y =recruit*multN), data=sr,  colour = 'red',size=1)+
+    ylim(0,NA)+
+    labs(x='SSB (xxx) ',y='Recruits (XXXXX)',title=tit)+
+    my_theme()
+  a
+}
 
 plotSSBRibbon<-function(x,sp,mult=1E-3,tit='SSB') {
   x<-filter(x,s==sp ) %>% mutate(mid=mid*mult,low=low*mult,high=high*mult)
@@ -173,48 +198,31 @@ plotFRibbon<-function(x,sp,tit='F') {
 }
 
 
-# 1. Summary plots (Recruit, SSB and F), option "compSummary", 
-# 2. Summary pots with uncertainties, option "compSummaryConf" 
-# 3. M2 by age, option "compM2" input rep$res
-
-if (FALSE) {
-  #parameters to function call
-  Type<-"compSummaryConf"
-  #Type<-"compSummary"
-  showSpecies<-c(1,2,3)
-  showSpecies<-1:10
-  inpRdata<-list('Single','Multi')
-  labels=c('Single sp','Multi sp')
-  
-  #Type<-"compSummary"
-  #inpRdata<-list('Single','ICES_single_sp')
-  #labels=c('Single sp','ICES')
-  
-  outFormat<-c('screen','pdf','png') [1]
-  longSpNames<-TRUE
-  showAges=0:5
-}
+# 1. Summary plots (Recruit, SSB and F), option "Summary", 
+# 2. Summary pots with uncertainties, option "SummaryConf" 
+# 3. M2 by age, option "M2" input rep$res
 
 ####
-plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2","compF","compN","compExpPat"),showSpecies=1:100,
+plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat"),showSpecies=1:100,
                         inpRdata=list('Single','Multi'),
                         labels=c('Single sp','Multi sp'),
                         outFormat=c('screen','pdf','png')[1],
                         showAges=0:4,
-                        multN=0.001,
+                        multN=1E-6,multBIO=1E-3,
                         ncols=2,
                         allInOne=FALSE,
                         fileLabel='pl',
-                        longSpNames=TRUE){
+                        longSpNames=TRUE) {
   
-  if (Type %in% c("compSummaryConf","compSummary"))  allInOne<-FALSE
+  if (Type %in% c("SummaryConf","Summary"))  allInOne<-FALSE
   
-  if (Type=="compSummary") {
+  if (Type %in% c("Summary","SSBrec")) {
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")),verbose=F)
       sms$rep$resSummary %>% mutate(year=as.numeric(year),run=labels[i]) %>% filter(s %in% showSpecies)
     })) 
-  } else if (Type=="compSummaryConf"){
+    
+  } else if (Type %in% c("SummaryConf","SSBrecConf")) {
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       out<-data.frame(value=sms$sdrep$value,sd=sms$sdrep$sd,variable=names(sms$sdrep$value)) 
@@ -223,7 +231,7 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
          mutate(run=labels[i],species=sms$data$spNames[s],mid=exp(value),low=exp(value-2*sd),high=exp(value+2*sd))
   
     }))
-  } else if (Type=='compM2'){
+  } else if (Type=='M2'){
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       out<-sms$rep$res %>% transmute(year,age,s,species,run=labels[i],M2) %>% 
@@ -232,7 +240,7 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
         mutate(maxM2=NULL)
     }))
     
-  } else if (Type=='compF' | Type=="compExpPat"){
+  } else if (Type=='F' | Type=="ExpPat"){
   x<-do.call(rbind,lapply(1:length(labels),function(i){
     load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
     if (c('F') %in% colnames(sms$rep$res)) sms$rep$res$FisQ<-sms$rep$res$F
@@ -243,7 +251,7 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
       mutate(maxF=NULL)
   }))
     
-  } else if (Type=='compN'){
+  } else if (Type=='N'){
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       out<-sms$rep$res %>% transmute(year,quarter,age,s,species,run=labels[i],N=N*multN) %>% 
@@ -252,15 +260,40 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
     }))
   }
   x<- x %>% mutate(run=factor(run,labels))
+
+  if (Type %in% c("SSBrecConf","SSBrec")) {
+    SR<-do.call(rbind,lapply(1:length(labels),function(i){
+      load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
+      a<-suppressWarnings(extractParameters(sdrep=sms$sdrep,myMap=sms$map,data=sms$data)[[2]]) %>% 
+          filter(s %in% showSpecies & name %in% c("rec_loga","rec_logb")) %>%
+        transmute(s,sp=Var1,name,estimate,run=labels[i]) %>%
+        pivot_wider(names_from = name, values_from = estimate)
+      b<-data.frame(sp=names(sms$data$stockRecruitmentModelCode),model=data$stockRecruitmentModelCode,addInf=data$stockRecruitmentModelCodeAdd)
+      b<-left_join(a,b,by = join_by(sp)) %>% mutate(model=as.integer(model))
+      b<-left_join(b,x%>% group_by(s) %>% summarize(maxSSB=max(SSB),.groups='drop') %>% mutate(minSSB=1),by = join_by(s))
+      
+      a<-b %>% mutate(step=round((maxSSB-minSSB)/100),rec_logb=if_else(is.na(rec_logb) & addInf>0,log(addInf),rec_logb)) 
+      do.call(rbind,lapply(1:nrow(a),function(i){
+        aa<-a[i,]
+        SSB<-seq(aa$minSSB,aa$maxSSB,aa$step)
+        cat(i,'\n')
+        data.frame(s=aa$s,run=aa$run,SSB,recruit=SSB_R(SSB=SSB,model=aa$model,a=aa$rec_loga,b=aa$rec_logb)) 
+      }))
+      
+    }))
+  }
+ 
+  
   
   load(file=file.path(data.path,paste0(inpRdata[1],".Rdata")))
   allSpNamesLong<-sms$data$allSpNamesLong
   names(allSpNamesLong)<-sms$data$allSpNames
   showSpecies<-showSpecies[showSpecies %in% sort(unique(x$s))]
    
-  if (Type=="compExpPat"){
+  if (Type=="ExpPat"){
     fala<-as.data.frame(sms$data$options@avg.F.ages) %>% transmute(s=1:n(),fa=`first-age`+ sms$data$off.age, la=`last-age`+ sms$data$off.age)
-    ff<-left_join(fala,x,by = join_by(s)) %>% group_by(s,species,year,run) %>% summarize(meanF=mean( FisQ),.groups='drop')
+    ff<-left_join(fala,x,by = join_by(s)) %>% filter(age>=fa &age <=la)%>% 
+      group_by(s,species,year,run) %>% summarize(meanF=mean( FisQ),.groups='drop')
     x<-left_join(x,ff,by = join_by(s, species, year, run)) %>%mutate(FisQ=FisQ/meanF,meanF=NULL) 
   }
   
@@ -269,35 +302,45 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
   for (mysp in showSpecies) {
      tit<-allSpNamesLong[mysp]
      titFile<-tit
-     if (Type %in% c("compM2")) tit<-paste('M2\n',tit)
-     if (Type %in% c("compF"))  tit<-paste('F\n',tit)
-     if (Type %in% c("compN"))  tit<-paste('N\n',tit)
+     if (Type %in% c("M2")) tit<-paste('M2\n',tit)
+     if (Type %in% c("F"))  tit<-paste('F\n',tit)
+     if (Type %in% c("N"))  tit<-paste('N\n',tit)
      if (!allInOne) myLab<-plotLabels(tit,labels)
    
-     if (Type=="compSummary") {
-       pSSB<-plotSSB(x,sp=mysp)
+     if (Type=="Summary") {
+       pSSB<-plotSSB(x,sp=mysp,mult=multBIO)
        pF<-plotF(x,sp=mysp)
-       pRecruit<-plotRecruits(x,sp=mysp)
+       pRecruit<-plotRecruits(x,sp=mysp,mult=multN)
        
-     } else if (Type=="compSummaryConf"){
+     } else if (Type=="SummaryConf"){
+        pSSB<-plotSSBRibbon( x=filter(x,variable=='SSB'),sp=mysp,mult=multBIO)
+        pRecruit<-plotRecruitsRibbon(x=filter(x,variable=='recruit'),sp=mysp,mult=multN)
+        pF<-plotFRibbon(x=filter(x,variable=='FBAR'),sp=mysp)
+        
+     } else if (Type=="SSBrec") {
+        pSSBR<-plotSSBR(x,sp=mysp,titSp=allSpNamesLong,multN=multN,multBIO=multBIO)
+      
+     } else if (Type=="SSBrecConf"){
         pSSB<-plotSSBRibbon( x=filter(x,variable=='SSB'),sp=mysp,mult=1E-3)
         pRecruit<-plotRecruitsRibbon(x=filter(x,variable=='recruit'),sp=mysp,mult=1E-6)
         pF<-plotFRibbon(x=filter(x,variable=='FBAR'),sp=mysp)
-    
-    }else if (Type=="compM2"){
+          
+    }else if (Type=="M2"){
        pAge<-plotM2(x,sp=mysp) 
   
-    } else if (Type=="compF"){
+    } else if (Type=="F"){
        pAge<-plotFage(x,sp=mysp,allInOne=allInOne,titSp=allSpNamesLong,tit='Fishing mortality: ') 
        
-    } else if (Type=="compExpPat"){
+    } else if (Type=="ExpPat"){
       pAge<-plotFage(x,sp=mysp,allInOne=allInOne,titSp=allSpNamesLong,tit='Exploitation pattern: ') 
       
-    } else if (Type=="compN"){
+    } else if (Type=="N"){
       pAge<-plotNage(x,sp=mysp) 
    } 
-   if (Type %in% c("compSummary","compSummaryConf")) pl<-suppressWarnings(print(ggarrange(myLab,pSSB,pRecruit,pF, ncol = 2, nrow = 2)))
-   if (Type %in% c("compM2","compF","compN","compExpPat")) {
+   if (Type %in% c("Summary","SummaryConf")) pl<-suppressWarnings(print(ggarrange(myLab,pSSB,pRecruit,pF, ncol = 2, nrow = 2)))
+   if (Type %in% c("SSBrecConf","SSBrec")) pl<-suppressWarnings(print(ggarrange(pSSBR, ncol = 1, nrow = 1)))
+     
+   if (Type %in% c("M2","F","N","ExpPat")) {
      if (allInOne)  nc<-1 else nc<-ncols
       nr<-(length(showAges)+1) %/% nc + (length(showAges)+1) %% nc
       if (allInOne) nr<-1

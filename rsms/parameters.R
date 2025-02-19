@@ -74,6 +74,13 @@ extractParameters<-function(sdrep,myMap,data) {
     })
     keys<-rbind(keys,  do.call(rbind,x))
   }
+  
+  if ('logSsbRsd' %in% parName) {
+    k<-data$inclSsbR;
+    keys<-rbind(keys,data.frame(Var1=names(k),Var2=-9,Value=1:length(k),param='logSsbRsd',type='species'))
+  }
+  
+  
  
   if ('logSdLogN' %in% parName) {
     keys<-rbind(keys,transKey(key=data$keyVarLogN,pp='logSdLogN', type='species'))

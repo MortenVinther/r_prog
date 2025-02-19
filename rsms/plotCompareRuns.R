@@ -83,27 +83,39 @@ plotM2<-function(x,sp) {
     geom_point()+
     ylim(0,NA)+
     labs(x='Year',y=' ',title=tit)+
-    #  facet_wrap(~age)+
     my_theme()
    })
 }
 
 
-plotFage<-function(x,sp) {
+plotFage<-function(x,sp,allInOne=FALSE,titSp='cod',tit='F:') {
   xx<-filter(x,s==sp) 
-  showAges<-sort(unique(x$age))
-  p<-lapply(showAges,function(a){
-    tit<-paste('Age:',a)
-    xxx<-filter(xx,age==a)%>% mutate(age=paste('age:',age))
-    #print(xtabs(M2~run+year,data=xxx))
-    pp<-ggplot(data=xxx, aes(x=year, y=FisQ,col=run,shape=run,group=run)) +
+  if (allInOne) {
+    tit<-paste(tit, titSp[sp])
+    xx$age<-factor(xx$age)
+    pp<-ggplot(data=xx, aes(x=year, y=FisQ,col=age,shape=age,group=age)) +
       geom_line()+
       geom_point()+
       ylim(0,NA)+
       labs(x='Year',y=' ',title=tit)+
-      #  facet_wrap(~age)+
-      my_theme()
-  })
+      my_theme() +
+      theme(legend.title = element_text(),    legend.position = "bottom")
+    #theme(    legend.position = "bottom")
+    p<-list(pp)
+  } else {
+    showAges<-sort(unique(x$age))
+    p<-lapply(showAges,function(a){
+      tit<-paste('Age:',a)
+      xxx<-filter(xx,age==a)%>% mutate(age=paste('age:',age))
+      pp<-ggplot(data=xxx, aes(x=year, y=FisQ,col=run,shape=run,group=run)) +
+        geom_line()+
+        geom_point()+
+        ylim(0,NA)+
+        labs(x='Year',y=' ',title=tit)+
+        my_theme() 
+    })    
+  }
+  return(p)
 }
 
 plotNage<-function(x,sp) {
@@ -184,16 +196,19 @@ if (FALSE) {
 }
 
 ####
-plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2","compF","compN"),showSpecies=1:100,
+plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2","compF","compN","compExpPat"),showSpecies=1:100,
                         inpRdata=list('Single','Multi'),
                         labels=c('Single sp','Multi sp'),
                         outFormat=c('screen','pdf','png')[1],
                         showAges=0:4,
                         multN=0.001,
-                        ncol=2,
+                        ncols=2,
+                        allInOne=FALSE,
                         fileLabel='pl',
                         longSpNames=TRUE){
-   
+  
+  if (Type %in% c("compSummaryConf","compSummary"))  allInOne<-FALSE
+  
   if (Type=="compSummary") {
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")),verbose=F)
@@ -217,7 +232,7 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
         mutate(maxM2=NULL)
     }))
     
-  } else if (Type=='compF'){
+  } else if (Type=='compF' | Type=="compExpPat"){
   x<-do.call(rbind,lapply(1:length(labels),function(i){
     load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
     if (c('F') %in% colnames(sms$rep$res)) sms$rep$res$FisQ<-sms$rep$res$F
@@ -227,6 +242,7 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
       summarize(FisQ=sum(FisQ),.groups='drop') %>% group_by(s,age) %>% mutate(maxF=max(FisQ)) %>% filter(maxF>1E-5) %>%
       mutate(maxF=NULL)
   }))
+    
   } else if (Type=='compN'){
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
@@ -235,14 +251,19 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
         mutate(quarter=NULL)
     }))
   }
-  #3xtabs(M2~paste(s,species)+run,data=out)
-  #xtabs(N~paste(s,species)+age,data=sms$rep$res)
   x<- x %>% mutate(run=factor(run,labels))
   
   load(file=file.path(data.path,paste0(inpRdata[1],".Rdata")))
   allSpNamesLong<-sms$data$allSpNamesLong
   names(allSpNamesLong)<-sms$data$allSpNames
   showSpecies<-showSpecies[showSpecies %in% sort(unique(x$s))]
+   
+  if (Type=="compExpPat"){
+    fala<-as.data.frame(sms$data$options@avg.F.ages) %>% transmute(s=1:n(),fa=`first-age`+ sms$data$off.age, la=`last-age`+ sms$data$off.age)
+    ff<-left_join(fala,x,by = join_by(s)) %>% group_by(s,species,year,run) %>% summarize(meanF=mean( FisQ),.groups='drop')
+    x<-left_join(x,ff,by = join_by(s, species, year, run)) %>%mutate(FisQ=FisQ/meanF,meanF=NULL) 
+  }
+  
   
   cleanup()
   for (mysp in showSpecies) {
@@ -251,7 +272,7 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
      if (Type %in% c("compM2")) tit<-paste('M2\n',tit)
      if (Type %in% c("compF"))  tit<-paste('F\n',tit)
      if (Type %in% c("compN"))  tit<-paste('N\n',tit)
-     myLab<-plotLabels(tit,labels)
+     if (!allInOne) myLab<-plotLabels(tit,labels)
    
      if (Type=="compSummary") {
        pSSB<-plotSSB(x,sp=mysp)
@@ -267,16 +288,21 @@ plotCompareRunSummary<-function(Type=c("compSummaryConf","compSummary","compM2",
        pAge<-plotM2(x,sp=mysp) 
   
     } else if (Type=="compF"){
-       pAge<-plotFage(x,sp=mysp) 
-    
+       pAge<-plotFage(x,sp=mysp,allInOne=allInOne,titSp=allSpNamesLong,tit='Fishing mortality: ') 
+       
+    } else if (Type=="compExpPat"){
+      pAge<-plotFage(x,sp=mysp,allInOne=allInOne,titSp=allSpNamesLong,tit='Exploitation pattern: ') 
+      
     } else if (Type=="compN"){
       pAge<-plotNage(x,sp=mysp) 
-  } 
+   } 
    if (Type %in% c("compSummary","compSummaryConf")) pl<-suppressWarnings(print(ggarrange(myLab,pSSB,pRecruit,pF, ncol = 2, nrow = 2)))
-   if (Type %in% c("compM2","compF","compN")) {
-       nc<-ncol
-       nr<-(length(showAges)+1) %/% nc + (length(showAges)+1) %% nc
-       pl<-suppressWarnings(print(ggarrange(myLab,plotlist=lapply(pAge,print), ncol = nc, nrow = nr)))
+   if (Type %in% c("compM2","compF","compN","compExpPat")) {
+     if (allInOne)  nc<-1 else nc<-ncols
+      nr<-(length(showAges)+1) %/% nc + (length(showAges)+1) %% nc
+      if (allInOne) nr<-1
+      if (allInOne)  pl<-suppressWarnings(print(ggarrange(plotlist=lapply(pAge,print), ncol = nc, nrow = nr)))
+      if (!allInOne) pl<-suppressWarnings(print(ggarrange(myLab,plotlist=lapply(pAge,print), ncol = nc, nrow = nr)))
    }
     if (outFormat=='screen'){
      print(pl)

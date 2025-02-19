@@ -326,6 +326,7 @@ batch_final_single_configuration <-function(outfile='rsms.dat',dir=data.path,wri
   a<-batch_default_configuration(outfile,dir=data.path,writeConrol=FALSE)
   
   
+                           a
                            #     COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
   a@combined.catches<-as.integer(c(1,    1,    1,    1,    1,    2,    2,    2,    2,   2,     1,    1) )
   
@@ -369,6 +370,23 @@ batch_final_single_configuration <-function(outfile='rsms.dat',dir=data.path,wri
     c(3,6)  #SOL 
   );
   a@catch.sep.age<-  bySpAge
+  
+  bySpYear<-list(
+    c(1974,1993,2007), #COD   
+    c(1974,1991,2007),     #WHG   
+    c(1974,1985,2000),   #HAD   
+    c(1974,1992),   #POK   
+    c(1974,1980,2004),   #MAC   
+    c(1974,1983,1998), #HER   
+    c(1974,2005),   #NSA
+    c(1974,2005),   #SSA   
+    c(1974,2003), #NOP
+    c(1974),     #SPR
+    c(1974,1990,2007), #PLE
+    c(1974,1990)  #SOL 
+  );
+  a@catch.sep.year<-bySpYear
+  
   
   
   if (writeConrol) write.RSMS.control(a,file=file.path(data.path,outfile))
@@ -442,6 +460,88 @@ batch_final_multi_configuration <-function(outfile='rsms.dat',dir=data.path,writ
   a@prey.pred.size.fac<-   c(5,    5,    5,    5,    5,    5,    5,    5,  0.5,  0.5,  0.5,  0.5,   50,   50,  0.9,  0.5,  0.9,  0.5,   0.5,  0.5)
   a@stom.type.include<-    c(2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2)
   
+  if (writeConrol) write.RSMS.control(a,file=file.path(data.path,outfile))
+  invisible(a)
+}
+
+
+# configurage very similar to the old SMS version (e.g. N and F yera effetct as parameters)
+batch_SMS_old_like_configuration <-function(outfile='rsms.dat',dir=data.path,writeConrol=TRUE) {
+  
+  # use the default control file as starting point
+  a<-batch_final_single_configuration(outfile,dir=data.path,writeConrol=FALSE)
+  
+  #                    COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@SSB.R<-as.integer(c(6,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2) )
+  a@SSB.R.add<-       c(86000,0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0) 
+  
+  
+  
+  #                                 COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@combined.catches  <-as.integer(c(2,    2,    2,    2,    2,    3,    3,    3,    3,    3,    2,    2) )
+  
+  #                                 COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@incl.process.noise<-as.integer(c(3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3) )
+  
+  
+  bySpAge<-list(
+    c(0), #COD   
+    c(0),     #WHG   
+    c(0),   #HAD   
+    c(0),   #POK   
+    c(0),   #MAC   
+    c(0), #HER   
+    c(0),   #NSA
+    c(0),   #SSA   
+    c(0), #NOP
+    c(0),     #SPR
+    c(0), #PLE
+    c(0)  #SOL 
+  );   a@keyVarLogN<-  bySpAge
+  
+  
+  #                       COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@fModel  <-as.integer(c(3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3) )
+
+    bySpAge<-list(
+    c(0), #COD   
+    c(0),     #WHG   
+    c(0),   #HAD   
+    c(0),   #POK   
+    c(0),   #MAC   
+    c(0),   #HER   
+    c(0),   #NSA
+    c(0),   #SSA   
+    c(0),   #NOP
+    c(0),   #SPR
+    c(0),   #PLE
+    c(0)    #SOL 
+  );   a@keyLogFsta<-  bySpAge
+ 
+  
+  #                                 COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@firstAgeYearEffect<-as.integer(c( 1,    0,    0,    3,    1,    0,    0,    1,    0,    1,    1,    1) )
+   
+  bySpAge<-list(
+    c(1,2,3,5), #COD   
+    c(0,1,2,3),     #WHG   
+    c(0,1,2),   #HAD   
+    c(3,4),   #POK   
+    c(1,2,4),   #MAC   
+    c(0,1), #HER   
+    c(0,1,2),   #NSA
+    c(1,2),   #SSA   
+    c(0,1,3), #NOP
+    c(1,2,3),     #SPR
+    c(1,2,4), #PLE
+    c(1,3)  #SOL 
+  );
+  a@catch.sep.age<-  bySpAge 
+  
+  #                      COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@use.rho<-as.integer(c(0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0) )
+  
+    
   if (writeConrol) write.RSMS.control(a,file=file.path(data.path,outfile))
   invisible(a)
 }

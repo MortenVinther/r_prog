@@ -32,12 +32,13 @@ map_param<-function(data,parameters) {
   
   # my.map<-list(Uf=UfMap) else my.map=list()
   
-  if (any(data$stockRecruitmentModelCode %in% c(0,3))) { #random walk recruitment, no need for recruitment parameters
+  if (any(data$stockRecruitmentModelCode %in% c(0,3,6))) { #random walk recruitment and other with less than two parameters
     aMap<-1L:length(parameters$rec_loga)
     bMap<-1L:length(parameters$rec_logb)
     aMap[data$stockRecruitmentModelCode==0]<-NA
     bMap[data$stockRecruitmentModelCode==0]<-NA
     bMap[data$stockRecruitmentModelCode==3]<-NA
+    bMap[data$stockRecruitmentModelCode==6]<-NA
     aMap<-factor(aMap)
     bMap<-factor(bMap)
     #my.map<-c(my.map,list(rec_loga=aMap),list(rec_logb=bMap))

@@ -54,6 +54,7 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   d$fbarRange<-data$fbarRange[ps,,drop=FALSE]     
   d$useRho<-data$useRho[ps]
   d$stockRecruitmentModelCode<-data$stockRecruitmentModelCode[ps]
+  d$stockRecruitmentModelCodeAdd<-data$stockRecruitmentModelCodeAdd[ps]
   d$zeroCatchYearExistsSp<-data$zeroCatchYearExistsSp[ps]
   d$zeroCatchYearExists<-any(d$zeroCatchYearExistsSp==1)  
   d$zeroCatchYear<-data$zeroCatchYear[ps]
@@ -114,8 +115,8 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   d$nlogNfromTo<-cutFromTo0(data$nlogNfromTo)
   d$logNfirstYparamfromTo<-cutFromTo0(data$logNfirstYparamfromTo)
   d$logNrecruitParamfromTo<-cutFromTo0(data$logNrecruitParamfromTo)
-  d$inclSsbR<-data$inclSsbR[ps]
-   
+
+  x<-data$inclSsbR[ps]; x[x>0]<-1L; d$inclSsbR<-cumsum(x)
   
   #d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ 1L
   d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ ifelse(apply(d$nlogFfromTo,1,sum)>0,1L,0L)

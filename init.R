@@ -32,7 +32,7 @@ my.stock.dir<-"rsms_input"
 #my.stock.dir<-"rsms_SAN-area-3r"
 
 
-my.stock.dir<-"NS_2022_seawise_ver_2024"
+#my.stock.dir<-"NS_2022_seawise_ver_2024"
 
 # make a backup of the SMS source code
 # file.copy(file.path(root.prog,"program","sms.tpl"),file.path(root.prog,"program",paste("sms_",format(Sys.time(), "%Y_%m_%d-%H-%M"),'.tpl',sep='')),overwrite =TRUE)
@@ -76,7 +76,7 @@ setwd(data.path)
 prog.path.func<-file.path(root.prog,"r_prog","function")
 
 # for SMS (not RSMS) runs
-source(file.path(prog.path.func,"init_r_functions.R"))
+#source(file.path(prog.path.func,"init_r_functions.R"))
 
 cat("active stock directory:",getwd(),"\n");
 

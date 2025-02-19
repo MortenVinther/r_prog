@@ -8,6 +8,7 @@ make_rsms_data<-function(dir=data.path,rsmsControl='rsms.dat',fleetIn="new_fleet
 
 
 sms<-read.RSMS.control(dir=dir,file=rsmsControl,test=FALSE)
+# write.RSMS.control(sms,file=file.path(data.path,outfile=rsmsControl))
 
 info<-sms@species.info
 first.VPA<-which(info[,'predator'] %in% c(0,1))[1]
@@ -77,17 +78,28 @@ allSpNamesLong<-sms@species.names.long[ match(allSpNames,oldAllSpeciesNames) ]
 predNames<- dimnames(info[info[,'predator']>0,])[[1]]
 preyNames<- dimnames(info[info[,'prey']>0,])[[1]]
 otherFoodName<-'OTH'
+
 stockRecruitmentModelCode<-sms@SSB.R
 names(stockRecruitmentModelCode)<-spNames
+stockRecruitmentModelCodeAdd<-sms@SSB.R.add
+names(stockRecruitmentModelCodeAdd)<-spNames
+
+
+
 use_rho<-as.integer(sms@use.rho)
 #use_rho<-factor(use_rho, levels = c(0L,1L,2L),labels = c("no_correlation", "compound_symmetry", "AR(1)"))
+
 rec_loga <- rep(1,nSpecies)
 rec_loga[stockRecruitmentModelCode==1] <- log(200)  # Ricker
 rec_loga[stockRecruitmentModelCode==2] <- 4         # B&W
+rec_loga[stockRecruitmentModelCode %in% c(4,5,6)] <- log(1000) #hockey slope
 
-rec_logb <- rep(1,nSpecies)
+rec_logb <- rep(1,nSpecies) 
 rec_logb[stockRecruitmentModelCode==1] <- -12  # Ricker
 rec_logb[stockRecruitmentModelCode==2] <- -12        # B&W
+rec_logb[stockRecruitmentModelCode %in% c(4,5) ] <- log(50000)     
+rec_logb[stockRecruitmentModelCode ==6 ] <- log(stockRecruitmentModelCodeAdd[stockRecruitmentModelCode ==6] ) #hockey with known inflection point
+
 
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages))+off.age;
 colnames(fbarRange)<-c('first-a','last-a')
@@ -146,7 +158,8 @@ keyLogFstaSd[keyLogFstaSd<0]<- -1L
 keyLogFstaSd[!useFrandomWalk,] <--1L
 keyLogFstaSd
 
-logSdLogFsta<-rep(-0.7,max(keyLogFstaSd))
+if (max(keyLogFstaSd)>0) logSdLogFsta<-rep(-0.7,max(keyLogFstaSd)) else logSdLogFsta<-numeric(0)  # parameter
+
 
 x<-as.integer(!useFrandomWalk)
 idxLogYearEffectF<-cumsum(x)
@@ -1486,6 +1499,7 @@ rl<-list(
      doProcessN_none=inclProcess==3,
      useRho=use_rho,                                   # use correlation in F at age
      stockRecruitmentModelCode=stockRecruitmentModelCode,
+     stockRecruitmentModelCodeAdd=stockRecruitmentModelCodeAdd,
      zeroCatchYearExists=zeroCatchYearExists,
      zeroCatchYearExistsSp=zeroCatchYearExistsSp,
      zeroCatchYear=zeroCatchYear,

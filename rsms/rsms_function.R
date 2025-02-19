@@ -138,29 +138,71 @@ func <- function(parameters) {
   ans <- 0
   
   ##########################################################################################
-  
+  # 
+  # SSB_R<-function(s,y,a=1) {
+  #   if (stockRecruitmentModelCode[s]==0 | !recruitYears[s,y]){    ## straight RW
+  #     rec = logN[[s]][a, y-1]
+  #   } else {
+  #     if (stockRecruitmentModelCode[s]==1){ ## Ricker
+  #       rec<-rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
+  #     } else {
+  #       if(stockRecruitmentModelCode[s]==2){  ## B&H
+  #         rec<-rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
+  #       } else {
+  #         if(stockRecruitmentModelCode[s]==3){  ## GM
+  #           rec<-rec_loga[s]
+  #         } else {
+  #           stop(paste0("SR model code ",stockRecruitmentModelCode[s]," not recognized"))
+  #         }
+  #       }
+  #     }
+  #   }
+  #   return(rec)
+  #  }
+  # 
+
   SSB_R<-function(s,y,a=1) {
-    if (stockRecruitmentModelCode[s]==0 | !recruitYears[s,y]){    ## straight RW
-      rec = logN[[s]][a, y-1]
-    } else {
-      if (stockRecruitmentModelCode[s]==1){ ## Ricker
-        rec<-rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
-      } else {
-        if(stockRecruitmentModelCode[s]==2){  ## B&H
-          rec<-rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
-        } else {
-          if(stockRecruitmentModelCode[s]==3){  ## GM
-            rec<-rec_loga[s]
-          } else {
-            stop(paste0("SR model code ",stockRecruitmentModelCode[s]," not recognized"))
-          }
-        }
-      }
-    }
-    return(rec)
-   }
-
-
+    switch( as.character(stockRecruitmentModelCode[s]),
+            "0"=  logN[[s]][a, y-1],                                                          ## straight RW
+            "1"=  rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge],          ## Ricker
+            "2"=  rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge]),   ## B&H
+            "3"=  rec_loga[s],                                                                ## GM
+            "4"=  rec_loga[s]-rec_logb[s]+log(ssb[s,y-recAge] - (0.5 * (ssb[s,y-recAge] - exp(rec_logb[s])+abs(ssb[s,y-recAge] - exp(rec_logb[s]))))),  #Hockey stick
+            "6"=  rec_loga[s]-rec_logb[s]+log(ssb[s,y-recAge] - (0.5 * (ssb[s,y-recAge] - exp(rec_logb[s])+abs(ssb[s,y-recAge] - exp(rec_logb[s]))))),  #Hockey stick with know inflection point
+            
+            stop(paste0("SR model code ",stockRecruitmentModelCode[s]," not recognized"))          ## error
+    )
+  }
+  
+  
+ 
+# 
+#   case 61: // Hockey stick
+#   // Type log_level = rec_pars(0);
+#   // Type log_blim = rec_pars(1);
+#   // Type a = thisSSB - exp(log_blim);
+#   // Type b = 0.0;
+#   // Type cut = 0.5 * (a+b+CppAD::abs(a-b)); // max(a,b)
+#   predN = rec_pars(0) - rec_pars(1) +
+#     log(thisSSB - (0.5 * ((thisSSB - exp(rec_pars(1)))+Type(0.0)+CppAD::abs((thisSSB - exp(rec_pars(1)))-Type(0.0)))));
+#   break;
+#   case 62: // AR1 (on log-scale)
+#   Rf_error("Not a functional recruitment");
+#   break;
+#   case 63: //Bent hyperbola / Hockey-stick-like
+#   /*
+#     Source: e.g., DOI:10.1093/icesjms/fsq055
+#   rec_pars(0): log-Blim
+#   rec_pars(1): log of half the slope from 0 to Blim
+#   rec_pars(2): log-Smoothness parameter
+#   */
+#     predN = rec_pars(1) +
+#     log(thisSSB + sqrt(exp(2.0 * rec_pars(0)) + (exp(2.0 * rec_pars(2)) / 4.0)) -
+#           sqrt(pow(thisSSB-exp(rec_pars(0)),2) + (exp(2.0 * rec_pars(2)) / 4.0)));
+#   break;
+#   
+#   
+  
   ################################################
   ###################  now we begin ##############
   for (s in seq_len(nSpecies)) {

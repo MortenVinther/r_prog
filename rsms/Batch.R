@@ -8,6 +8,26 @@ rsmsControl<-'rsms.dat'
 doMultiExtract<-FALSE
 
 ################################
+## A run as close to the old SMS as possible
+
+runName<-'old_SMS_like'
+rsms<-batch_SMS_old_like_configuration(outfile=rsmsControl,writeConrol=T)
+
+extractDataAndRunSingle(
+  runName,
+  my.ps,my.ps0,
+  rsmsControl,
+  doMultiExtract,
+  dir=data.path,
+  silent=TRUE,
+  fleetIn="new_fleet_info.dat",
+  smsConf=0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
+) 
+
+
+
+
+################################
 # make default control file and run
 runName<-'RUN1'
 rsms<-batch_default_configuration(outfile=rsmsControl,writeConrol=T)

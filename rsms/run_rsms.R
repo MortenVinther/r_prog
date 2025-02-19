@@ -1,12 +1,15 @@
 
 
-if (FALSE) {
+if (TRUE) {
+  
   rsmsControl<-'rsms.dat'
-  rsms<-batch_default_configuration(outfile=rsmsControl,writeConrol=T)
-
- rsms
- sms<-read.RSMS.control(dir=data.path,file=rsmsControl,test=F) # just checking
+  
+  doMultiExtract<-FALSE
+  
+  runName<-'old_SMS_like'
+  rsms<-batch_SMS_old_like_configuration(outfile=rsmsControl,writeConrol=T)
 }
+
 ### Extract data from SMS
 doMultiExtract<-FALSE
 
@@ -23,18 +26,10 @@ if (TRUE) {  # transform  SMS data into RSMS format
 smsConf<-0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 
 
-runName<-'Single'
+#runName<-'Single'
 # select a combination of species from the (full) data set, also including multi species information
-my.ps<-c(1L,2L,3L,4L,5L,6L,7L,8L,9L,10L,11L,12L)
-#my.ps<-c(1L,7L,8L)
-my.ps<-c(1L,2L,3L,4L,6L,7L,8L,9L,10L)
-my.ps<-c(1L:12L)
-my.ps=c(1,2,3,4,5,6,11,12)
-my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
-my.ps=c(1,2,3,4,5)
-my.ps=c(1,2,3,4,5,6,7,8,9,10,11,12)
 my.ps=c(1,2,6,7,8)
-my.ps=c(7,8)
+my.ps=c(1,6,7,8)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
@@ -63,8 +58,8 @@ cleanrun(silent=TRUE)
 
 myMap<-map_param(data,parameters)
 
-random=c("Un")
-if (length(myMap$Uf)>0) random=c(random,"Uf")
+if (length(myMap$Un)>0) random<-c("Un") else random<-NULL
+if (length(myMap$Uf)>0) random<-c(random,"Uf")
 
 
 system.time(obj <- MakeADFun(func, parameters, random,silent=T,map=myMap))
@@ -79,18 +74,19 @@ system.time(sdrep <- sdreport(obj))
 cat('Hesssian:',sdrep$pdHess,'\n')
 
 a<-extractParameters(sdrep,myMap,data)[[2]]
-print(a,n=300)
+print(a,n=600)
 
 myRep<-obj$report()
 a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
 sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
 
-plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN")[1],showSpecies=1:12,
-                      inpRdata=list("Single"),
-                      labels=c("single"),
+plotCompareRunSummary(Type=c("compSummaryConf","compSummary","compM2","compF","compN","compExpPat")[1],showSpecies=1:12,
+                      inpRdata=list(runName),
+                      labels=c(runName),
                       outFormat=c('screen','pdf','png')[1],
                       multN=0.000001,
+                      showAges=0:10, ncol=3,allInOne=T,
                       longSpNames=FALSE, fileLabel='single')
 
 

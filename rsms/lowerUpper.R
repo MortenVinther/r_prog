@@ -10,6 +10,7 @@ lowerUpper<-function(obj,data,parameters) {
   
   
   nlSp<-nl
+  #sort(unique(nl))
  # nlSp<-spLimit(nlSp,key=data$keyVarObsCatch,param="logSdLogObsCatch") 
   nlSp<-spLimit(nlSp,key=data$keyCatchability,param="logCatchability",l=3) 
   nlSp<-spLimit(nlSp,key=data$keyVarObsSurvey,param="logSdLogObsSurvey",l=3) 
@@ -20,7 +21,7 @@ lowerUpper<-function(obj,data,parameters) {
   
   found<-nlSp=='rho';      nlSp[found]<- paste(nlSp[found],data$spNames[data$useRho],sep='_')
   found<-nlSp=='rec_loga'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0],sep='_')
-  found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0 & data$stockRecruitmentModelCode!=3],sep='_')
+  found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0 & (!data$stockRecruitmentModelCode %in% c(3,6))],sep='_')
   
   found<-nlSp=='logSsbRsd';      nlSp[found]<- paste(nlSp[found],data$spNames[data$inclSsbR>0],sep='_')
 

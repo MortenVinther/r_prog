@@ -1,5 +1,6 @@
 extractParameters<-function(sdrep,myMap,data) {
-  a<-data.frame(name=attr(sdrep$par.fixed,'names'),estimate=sdrep$par.fixed,estimate.sd=sqrt(diag(sdrep$cov.fixed)), gradient=sdrep$gradient.fixed) 
+  a<-data.frame(name=attr(sdrep$par.fixed,'names'),estimate=sdrep$par.fixed,estimate.sd=sqrt(diag(sdrep$cov.fixed)))
+  a$gradient<-sdrep$gradient.fixed[1,] 
   a<-a %>%mutate(order=1:dim(a)[[1]])
   a$key<-ave(seq_len(nrow(a)), a$name, FUN = seq_along)
   
@@ -28,7 +29,7 @@ extractParameters<-function(sdrep,myMap,data) {
    keys<-rbind(keys,k)
   }                                                  
   
-   if ('logCatchability' %in% parName) keys<-rbind(keys,transKey(key=data$keyCatchability,pp='logCatchability', type='fleet'))
+  if ('logCatchability' %in% parName) keys<-rbind(keys,transKey(key=data$keyCatchability,pp='logCatchability', type='fleet'))
   if ('logSdLogObsSurvey' %in% parName) keys<-rbind(keys,transKey(key=data$keyVarObsSurvey,pp='logSdLogObsSurvey', type='fleet'))
  
   if ('logSdLogFsta' %in% parName) {
@@ -107,13 +108,13 @@ extractParameters<-function(sdrep,myMap,data) {
   
   if ('logStomObsVar' %in% parName) m1<-rbind(m1,parMapPred(vari='logStomObsVar',type='predator'))
  
-   keys<-ungroup(keys) %>% dplyr::select(Var1,Var2,Value,param,type)
+  keys<-ungroup(keys) %>% dplyr::select(Var1,Var2,Value,param,type)
   
   mk<-rbind(m1,keys) %>% rename(key=Value,name=param)
   mk<-mk %>% rowwise() %>% mutate(s=if_else(type %in% c('species','predator','qData'),match(unlist(strsplit(Var1,' '))[1],data$allSpNames),-9))
   tmp<-filter(mk,type=='fleet') %>% transmute(Var1,Var2,name,s2= match(unlist(lapply(strsplit(Var1,' '),function(x) x[1])),data$allSpNames))
   mk<-left_join(mk,tmp,by = join_by(Var1, Var2, name)) %>% mutate(s=if_else(s== -9 & !is.na(s2),s2,s), s2=NULL) 
-   filter(mk,name=='logFSeasonal')       
+     
   all<-left_join(a,mk,by = join_by(name, key)) %>%as_tibble()
 
   tmp<-!(all$type %in% c('prey-pred','predator'))

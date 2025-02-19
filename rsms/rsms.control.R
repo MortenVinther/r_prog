@@ -18,6 +18,7 @@ setClass("RSMS.control",
         max.age.all         ="integer",
         species.info        ="matrix",
         SSB.R                ="vector",
+        SSB.R.add            ="vector",
         min.catch.CV        ="numeric",
         combined.catches    ="vector",
         incl.process.noise  ='vector',
@@ -78,6 +79,7 @@ setClass("RSMS.control",
         max.age.all     =0L,                                            
         species.info    =matrix(0L,ncol=9,nrow=1,dimnames=list(c("sp1"),c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3"))),
         SSB.R           =as.vector(0,mode="numeric"),
+        SSB.R.add       =as.vector(0,mode="numeric"),
         min.catch.CV    =0.1,                                                
         discard         =as.vector(0L,mode="list"),
         combined.catches=as.vector(0L,mode="list"),  
@@ -333,7 +335,13 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
              cat("# Stock Recruit relation (option SSB.R)\n", 
              "#      0=random walk 1=Ricker, 2=Beverton & Holt, 3=Geom mean,\n",
              "#      4= Hockey stick, 5=hockey stick with smoother,\n",
-             "#      >100= hockey stick with known breakpoint (given as input)\n",file=file,append=T,sep="")
+             "#      6= hockey stick with known breakpoint (given as input in SSB.R.add )\n",file=file,append=T,sep="")
+             if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
+           } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
+           },
+           "SSB.R.add"       ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             cat("# Stock Recruit relation, additional information  (option SSB.R.add)\n", file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
            } else  cat(slot(control,x),"\t#",x,"\n",file=file,append=TRUE)
            },
@@ -402,7 +410,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
              cat("## Model for F (default=1) (option fModel):\n",
                  "#   1=random walk F (deafult SAM)\n",
                  "#   2=random walk F used as year effect in separable F model for some or all ages\n",
-                 "#   3=year effect in separable model is estimated as a fixed parameter\n",
+                 "#   3=year effect in separable F model is estimated as a fixed parameter\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
@@ -890,7 +898,7 @@ read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {
            n.VPA.sp<-nsp-first.VPA+1
        },       
        "SSB.R"                ={slot(control,x)<-as.vector(opt[n:(n-1+n.VPA.sp)]); n<-n+n.VPA.sp},
-       
+       "SSB.R.add"           ={slot(control,x)<-as.vector(opt[n:(n-1+n.VPA.sp)]); n<-n+n.VPA.sp},       
        "min.catch.CV"        = {slot(control,x)<-as.numeric(opt[n]); n<-n+1},
        "discard"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        "combined.catches"    ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
@@ -1070,6 +1078,7 @@ RSMS.control <- function(
                species.names.long=species.names.long,
                species.info=species.info,
                SSB.R=rep(0, no.VPA.sp),
+               SSB.R.add=rep(0, no.VPA.sp),
                combined.catches=rep(2L, no.VPA.sp),
                incl.process.noise=rep(1L, no.VPA.sp),
                keyVarLogN=lapply(1:no.VPA.sp,function(x) 0L),

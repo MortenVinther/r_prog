@@ -472,8 +472,8 @@ batch_SMS_old_like_configuration <-function(outfile='rsms.dat',dir=data.path,wri
   a<-batch_final_single_configuration(outfile,dir=data.path,writeConrol=FALSE)
   
   #                    COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
-  a@SSB.R<-as.integer(c(6,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2,    2) )
-  a@SSB.R.add<-       c(86000,0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0) 
+  a@SSB.R<-as.integer(c(6,    2,    2,    2,    2,    2,    6,    6,    2,    2,    2,    2) )
+  a@SSB.R.add<-       c(86000,0,    0,    0,    0,    0,100000,1000000,    0,    0,    0,    0) 
   
   
   

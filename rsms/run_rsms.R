@@ -29,7 +29,7 @@ smsConf<-0L # 0=single species, 1=multi species, but fixed single species parame
 #runName<-'Single'
 # select a combination of species from the (full) data set, also including multi species information
 my.ps=c(1,2,6,7,8)
-my.ps=c(1,6,7,8)
+my.ps=c(7,8)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 

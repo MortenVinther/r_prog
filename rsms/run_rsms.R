@@ -1,22 +1,22 @@
-
-
 if (TRUE) {
-  
   rsmsControl<-'rsms.dat'
-  
   doMultiExtract<-FALSE
-  
-  runName<-'old_SMS_like'
+  fixCatch<- NULL #'NSA'  # c('NSA','SSA') NULL,  Move quarter 3 catches to quarter 2, except for age 0
+  runName<-'SMS_like'
+
+# rsms<- batch_default_configuration(outfile=rsmsControl,writeConrol=T)
   rsms<-batch_SMS_old_like_configuration(outfile=rsmsControl,writeConrol=T)
+
+#  rsms
 }
 
+
 ### Extract data from SMS
-doMultiExtract<-FALSE
 
 if (TRUE) {  # transform  SMS data into RSMS format 
   switch(my.stock.dir,
-   "rsms_input"       = inp_all<-make_rsms_data(dir=data.path,rsmsControl='rsms.dat',multi=doMultiExtract),
-   "rsms_SAN-area-1r"       = inp_all<-make_rsms_data(dir=data.path,rsmsControl='rsms.dat',multi=FALSE),
+   "rsms_input"       = inp_all<-make_rsms_data(dir=data.path,rsmsControl='rsms.dat',multi=doMultiExtract,fixCatch=fixCatch),
+   "rsms_SAN-area-1r"       = inp_all<-make_rsms_data(dir=data.path,rsmsControl='rsms.dat',multi=FALSE,fixCatch=NULL),
     stop(paste0("Not valid stock dir: ",my.stock.dir))
   ) #end switch
   save(inp_all,file=file.path(data.path,"rsms_input_all.Rdata")) 
@@ -25,11 +25,10 @@ if (TRUE) {  # transform  SMS data into RSMS format
 
 smsConf<-0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 
-
-#runName<-'Single'
 # select a combination of species from the (full) data set, also including multi species information
-my.ps=c(1,2,6,7,8)
-my.ps=c(1,7,8)
+my.ps=c(1,3,4,5,6,7,8,9,10,11,12)
+my.ps=c(1,3,4,5,6,7,8)
+my.ps=c(7,8)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
@@ -49,8 +48,7 @@ parameters<-inp[['parameters']]
 if (FALSE) {
  load(paste0(runName,'.Rdata'),verbose=TRUE)
   parameters<-as.list(sms$sdrep, what="Est")  #parameters and random effects
-  exp(parameters$logSeparF)
-  exp(parameters$logFSeasonal)
+  exp(parameters$logSeparF);  exp(parameters$logFSeasonal)
 }
 
 #### Run rsms
@@ -61,13 +59,12 @@ myMap<-map_param(data,parameters)
 if (length(myMap$Un)>0) random<-c("Un") else random<-NULL
 if (length(myMap$Uf)>0) random<-c(random,"Uf")
 
-
 system.time(obj <- MakeADFun(func, parameters, random,silent=T,map=myMap))
 
 # checkConsistency(obj);
 lu<-lowerUpper(obj,data,parameters )
 
-system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=1000,eval.max=1000)))
+system.time(opt <-nlminb(obj$par, obj$fn, obj$gr, lower=lu[['lower']], upper=lu[['upper']],control=list(iter.max=5000,eval.max=5000)))
 announce(opt)
 
 system.time(sdrep <- sdreport(obj))
@@ -76,32 +73,62 @@ cat('Hesssian:',sdrep$pdHess,'\n')
 a<-extractParameters(sdrep,myMap,data)[[2]]
 print(a,n=600)
 
+print(a %>% arrange(desc(abs(gradient))),n=10)
+
+
 myRep<-obj$report()
 a<-myRep$nlls; a<-rbind(a,all=colSums(a)); a<-cbind(a,all=rowSums(a));round(a,1)
 
 sms<-saveResults(runName=runName,data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=myMap,random=random,rep=myRep,sdrep=sdrep)
 
-plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[2],showSpecies=1:12,
-                      inpRdata=list(runName,"SMS_old"),
-                      labels=c(runName,"SMS_old"),
+
+if (FALSE) { #You have to run this if you change species included 
+  # read results from ICES stock assessment into a suitable format,saved as "outSet" .Rdata
+  transExternalSummary(inp='summary_table_raw_ICES.out',outSet='ICES_single_sp',spNames=data$spNames) #, exSpeciesNames=data$spNames)
+  transExternalSummary(inp='summary_table_raw_SMS_old_MS.out',outSet='SMS_old_MS',spNames=data$spNames) #, exSpeciesNames=data$spNames)
+  transExternalData(inp='summary_SMS_old_MS.out',outSet='SMS_old_details_MS',spNames=data$spNames)
+  transExternalSummary(inp='summary_table_raw_SMS_old_SS.out',outSet='SMS_old_SS',spNames=data$spNames) #, exSpeciesNames=data$spNames)
+  transExternalData(inp='summary_SMS_old_SS.out',outSet='SMS_old_details_SS',spNames=data$spNames)
+}
+
+
+plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[1],showSpecies=1:12,
+                      inpRdata=list(runName),
+                      labels=c(runName),
                       outFormat=c('screen','pdf','png')[1],
                       showAges=0:10, ncol=3,allInOne=T,
+                      longSpNames=TRUE, fileLabel='single')
+
+
+plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[2],showSpecies=1:12,
+                      inpRdata=list(runName,"SMS_old_SS"),
+                      labels=c(runName,"SMS_old_SS"),
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:10, ncol=3,allInOne=TRUE,
                       longSpNames=FALSE, fileLabel='single')
--
 
-plotSeasonalData(inp=runName,Type="FiProp", #Type="FiProp",
-                 outFormat=c('screen','pdf','png')[1],
-                 showAges=0:8,
-                 multN=0.001,
-                 ncols=3,
-                 cummulate=T,
-                 fileLabel='pl')
+plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[2],showSpecies=1:12,
+                      inpRdata=list(runName,"SMS_old_SS",'ICES_single_sp'),
+                      labels=c(runName,"SMS_old_SS",'ICES_single_sp'),
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:10, ncol=3,allInOne=TRUE,
+                      longSpNames=FALSE, fileLabel='single')
 
+plotSeasonalData(inp=runName,Type=c("N","F","C","M","M1",'"M2','Z',"WEST","WECA","propMat","seasFprop","FiProp")[2],
+                           CombineSeason=T,
+                           showSpecies=1:100,
+                           outFormat=c('screen','pdf','png')[1],
+                           showAges=0:4,
+                           multN=0.001,
+                           ncols=2,
+                           fileLabel='pl',
+                           cummulate=FALSE,  
+                           longSpNames=TRUE)
+  
 
- 
-plotCompareRunSummary(Type=c(c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat"))[2],showSpecies=1:12,
-                                 inpRdata=list("Single","SMS_old"),
-                                 labels=c("single","SMS_old"),
+plotCompareRunSummary(Type=c(c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat"))[8],showSpecies=1:12,
+                                 inpRdata=list("Single","SMS_old_SS"),
+                                 labels=c("single","SMS_old_SS"),
                                  outFormat=c('screen','pdf','png')[1],
                                  multN=0.000001,
                                  longSpNames=FALSE, fileLabel='single')
@@ -119,11 +146,7 @@ plotCompareRunSummary(Type=c(c("SummaryConf","Summary","SSBrecConf","SSBrec","M2
      inpRdata=list("Single3","Single4"),
      labels=c("Single3","Single4")
    )
-   
-   # read results from ICES stock assessment into a suitable format,saved as "outSet" .Rdata
-   transExternalSummary(inp='summary_table_raw_ICES.out',outSet='ICES_single_sp',spNames=data$spNames) #, exSpeciesNames=data$spNames)
-   transExternalSummary(inp='summary_table_raw.out',outSet='SMS_old',spNames=data$spNames) #, exSpeciesNames=data$spNames)
-   transExternalData(inp='summary.out',outSet='SMS_old_detailed',spNames=data$spNames)
+    
    transExternalSummary(inp='ICES_SAN_R1_2025.out',outSet='SandeelR1',spNames=data$spNames,exSpeciesNames=c('SA1'))
    transExternalData(inp='ICES_SAN_R1_2025_detailed.out',outSet='SandeelR1_detailed',spNames=data$spNames, exSpeciesNames=data$spNames)
    transExternalData(inp='ICES_SAN_R1_2025_detailed_twoBlocks.out',outSet='SandeelR1_detailed_twoBlocks',spNames=data$spNames, exSpeciesNames=data$spNames)

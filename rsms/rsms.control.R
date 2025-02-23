@@ -1,5 +1,33 @@
-### class ######################################################################
+validRSMS.control <- function(object){
+  valid.test.output<-c(0,1,2,3,4)
+  if (!(object@test.output %in% valid.test.output))
+    return(paste("value of test.ouput must have a value in:", paste(valid.test.output,collapse=', ')))
+  if (object@VPA.mode<0 & object@VPA.mode>2)
+    return("value of VPA.mode must be in the range 0-2")
+  if (object@first.year<0 | object@last.year<0 | object@first.year > object@last.year)
+    return(paste("value of first.year:",object@first.year, "or last.year",object@last.year, "is wrong"))
+  if (object@last.year.model>object@last.year) 
+    return(paste("last.year model(",object@last.year.model,") must be <= last.year (",object@last.year.model,")",sep=""))
+  if (object@last.year.model<=object@first.year) 
+    return("last.year.model must be > first.year")
+  if (object@last.season < 1) 
+    return("last.season must be >= 1")
+  
+  
+  a<-object@fModel[object@firstAgeYearEffect<object@max.age.all] 
+  if (length(setdiff(a,c(2,3))) >0) return(paste("fModel must be 2 or 3 for species with firstAgeYearEffect < ",object@max.age.all,
+                                           '\n fModel=',paste(object@fModel,collapse=', '),
+                                           '\n firstAgeYearEffect=',paste(object@firstAgeYearEffect,collapse=', ')))
+                                    
+                                          
+  
+  
+  # Everything is fine
+  return(TRUE)
+}
 
+
+### class ######################################################################
 
 setClass("RSMS.control",
     representation(
@@ -19,20 +47,23 @@ setClass("RSMS.control",
         species.info        ="matrix",
         SSB.R                ="vector",
         SSB.R.add            ="vector",
-        min.catch.CV        ="numeric",
-        combined.catches    ="vector",
         incl.process.noise  ='vector',
         keyVarLogN          ="vector",
         incl.Ssb.R          ="vector",
-        fModel              ="vector",
-        keyLogFsta          ="vector",
+        min.catch.CV        ="numeric",
         catch.s2.group      ="vector",
-  
+        fModel              ="vector",
+        combined.catches    ="vector",
+        
+        keyLogFsta          ="vector",
         firstAgeYearEffect  ="vector",
-        catch.sep.age       ="vector",
-        catch.sep.year      ="vector",
-      
         use.rho             ="vector",
+        
+        #catch.sep.age       ="vector",
+        catch.sep.year      ="vector",
+        catch.sep.season    ="vector",
+
+      
         avg.F.ages          ="matrix",
         discard             ="vector",
         zero.catch.year.season="integer",
@@ -89,8 +120,9 @@ setClass("RSMS.control",
         fModel          =as.vector(1L,mode="integer"),
         keyLogFsta      =as.vector(0L,mode="list"),
         catch.s2.group  =as.vector(0L,mode="list"),  
-        firstAgeYearEffect=as.vector(0L,mode="integer"),
-        catch.sep.age   =as.vector(0,mode="list"), 
+        firstAgeYearEffect=as.vector(99L,mode="integer"),
+        #catch.sep.age   =as.vector(0,mode="list"), 
+        catch.sep.season   =as.vector(0,mode="list"), 
         catch.sep.year  =as.vector(0,mode="list"), 
         use.rho=         as.vector(0L,mode="integer"),
         avg.F.ages      =matrix(0,ncol=2,nrow=1,dimnames=list(c("sp1"),c("first-age","last-age"))),                                        
@@ -118,14 +150,11 @@ setClass("RSMS.control",
         stom.type.include   =as.vector(1L,mode="integer"),                               
         use.overlap         =0L,                                              
         checkValueMulti= -999L
-        
-        )                                                           
+        ),
+       validity=validRSMS.control
 )
 
-
-
-# in final version remove(validSMS.control)  # We do not need this function any more
-
+setValidity("RSMS.control", validRSMS.control)
 
 ### End class ###########################################################
 
@@ -419,9 +448,9 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            
            "keyLogFsta" ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"# number of separate age groups for use for random walk F stages (option keyLogFsta)",
+             if (expand) wr.list.expand(slot(control,x),"# number of age groups for use for random walk F stages, or in a separable model(option keyLogFsta)",
                                         "first ages in each group by species",VPA.species)
-             if (!expand) wr.list.nice(slot(control,x),"number of separate age groups for use for random walk F stages (option keyLogFsta)",
+             if (!expand) wr.list.nice(slot(control,x),"# number of age groups for use for random walk F stages, or in a separable model(option keyLogFsta)",
                                        "first ages in each group by species",VPA.species)
            } else  wr.list(slot(control,x),"keyLogFsta",x)
            },
@@ -446,12 +475,22 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
 
            "catch.sep.age"  ={if (nice) {
              cat(sepLine,file=file,append=T)
-             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2|3) (option catch.sep.age)",
+             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2|3, where it replaces  )",
                                         "first age in each group (option catch.sep.age)",VPA.species)                                
              
              if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same age selection (used only in case of fModel==2|3)",
                                        "first age in each group (option catch.sep.age)",VPA.species)
            } else  wr.list(slot(control,x),"catch.sep.age",x)
+           },
+           
+           "catch.sep.season"  ={if (nice) {
+             cat(sepLine,file=file,append=T)
+             if (expand) wr.list.expand(slot(control,x),"number of age groups with the same specific seasonal selection (used only in case of fModel==2|3)",
+                                        "first age in each group (option catch.sep.season)",VPA.species)                                
+             
+             if (!expand) wr.list.nice(slot(control,x),"number of age groups with the same specific seasonal selection (used only in case of fModel==2|3)",
+                                       "first age in each group (option catch.sep.season)",VPA.species)
+           } else  wr.list(slot(control,x),"catch.sep.season",x)
            },
            
            "catch.sep.year"  ={if (nice) {
@@ -925,6 +964,10 @@ read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {
          group<-vector("list", length=n.VPA.sp); 
          for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
          slot(control,x)<-group }, 
+      "catch.sep.season"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
+      group<-vector("list", length=n.VPA.sp); 
+      for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
+      slot(control,x)<-group },
       "catch.sep.year"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
       group<-vector("list", length=n.VPA.sp); 
       for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
@@ -975,6 +1018,11 @@ read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {
       if (class(slot(control,x))[1]!='list') cat(slot(control,x),'\n') else print(slot(control,x))
     }
   }
+  # Verify that this object is valid
+  test <- validObject(control)
+  
+  if (!test) stop("Invalid object:", test)
+  
   control
 }
 
@@ -1087,8 +1135,9 @@ RSMS.control <- function(
               
                keyLogFsta=lapply(1:no.VPA.sp,function(x) as.integer(species.info[x+no.other.predators,"first-age F>0"]:(species.info[x+no.other.predators,"first-age F>0"]+1L))),
                catch.s2.group=lapply(1:no.VPA.sp,function(x) as.integer(species.info[x+no.other.predators,"first-age F>0"]:(species.info[x+no.other.predators,"first-age F>0"]+1L))),
-               firstAgeYearEffect= species.info[ first.no.VPA:last.no.VPA,"first-age F>0"],
-               catch.sep.age=lapply(1:no.VPA.sp,function(x) species.info[x+no.other.predators,"first-age F>0"]),
+               firstAgeYearEffect= rep(99L, no.VPA.sp),
+               #catch.sep.age=lapply(1:no.VPA.sp,function(x) species.info[x+no.other.predators,"first-age F>0"]),
+               catch.sep.season=lapply(1:no.VPA.sp,function(x) species.info[x+no.other.predators,"first-age F>0"]),
                catch.sep.year=lapply(1:no.VPA.sp,function(x) first.year.model),
                use.rho=rep(0L, no.VPA.sp),
                avg.F.ages      =matrix(0L,ncol=2,nrow=no.VPA.sp,dimnames=list(species.names[first.no.VPA:last.no.VPA],c("first-age","last-age"))),
@@ -1133,8 +1182,8 @@ RSMS.control <- function(
       res@last.year.model <- as.integer(last.year.model)
     if (!missing(last.season))
       res@last.season <- as.integer(last.season)
-    if (!missing(last.season.last.year))
-      res@last.season.last.year <- as.integer(last.season.last.year)
+    #if (!missing(last.season.last.year))
+    #  res@last.season.last.year <- as.integer(last.season.last.year)
     if (!missing(no.species))
       res@no.species <- as.integer(no.species)
     if (!missing(first.age))

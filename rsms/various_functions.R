@@ -368,13 +368,14 @@ readNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',off.age,off.year,nSpe
   
   #   a<-readNewFleetInfo(dir=dir,of=of,off.age=1,off.year=1)
 
-  # dir=data.path; of='new_fleet_info.dat'; off.age=1;off.year=-1973; verbose=FALSE
+  # dir=data.path; of='new_fleet_info.dat'; off.age=1;off.year=-1973; verbose=TRUE
 
   a<-scan(file=file.path(dir,of),comment.char = "#",quiet=TRUE)
   cv<-a[1]
   a<-a[-1]
   nf<-a[1:nSpecies]
   a<-a[-(1:nSpecies)]
+  
   
   nFleets<-sum(nf)
   # Fleetnames
@@ -432,7 +433,6 @@ readNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',off.age,off.year,nSpe
   list(k=k,cv=cv,catchability=catchability,catchability.var=catchability.var)
 }
 
-# j<-readNewFleetInfo(dir=data.path,of='new_fleet_info.dat',off.age=data$off.age,off.year=data$off.year,verbose=TRUE); str(j,1)
 
 
 writeNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',key,speciesNames){
@@ -503,11 +503,9 @@ writeNewFleetInfo<-function(dir=dir,of='new_fleet_info.dat',key,speciesNames){
   cat("file: ",of,"has been written\n")
 }
 
-# a<-readNewFleetInfo(dir=data.path,of='new_fleet_info.dat',off.age=data$off.age,off.year=data$off.year)
-#a<-readNewFleetInfo(dir=data.path,of='new_fleet_info.dat',off.age=1L,off.year=-1973L)
 
-#writeNewFleetInfo(dir=data.path,of='new_fleet_info3.dat',key=a,speciesNames=data$spNames)
-#writeNewFleetInfo(dir=data.path,of='new_fleet_info3.dat',key=a,speciesNames=spNames)
+#a<-readNewFleetInfo(dir=data.path,of='new_fleet_info.dat',off.age=data$off.age,off.year=data$off.year,nSpecies=data$nSpecies)
+# writeNewFleetInfo(dir=data.path,of='new_fleet_info3.dat',key=a,speciesNames=data$spNames)
 
 
 

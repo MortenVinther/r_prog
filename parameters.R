@@ -4,6 +4,7 @@
 a<-Read.SMS.std(excludeNotUsed=FALSE)
 subset(a,used=='not_used')
 
+b<-filter(a,species==22); view(b)
 
 #remove output variables
 remo<-c('M2_sd','hist_SSB','avg_F')

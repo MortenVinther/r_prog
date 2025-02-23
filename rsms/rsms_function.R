@@ -137,36 +137,12 @@ func <- function(parameters) {
   ## Initialize joint negative log likelihood
   ans <- 0
   
-  ##########################################################################################
-  # 
-  # SSB_R<-function(s,y,a=1) {
-  #   if (stockRecruitmentModelCode[s]==0 | !recruitYears[s,y]){    ## straight RW
-  #     rec = logN[[s]][a, y-1]
-  #   } else {
-  #     if (stockRecruitmentModelCode[s]==1){ ## Ricker
-  #       rec<-rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge]
-  #     } else {
-  #       if(stockRecruitmentModelCode[s]==2){  ## B&H
-  #         rec<-rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge])
-  #       } else {
-  #         if(stockRecruitmentModelCode[s]==3){  ## GM
-  #           rec<-rec_loga[s]
-  #         } else {
-  #           stop(paste0("SR model code ",stockRecruitmentModelCode[s]," not recognized"))
-  #         }
-  #       }
-  #     }
-  #   }
-  #   return(rec)
-  #  }
-  # 
-
   SSB_R<-function(s,y,a=1) {
     switch( as.character(stockRecruitmentModelCode[s]),
             "0"=  logN[[s]][a, y-1],                                                          ## straight RW
             "1"=  rec_loga[s]+log(ssb[s,y-recAge])-exp(rec_logb[s])*ssb[s,y-recAge],          ## Ricker
             "2"=  rec_loga[s]+log(ssb[s,y-recAge])-log(1+exp(rec_logb[s])*ssb[s,y-recAge]),   ## B&H
-            "3"=  rec_loga[s],                                                                ## GM
+            "3"=  rep(rec_loga[s],length(y)),                                                                ## GM
             "4"=  rec_loga[s]-rec_logb[s]+log(ssb[s,y-recAge] - (0.5 * (ssb[s,y-recAge] - exp(rec_logb[s])+abs(ssb[s,y-recAge] - exp(rec_logb[s]))))),  #Hockey stick
             "6"=  rec_loga[s]-rec_logb[s]+log(ssb[s,y-recAge] - (0.5 * (ssb[s,y-recAge] - exp(rec_logb[s])+abs(ssb[s,y-recAge] - exp(rec_logb[s]))))),  #Hockey stick with know inflection point
             
@@ -176,7 +152,7 @@ func <- function(parameters) {
   
   
  
-# 
+#  STOLEN FROM SAM
 #   case 61: // Hockey stick
 #   // Type log_level = rec_pars(0);
 #   // Type log_blim = rec_pars(1);
@@ -234,13 +210,16 @@ func <- function(parameters) {
     # str(logFSeasonal,1)
     # str(keylogSeasonF,1)  # kan være tom, hvis ikke den benyttes, MÅSKE er det der giver fejlen?
     
-    
-    y=3
-    cat('\n')
-    for (a in (info[s,'faf']:info[s,'la'])) {
-      q=3
-      cat('sp:',s, "a:",a,"  useFrandom:",useFrandom," SeparableMod:",SeparableMod," fModel:",fModel," fSepar:",fSepar, " a >=fSepar:",a >=fSepar,'\n')
-    }
+    if (FALSE){
+      y=3
+      cat('\n')
+      for (a in (info[s,'faf']:info[s,'la'])) {
+        q=3
+        cat('sp:',s, "a:",a,"  useFrandom:",useFrandom," SeparableMod:",SeparableMod," fModel:",fModel," fSepar:",fSepar, " a >=fSepar:",a >=fSepar,'\n')
+      } 
+      a=3
+   }
+
     ##fishing mortality, seasonal
     for (y in seq_len(timeSteps)) {
       for (a in (info[s,'faf']:info[s,'la'])) {
@@ -248,36 +227,20 @@ func <- function(parameters) {
           if (seasFprop[[s]][y,q,a]>0) {
             if (useFrandom)  FisQ[[s]][y,q,a]= logF[[s]][keyLogFsta[s,a],y] else FisQ[[s]][y,q,a]=logYearEffectF[idxFY,y]
             if (SeparableMod &  a >=fSepar)  {
-               FisQ[[s]][y,q,a] <- exp(FisQ[[s]][y,q,a] + logSeparF[keyLogSeparF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q]])
+               FisQ[[s]][y,q,a] <- exp(FisQ[[s]][y,q,a] + logSeparAgeF[keylogSeparAgeF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q,a]])
             } else {
               FisQ[[s]][y,q,a]<-   exp(FisQ[[s]][y,q,a] + logSeasFprop[[s]][y,q,a]) 
-              if (fModel==2 | fModel==3) if (a >=fSepar) {
-                 FisQ[[s]][y,q,a]<-FisQ[[s]][y,q,a] * exp(logSeparF[keyLogSeparF[[s]][y,a]])
+              if ((fModel==2 | fModel==3)  & (a >=fSepar)) {
+                 FisQ[[s]][y,q,a]<-FisQ[[s]][y,q,a] * exp(logSeparAgeF[keylogSeparAgeF[[s]][y,a]])
               }
             }
           } else FisQ[[s]][y,q,a]<- 0.0
     }}}
 
-    # logYearEffectF
-    # ##fishing mortality, seasonal
-    # for (y in seq_len(timeSteps)) {
-    #   for (a in (info[s,'faf']:info[s,'la'])) {
-    #     for (q in fqa[a]:lq)  {
-    #       if (seasFprop[[s]][y,q,a]>0) {
-    #         if (SeparableMod &  a >=fSepar)  {
-    #           FisQ[[s]][y,q,a] <- exp(logF[[s]][keyLogFsta[s,a],y] + logSeparF[keyLogSeparF[[s]][y,a]]+ logFSeasonal[keylogSeasonF[[s]][y,q]])
-    #         } else {
-    #           FisQ[[s]][y,q,a]<-   exp(logF[[s]][keyLogFsta[s,a],y] + logSeasFprop[[s]][y,q,a]) 
-    #           if (fModel==2) if (a >=fSepar) {
-    #             FisQ[[s]][y,q,a]<-FisQ[[s]][y,q,a] * exp(logSeparF[keyLogSeparF[[s]][y,a]])
-    #           }
-    #         }
-    #       } else FisQ[[s]][y,q,a]<- 0.0
-    #     }}}
-    
+   
     
     ## First take care of F
-    if (useFrandomWalk[s]) {
+    if (useFrandom) {
       fsd <- sdLogFsta[keyLogFstaSd[s,keyLogFstaSd[s,]>0]]
       if (useRho[s]==0) {  # no correlation
            fvar <- diag(fsd[1:stateDimF[s]]*fsd[1:stateDimF[s]],ncol=stateDimF[s], nrow=stateDimF[s])
@@ -415,10 +378,9 @@ func <- function(parameters) {
   # stock recruitment relation, if used
   if (inclSsbR[s]>0) {
     sd <- exp(logSsbRsd[inclSsbR[s]])
-    obs<-logNq[[s]][,recSeason,1]
-    predObs<-rep(0,nYears) 
-    for (y in (1:nYears)) predObs[y]<-SSB_R(s,y)
-         
+    obs<-logNq[[s]][,recSeason,1][recruitYears[s,]]
+    predObs<-SSB_R(s,y=1:nYears)[recruitYears[s,]]
+
     llh<- sum(dnorm(obs,predObs,sd,log=TRUE))
     ans <- ans - llh
     nlls[s,'SSB.R']<- nlls[s,'SSB.R'] - llh  

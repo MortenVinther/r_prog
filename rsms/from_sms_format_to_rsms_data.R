@@ -1,4 +1,4 @@
-From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path,sms.dat="rsms.dat") {
+From_SMS_format_to_rsms<-function(otherPredExist=TRUE,catchMultiplier=1,dir=data.path,sms.dat="rsms.dat",fixCatch=NULL) {
   
   sms<-read.RSMS.control(dir,file=sms.dat)  
   
@@ -34,14 +34,24 @@ b<-data.frame(b,CATCHN=CATCHN,WCATCH=WCATCH,PROP_CAT=Prop.landed,PROP_SEASON_F=P
 b<-subset(b,select=c(year,species.n,quarter,sub_area,age,WCATCH,CATCHN,PROP_CAT,PROP_SEASON_F))
 b$CATCHN<-catchMultiplier*b$CATCHN
 
-if (FALSE) {
-  pf<-Read.summary.data(dir=dir) %>%  filter((Age>0 |Quarter>2) & Species.n>=first.VPA) %>% select(Species.n,Year,Quarter,Age,"F") %>% rename(FF="F") %>%
-    group_by(Species.n, Year,Age)%>%  mutate(propF=FF/sum(FF),FF=NULL) %>% as_tibble() %>% mutate(propF=if_else(is.na(propF),0,propF)) %>%
-    rename(year=Year,species.n=Species.n,age=Age,quarter=Quarter)
+if (length(fixCatch)>0) {
   
-  b<-left_join(b,pf,by = join_by(year, species.n, quarter, age))
-  b[is.na(b$propF),'propF']<-0
+ bb<-filter(b,species.n %in% fixCatch) 
+ head(bb)
+ bbb<-bb %>% mutate(quarter=if_else(age==0,3,2)) %>% group_by(year, species.n, quarter, sub_area, age) %>%
+   summarize(WCATCH2=weighted.mean(WCATCH,w=CATCHN),CATCHN2=sum(CATCHN),PROP_SEASON_F2=sum(PROP_SEASON_F),.groups='drop') %>%
+   mutate(WCATCH2=if_else(is.na(WCATCH2),0,WCATCH2),quarter=if_else(age==0,3,quarter)) 
+ 
+ filter(bbb,year==1989 & CATCHN2>0 & species.n==22)
+ 
+ bbb<-left_join(bb,bbb,by = join_by(year, species.n, quarter, sub_area, age)) %>%
+    mutate(WCATCH=0,   CATCHN=0, PROP_SEASON_F=0) %>%
+    mutate(WCATCH=if_else(is.na(WCATCH2),0,WCATCH2),CATCHN=if_else(is.na(CATCHN2),0,CATCHN2), PROP_SEASON_F=if_else(is.na(PROP_SEASON_F2),0,PROP_SEASON_F2) ) %>%
+    mutate(WCATCH2=NULL,CATCHN2=NULL,PROP_SEASON_F2=NULL,PROP_CAT=1)
+
+ b<-rbind(filter(b,!(species.n %in% fixCatch)),bbb) 
 }
+
 out<-list(catch=b)
 ############## bio data
 WSEA<-scanData('west.in');WSEA<-WSEA[((first.VPA-1)*noAreas*ny*(la-fa+1)*nq+1):length(WSEA)]

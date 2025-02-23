@@ -4,7 +4,7 @@ map_param<-function(data,parameters) {
   my.map<-lapply(parameters,function(x) {if (length(x)>0) a<-factor(1L:length(x)) else a<-factor(numeric(0)); a})
   
   # adjust if the are species/year combination with zero catches (or assumed F is very low and highly uncertain)
-  if (data$zeroCatchYearExists==1 | length(parameters$logSeparF)>0 ) {
+  if (data$zeroCatchYearExists==1 | length(parameters$logSeparAgeF)>0 ) {
     if (any(data$nlogF>0)) {
       UfMap<-matrix(1L:(dim(parameters$Uf)[[1]]*dim(parameters$Uf)[[2]]),nrow=sum(data$nlogF),byrow=TRUE)
       for (s in 1:data$nSpecies) if (length(data$zeroCatchYear[[s]]) >0 ) {
@@ -13,11 +13,11 @@ map_param<-function(data,parameters) {
         UfMap[fromTo[1]:fromTo[2],zy]<-NA
         parameters$Uf[fromTo[1]:fromTo[2],zy]<-log(0.001)
       }
-      if (length(parameters$logSeparF)>0) for (s in 1:data$nSpecies){
+      if (length(parameters$logSeparAgeF)>0) for (s in 1:data$nSpecies){
         fSepar<-data$info[s,'fSepar']
-        if (fSepar<99) {
+        if (fSepar<90) {
           ii<- max(data$nlogFfromTo[s,]) # last random walk group for the species is used as a year effect in separable F model
-          #cat('ii:',ii,'\n')
+          cat('ii:',ii,'\n')
           parameters$Uf[ii,1]<-0.0  
           UfMap[ii,1]<-NA
         }
@@ -27,11 +27,12 @@ map_param<-function(data,parameters) {
   }
  
  
-  if ((data$zeroCatchYearExists==1 | length(parameters$logSeparF)>0) & (any(data$nlogF>0)))  my.map<-purrr::assign_in(my.map,'Uf',UfMap)
+  if ((data$zeroCatchYearExists==1 | length(parameters$logSeparAgeF)>0) & (any(data$nlogF>0)))  my.map<-purrr::assign_in(my.map,'Uf',UfMap)
 
   
   # my.map<-list(Uf=UfMap) else my.map=list()
   
+  (data$inclSsbR==0  & !data$doProcessN_any)
   if (any(data$stockRecruitmentModelCode %in% c(0,3,6))) { #random walk recruitment and other with less than two parameters
     aMap<-1L:length(parameters$rec_loga)
     bMap<-1L:length(parameters$rec_logb)
@@ -39,6 +40,9 @@ map_param<-function(data,parameters) {
     bMap[data$stockRecruitmentModelCode==0]<-NA
     bMap[data$stockRecruitmentModelCode==3]<-NA
     bMap[data$stockRecruitmentModelCode==6]<-NA
+    noRec<-data$inclSsbR==0  & !data$doProcessN_any
+    aMap[noRec]<-NA
+    bMap[noRec]<-NA
     aMap<-factor(aMap)
     bMap<-factor(bMap)
     #my.map<-c(my.map,list(rec_loga=aMap),list(rec_logb=bMap))
@@ -52,6 +56,7 @@ map_param<-function(data,parameters) {
     rhoMap<-factor(rhoMap)
     my.map<-purrr::assign_in(my.map,'rho',rhoMap)
   }
+  
   #FfromSeparableModel
   if (any(data$FfromSeparableModel)) {
     # set the last quarter (used) to NA (to fix this parameter to 1.0)
@@ -60,22 +65,23 @@ map_param<-function(data,parameters) {
     all0<-apply(data$zeroCatchSeasonAge,MARGIN=spl,function(x) all(x==0))
     if (length(spl)==1) all0<-matrix(all0,c(data$nSpecies,length(all0)))
     ftable(all0)
+    
     for (s in (1:data$nSpecies)) if (nrow(key[[s]])>0) {
-      for (q in (1:dim(all0)[[2]])) if (all0[s,q] ) key[[s]][,q]<-0
-      maxQ<-unique(apply(key[[s]][,!all0[s,]],c(1),max))
-     # key[[s]][key[[s]] == maxQ]<-0
-      key[[s]][key[[s]] %in%  maxQ]<-0
+      for (q in (1:dim(all0)[[2]])) if (all0[s,q] ) key[[s]][,q,]<-0L
+      
+      maxQ<-unique(apply(key[[s]],c(1,3),max))
+      key[[s]][key[[s]] %in%  maxQ]<-0L
+      key[[s]][,1:(data$fqa[1]-1),data$fa+data$off.age] <- 0L
     } 
-
     incl<-unlist(lapply(key,unique))
     incl<-sort(incl[incl>0])
     seasonMap<-1L:length(parameters$logFSeasonal)
-    
+    #incl<-c(3,4,5,6)
     seasonMap[setdiff(seasonMap,incl)]<-NA
     seasonMap<-factor(seasonMap)
     my.map<-purrr::assign_in(my.map,'logFSeasonal',seasonMap)
   }
-
+ 
   
   if (data$sms.mode>0) {
     if( any(!data$usestomObsVar) ) {
@@ -95,19 +101,19 @@ map_param<-function(data,parameters) {
     }
   }  
   # 
-  if (length(parameters$logSeparF)>0) {
-     sepMap<-1L:length(parameters$logSeparF)
+  if (length(parameters$logSeparAgeF)>0) {
+     sepMap<-1L:length(parameters$logSeparAgeF)
      for (s in 1:data$nSpecies) {
        if (data$info[s,'fModel']==2) {
-         fix<-max(unique(as.vector(data$keyLogSeparF[[s]])))
+         fix<-max(unique(as.vector(data$keylogSeparAgeF[[s]])))
          sepMap[fix]<-NA
        }
      } 
      sepMap<-factor(sepMap)
-     my.map<-purrr::assign_in(my.map,'logSeparF',sepMap)
-     #my.map<-c(my.map,list(logSeparF=sepMap))
+     my.map<-purrr::assign_in(my.map,'logSeparAgeF',sepMap)
+     #my.map<-c(my.map,list(logSeparAgeF=sepMap))
    }
-  #grep('logSeparF',nl)
+  #grep('logSeparAgeF',nl)
   
 
  if (length(parameters$logYearEffectF) >0) {
@@ -121,7 +127,6 @@ map_param<-function(data,parameters) {
        yfMap[data$spNames[s],zy]<-NA
       }} 
    
-   yfMap
    sp<-match(rownames(parameters$logYearEffectF),data$spNames)
    for (s in sp) {
      ll<-length(data$catchSepYear[[s]])

@@ -13,6 +13,13 @@ if (OS=="unix") {
   dosDrive<-"C:"
   root<-file.path(dosDrive,"_C_drev","SMS-git")
   root.prog<-file.path(dosDrive,"_C_drev","SMS-git")
+  
+ if (FALSE) {
+  dosDrive<-"H:"
+  root<-file.path(dosDrive,"c-users","_C_drev_on_C","SMS-git")
+  root.prog<-file.path(dosDrive,"c-users","_C_drev_on_C","SMS-git")
+ }
+  
   sms.exe<-'sms.exe'
 }
 
@@ -76,7 +83,7 @@ setwd(data.path)
 prog.path.func<-file.path(root.prog,"r_prog","function")
 
 # for SMS (not RSMS) runs
-#source(file.path(prog.path.func,"init_r_functions.R"))
+if (my.stock.dir!="rsms_input") source(file.path(prog.path.func,"init_r_functions.R"))
 
 cat("active stock directory:",getwd(),"\n");
 

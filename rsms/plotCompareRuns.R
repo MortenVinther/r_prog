@@ -25,18 +25,20 @@ SSB_R<-function(SSB,model,a,b) {
           "0"=  NA,                                                          ## straight RW
           "1"=  exp(a+log(SSB)-exp(b)*SSB),          ## Ricker
           "2"=  exp(a+log(SSB)-log(1+exp(b)*SSB)),   ## B&H
-          "3"=  exp(a),                                                                ## GM
+          "3"=  rep(exp(a),length(SSB)),                                                                ## GM
           "4"=  exp(a-b+log(SSB-(0.5*(SSB-exp(b)+abs(SSB-exp(b)))))),  #Hockey stick
           "6"=  exp(a-b+log(SSB-(0.5*(SSB-exp(b)+abs(SSB-exp(b)))))),  #Hockey stick
           stop(paste0("SR model code ",model," not recognized"))          ## error
   )
 }
 
-plotSSBR<-function(x,sp,multN=1E-3,multBIO=1E-3,tit='SSB recruitment',titSp='cod') {
-  x<-filter(x,s==sp)
+plotSSBR<-function(x,sp,multN=1E-3,multBIO=1E-3,tit='SSB recruitment',titSp='cod',SR) {
+  x<-filter(x,s==sp) %>% mutate(use_rec=as.factor(use_rec+1))
   tit<-paste(tit, titSp[sp])
   sr<-filter(SR,s==sp)
-  a<-ggplot(data=x, aes(x=SSB*multBIO, y=recruit*multN,col=run,shape=run,group=run)) +
+  #a<-ggplot(data=x, aes(x=SSB*multBIO, y=recruit*multN,col=use_rec,shape=use_rec,group=use_rec)) +
+  a<-ggplot(data=x, aes(x=SSB*multBIO, y=recruit*multN,colour=use_rec)) +
+    
     #geom_line()+
     geom_point()+
     geom_line(mapping = aes(x =SSB*multBIO,y =recruit*multN), data=sr,  colour = 'red',size=1)+
@@ -219,7 +221,9 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
   if (Type %in% c("Summary","SSBrec")) {
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")),verbose=F)
-      sms$rep$resSummary %>% mutate(year=as.numeric(year),run=labels[i]) %>% filter(s %in% showSpecies)
+      b<-sms$rep$resSummary %>% mutate(year=as.numeric(year),run=labels[i]) %>% filter(s %in% showSpecies)
+      if (Type =="SSBrec") b<- b%>% rowwise%>% mutate(use_rec=sms$data$recruitYears[s,year+sms$data$off.year])
+      b
     })) 
     
   } else if (Type %in% c("SummaryConf","SSBrecConf")) {
@@ -227,10 +231,14 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       out<-data.frame(value=sms$sdrep$value,sd=sms$sdrep$sd,variable=names(sms$sdrep$value)) 
       nvar<-3
-      cbind(expand.grid(s=1:sms$data$nSpecies,year=sms$data$years,dummy=1:nvar),out) %>% filter(s %in% showSpecies) %>%
+      b<-cbind(expand.grid(s=1:sms$data$nSpecies,year=sms$data$years,dummy=1:nvar),out) %>% filter(s %in% showSpecies) %>%
          mutate(run=labels[i],species=sms$data$spNames[s],mid=exp(value),low=exp(value-2*sd),high=exp(value+2*sd))
+      if (Type =="SSBrecConf") b<- b%>% rowwise%>% mutate(use_rec=sms$data$recruitYears[s,year+sms$data$off.year])
+      b
+      
   
     }))
+    
   } else if (Type=='M2'){
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
@@ -262,12 +270,14 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
   x<- x %>% mutate(run=factor(run,labels))
 
   if (Type %in% c("SSBrecConf","SSBrec")) {
+
     SR<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       a<-suppressWarnings(extractParameters(sdrep=sms$sdrep,myMap=sms$map,data=sms$data)[[2]]) %>% 
           filter(s %in% showSpecies & name %in% c("rec_loga","rec_logb")) %>%
         transmute(s,sp=Var1,name,estimate,run=labels[i]) %>%
         pivot_wider(names_from = name, values_from = estimate)
+      if (!any(grepl('rec_logb',colnames(a)))) a$rec_logb<-NA  
       b<-data.frame(sp=names(sms$data$stockRecruitmentModelCode),model=data$stockRecruitmentModelCode,addInf=data$stockRecruitmentModelCodeAdd)
       b<-left_join(a,b,by = join_by(sp)) %>% mutate(model=as.integer(model))
       b<-left_join(b,x%>% group_by(s) %>% summarize(maxSSB=max(SSB),.groups='drop') %>% mutate(minSSB=1),by = join_by(s))
@@ -318,7 +328,7 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
         pF<-plotFRibbon(x=filter(x,variable=='FBAR'),sp=mysp)
         
      } else if (Type=="SSBrec") {
-        pSSBR<-plotSSBR(x,sp=mysp,titSp=allSpNamesLong,multN=multN,multBIO=multBIO)
+        pSSBR<-plotSSBR(x,sp=mysp,titSp=allSpNamesLong,multN=multN,multBIO=multBIO,SR=SR)
       
      } else if (Type=="SSBrecConf"){
         pSSB<-plotSSBRibbon( x=filter(x,variable=='SSB'),sp=mysp,mult=1E-3)

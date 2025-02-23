@@ -1,6 +1,6 @@
 extractParameters<-function(sdrep,myMap,data) {
   a<-data.frame(name=attr(sdrep$par.fixed,'names'),estimate=sdrep$par.fixed,estimate.sd=sqrt(diag(sdrep$cov.fixed)))
-  a$gradient<-sdrep$gradient.fixed[1,] 
+  if (length(dim(sdrep$gradient.fixed))==0)   a$gradient<-sdrep$gradient.fixed else  a$gradient<-sdrep$gradient.fixed[1,] 
   a<-a %>%mutate(order=1:dim(a)[[1]])
   a$key<-ave(seq_len(nrow(a)), a$name, FUN = seq_along)
   
@@ -63,13 +63,13 @@ extractParameters<-function(sdrep,myMap,data) {
     } else return(NULL)
   }))) 
     
-  if ('logSeparF' %in% parName) {
-    k<-data$keyLogSeparF;
+  if ('logSeparAgeF' %in% parName) {
+    k<-data$keylogSeparAgeF
     x<-lapply(1:data$nSpecies,function(x) {
      kk<-unique(k[[x]])
      if (any(kk!= -1)) {
        array2DF(kk) %>% filter(Value>0) %>%
-         transmute(Var1=paste(data$spNames[x],Var1),Var2,Value,param='logSeparF',type='fleet')
+         transmute(Var1=paste(data$spNames[x],Var1),Var2,Value,param='logSeparAgeF',type='fleet')
      } 
     })
     keys<-rbind(keys,  do.call(rbind,x))

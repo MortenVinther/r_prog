@@ -20,8 +20,9 @@ lowerUpper<-function(obj,data,parameters) {
   nlSp  
   
   found<-nlSp=='rho';      nlSp[found]<- paste(nlSp[found],data$spNames[data$useRho],sep='_')
-  found<-nlSp=='rec_loga'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0],sep='_')
-  found<-nlSp=='rec_logb'; nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0 & (!data$stockRecruitmentModelCode %in% c(3,6))],sep='_')
+  useRec<-!(data$inclSsbR==0  & !data$doProcessN_any)
+  found<-nlSp=='rec_loga'; if (sum(found)>0) nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0][useRec],sep='_')
+  found<-nlSp=='rec_logb'; if (sum(found)>0) nlSp[found]<- paste(nlSp[found],data$spNames[data$stockRecruitmentModelCode>0 & (!data$stockRecruitmentModelCode %in% c(3,6))],sep='_')
   
   found<-nlSp=='logSsbRsd';      nlSp[found]<- paste(nlSp[found],data$spNames[data$inclSsbR>0],sep='_')
 

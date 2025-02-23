@@ -116,7 +116,7 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   d$logNfirstYparamfromTo<-cutFromTo0(data$logNfirstYparamfromTo)
   d$logNrecruitParamfromTo<-cutFromTo0(data$logNrecruitParamfromTo)
 
-  x<-data$inclSsbR[ps]; x[x>0]<-1L; d$inclSsbR<-cumsum(x)
+  x<-data$inclSsbR[ps]; x[x>0]<-1L; d$inclSsbR<-cumsum(x); d$inclSsbR[x==0]<-0L
   
   #d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ 1L
   d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ ifelse(apply(d$nlogFfromTo,1,sum)>0,1L,0L)
@@ -135,18 +135,24 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
         matrix(x,ncol=dims[[2]],dimnames=dimnames(x))
       })
     }
-    tab
+    
   }
-  d$keyLogSeparF<-cut_tab_3(tab=data$keyLogSeparF,reNumber=TRUE) 
-  
-
-                             
+  d$keylogSeparAgeF<-cut_tab_3(tab=data$keylogSeparAgeF,reNumber=TRUE) 
   d$keyVarLogN<-cut_tab(data$keyVarLogN,reNumber=TRUE)
   d$keyVarObsSurvey<-cut_tab(tab=data$keyVarObsSurvey,reNumber=TRUE,surv=TRUE)
   d$keyCatchability<-cut_tab(data$keyCatchability,reNumber=TRUE,surv=TRUE)
 
-  
-  d$keylogSeasonF<-cut_tab_3(data$keylogSeasonF,reNumber=TRUE)
+  cut_tab_4<-function(tab,reNumber=FALSE) {
+    tab<-tab[ps] 
+    if (reNumber) {
+      k<-unique(unlist(tab))
+      kk<-1:length(k)
+      names(kk)<-k
+      tab<-map(tab,function(x) array(kk[as.character(x)],dim=dim(x),dimnames=dimnames(x)))
+     }
+  }
+    
+  d$keylogSeasonF<-cut_tab_4(tab=data$keylogSeasonF,reNumber=TRUE)
   p$logFSeasonal<-rep(log(1/data$nSeasons),max(unlist(lapply(d$keylogSeasonF,function(x) if (nrow(x) >0)  max(x) else 0L))))
   
   
@@ -170,9 +176,6 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   #tapply(xx$keyVarObsCatch,list(xx$s),range)
   
   d$keyCatch<- data$keyCatch[data$keyCatch[,'s'] %in% ps,]
-  
-  
-  # MV data.frame(data$keyCatch)  %>% filter(s==2 & y==4)
   
     k<-sort(unique(d$keyCatch[,'keyVarObsCatch']))
     kk<-1:length(k)
@@ -424,8 +427,8 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   if (max(d$keyLogFstaSd) >0) p$logSdLogFsta<-parameters$logSdLogFsta[1:max(d$keyLogFstaSd)] else p$logSdLogFsta<-numeric(0) 
   if (max(d$keyVarLogN)<0)  p$logSdLogN<-rep(0,0) else p$logSdLogN<-parameters$logSdLogN[1:max(d$keyVarLogN)]  
   
-  x<-do.call(c,lapply(d$keyLogSeparF,function(x) unique(as.vector(x)))); x<-x[x>0]
-  if (length(x)>0) p$logSeparF<-parameters$logSeparF[1:length(x)] else  p$logSeparF<-numeric(0)
+  x<-do.call(c,lapply(d$keylogSeparAgeF,function(x) unique(as.vector(x)))); x<-x[x>0]
+  if (length(x)>0) p$logSeparAgeF<-parameters$logSeparAgeF[1:length(x)] else  p$logSeparAgeF<-numeric(0)
   
   
   if (any(d$spNames %in% rownames(parameters$logYearEffectF))) {

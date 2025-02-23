@@ -3,10 +3,11 @@
 sdrep=sms$sdrep
 my.map=sms$map
 data=sms$data
-parToShow<- c("logCatchability","logSdLogFsta","logSdLogN","logSdLogObsCatch","logSdLogObsSurvey", "overlapP", "rec_loga","rec_logb", "rho","stomObsVar","vulnera")[3]
+parToShow<- c("logCatchability","logSdLogFsta","logSdLogN","logSdLogObsCatch","logSdLogObsSurvey",  "logSeparAgeF" ,    
+              "logFSeasonal","logYearEffectF","overlapP", "rec_loga","rec_logb", "rho","stomObsVar","vulnera")[6:7]
 
-inpRdata<-list('Single','Multi')
-labels=c('Single sp','Multi sp')
+inpRdata<-list(runName)
+labels=c(runName)
 showSpecies<-1:10
 
 
@@ -14,12 +15,12 @@ outFormat<-c('screen','pdf','png') [1]
 longSpNames<-TRUE
 isBetterRound<-3
 
-
 x<-do.call(rbind,lapply(1:length(labels),function(i){
-  load(file=file.path(data.path,paste0(inpRdata[2],".Rdata")))
-  extractParameters(sdrep=sms$sdrep,my.map=sms$map,data=sms$data)[[1]] %>% filter(name==parToShow & s %in% showSpecies ) %>%
+  load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
+  extractParameters(sdrep=sms$sdrep,myMap=sms$map,data=sms$data)[[2]] %>% filter(name %in% parToShow & s %in% showSpecies ) %>%
   mutate(run=labels[i]) 
 })) 
+x
 
 switch(parToShow,
   "logSdLogObsSurvey" = {  
@@ -49,13 +50,16 @@ by(x,list(x$s), function(xx){
   facet_wrap(nrow=2,Var3 ~ ., scales="free_y")+
   labs(x=xLab, y=yLab,title=tit)+
   theme_bw()
+  
+  print(p)
 })
 
+x
 
 
 x2<-do.call(rbind,lapply(1:length(labels),function(i){
   load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
-  extractParameters(sdrep=sms$sdrep,my.map=sms$map,data=sms$data)[[2]] %>% filter(name==parToShow & s %in% showSpecies ) %>%
+  extractParameters(sdrep=sms$sdrep,myMap=sms$map,data=sms$data)[[2]] %>% filter(name==parToShow & s %in% showSpecies ) %>%
     mutate(run=labels[i],ages=paste0('Ages:',min_age,'-',max_age), fl=paste(Var1,ages)) 
 })) 
 

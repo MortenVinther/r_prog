@@ -1,10 +1,10 @@
-make_rsms_data<-function(dir=data.path,rsmsControl='rsms.dat',fleetIn="new_fleet_info.dat",multi=FALSE) {
+make_rsms_data<-function(dir=data.path,rsmsControl='rsms.dat',fleetIn="new_fleet_info.dat",multi=FALSE,fixCatch=c('NSA','SSA')) {
  
  # TEST single species and one species
 #  dir=data.path; rsmsControl='rsms.dat';multi=FALSE
   
   
- #TEST    dir=data.path; rsmsControl='rsms.dat';multi=FALSE; fleetIn="new_fleet_info.dat"
+ #TEST    dir=data.path; rsmsControl='rsms.dat';multi=FALSE; fleetIn="new_fleet_info.dat"; fixCatch=c('NSA','SSA')
 
 
 sms<-read.RSMS.control(dir=dir,file=rsmsControl,test=FALSE)
@@ -79,6 +79,45 @@ predNames<- dimnames(info[info[,'predator']>0,])[[1]]
 preyNames<- dimnames(info[info[,'prey']>0,])[[1]]
 otherFoodName<-'OTH'
 
+# zero-catch years
+zy<-data.frame(s=1:nSpecies,y=0L)
+if (sms@zero.catch.year.season==1) {
+  fname<-'zero_catch_year_season.in'
+  z<-head(scan(file.path(dir,fname),comment.char='#',quiet = TRUE),-1)
+  bz<-expand.grid(s=(first.VPA:nsp) +off.species,y=1:nYears,q=1:nSeasons)
+  bz<-bz[order(bz$s,bz$y,bz$q),]
+  bz$z<-z 
+  zeroCatchYear<-bz %>%group_by(s,y) %>% summarize(z=sum(z),.groups = "drop") %>%  filter(z==0) %>% mutate(z=NULL)
+} else zeroCatchYear<-NULL
+zy<-rbind(zy,zeroCatchYear)
+
+zeroCatchYear<-by(zy,list(zy$s),function(x) { x<-x$y[x$y>0]})
+zeroCatchYearExistsSp<-unlist(lapply(zeroCatchYear,function(x) length(x)))
+zeroCatchYearExistsSp[zeroCatchYearExistsSp>0] <-1L
+
+zy<-zy %>% mutate(zero=TRUE) %>% filter(y>0)
+if (dim(zy)[[1]]>0) zeroCatchYearExists<-1L else zeroCatchYearExists<-0L
+
+
+#zero-catch season-age
+if (sms@zero.catch.year.season==1) {
+  fname<-'zero_catch_season_ages.in'
+  z<-head(scan(file.path(dir,fname),comment.char='#',quiet = TRUE),-1)
+  bz<-expand.grid(s=(first.VPA:nsp) +off.species,a=1:nAges,q=1:nSeasons)
+  bz<-bz[order(bz$s,bz$q,bz$a),]
+  bz$z<-as.integer(z) 
+} else bz<-NULL
+zeroCatchSeasonAge<-tapply(bz$z,list(bz$s,bz$q,bz$a),sum)
+
+if (length(fixCatch)>0) {
+  s<-match(fixCatch,spNames)
+  ftable(zeroCatchSeasonAge[s,,])
+  zeroCatchSeasonAge[s,c(1,3,4),]<-0L
+  zeroCatchSeasonAge[s,3,1]<-1L
+  ftable(zeroCatchSeasonAge[s,,])
+}
+
+
 stockRecruitmentModelCode<-sms@SSB.R
 names(stockRecruitmentModelCode)<-spNames
 stockRecruitmentModelCodeAdd<-sms@SSB.R.add
@@ -89,18 +128,6 @@ names(stockRecruitmentModelCodeAdd)<-spNames
 use_rho<-as.integer(sms@use.rho)
 #use_rho<-factor(use_rho, levels = c(0L,1L,2L),labels = c("no_correlation", "compound_symmetry", "AR(1)"))
 
-rec_loga <- rep(1,nSpecies)
-rec_loga[stockRecruitmentModelCode==1] <- log(200)  # Ricker
-rec_loga[stockRecruitmentModelCode==2] <- 4         # B&W
-rec_loga[stockRecruitmentModelCode %in% c(4,5,6)] <- log(1000) #hockey slope
-
-rec_logb <- rep(1,nSpecies) 
-rec_logb[stockRecruitmentModelCode==1] <- -12  # Ricker
-rec_logb[stockRecruitmentModelCode==2] <- -12        # B&W
-rec_logb[stockRecruitmentModelCode %in% c(4,5) ] <- log(50000)     
-rec_logb[stockRecruitmentModelCode ==6 ] <- log(stockRecruitmentModelCodeAdd[stockRecruitmentModelCode ==6] ) #hockey with known inflection point
-
-
 fbarRange<-matrix(as.integer(sms@avg.F.ages),ncol=2,dimnames=dimnames(sms@avg.F.ages))+off.age;
 colnames(fbarRange)<-c('first-a','last-a')
 
@@ -110,17 +137,24 @@ FfromSeparableModel<-as.integer(sms@combined.catches %in% c(3,4)) # are seasonal
 ## configuration of parameter keys
 
 rho<-rep(0.7,nSpecies)
+# 
+# ##### states at age for F random walk,
+# # use sms@keyLogFsta
+# #  first ages in each group by species 
+# 1 2 3 5	#  COD 
+# 
+### First age in separable model (in case of fModel==2|3), (option firstAgeYearEffect))
+#    COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+#3    99    99    99    99    99    99    99    99    99    99    99 
 
-##### states at age for F random walk,
-# use sms@keyLogFsta
-
+upAge<-fSepar-off.age;
 x<-matrix(-1L,ncol=sms@max.age.all-sms@first.age+1L,nrow=nSpecies,dimnames=list(spNames,paste('age',ages)))
 i<-1L
 xx<-NULL
 for (s in 1:nSpecies) {
   i<-1L
   la<-info[s,"last-age"]
-  aa<-sort(unique(c(sms@keyLogFsta[[s]],la+1)))
+  aa<-sort(unique(c( sms@keyLogFsta[[s]][sms@keyLogFsta[[s]]<=upAge[s]] ,la+1)));
   for (j in (1:(length(aa)-1))) {
     for (age in aa[j]:(aa[j+1]-1)) {
       x[s,age+off.age ]<-i;
@@ -129,7 +163,7 @@ for (s in 1:nSpecies) {
     i<-i+1L
   }
 }
-
+x
 keyLogFsta<-x
 keyLogFsta.df<-xx
 
@@ -140,7 +174,8 @@ keyLogFsta.list<-by(keyLogFsta.df,keyLogFsta.df$s,function(x) as.vector(x$keyLog
 
 useFrandomWalk<- ! info[1:nSpecies,'fModel']==3
 
-nlogF<-unlist(lapply(sms@keyLogFsta,length))
+nlogF<-apply(keyLogFsta,1,max)
+#nlogF<-unlist(lapply(sms@keyLogFsta,length))
 nlogF[!useFrandomWalk]<-0
 nlogFto<-cumsum(nlogF)
 nlogFto[!useFrandomWalk]<-NA
@@ -171,59 +206,111 @@ colnames(logYearEffectF)<-as.character(years)
 
 
 # useFrandomWalk
-##### year and Ages in separable F-Model
-# use sms@catch.sep.year and sms@catch.sep.age
 
-x<-map2(sms@catch.sep.age,sms@catch.sep.year,function(x,y) {
+
+##### year and Ages in separable F-Model
+# use sms@catch.sep.year and sms@catch.sep.season
+
+x<-map2(sms@keyLogFsta,sms@catch.sep.year,function(x,y) {
   xx<-expand.grid(age=x,year=y)
 })
-for (s in 1:nSpecies) x[[s]]<-data.frame(x[[s]],s=s,fModel=info[s,'fModel'])
+
+for (s in 1:nSpecies) x[[s]]<-data.frame(x[[s]],s=s,fModel=info[s,'fModel'],fSepar=fSepar[s])
 ay<-do.call(rbind,x) %>% filter(fModel %in% c(2,3)) %>%arrange (s,age,year) 
-if (dim(ay)[[1]]>0) ay<-  ay %>%  mutate(index=1:dplyr::n(), y=year-sms@first.year.model+1,a=age-sms@first.age+1)
+filter(ay,s==1)
+if (dim(ay)[[1]]>0) ay<-  ay %>%  mutate(y=year-sms@first.year.model+1,a=age-sms@first.age+1) %>%
+                  filter(a>=fSepar) %>%  mutate(index=1:dplyr::n())
+filter(ay,s==1)
 x<-lapply(1:nSpecies,function(x) {
   matrix(-1L,ncol=info[x,'last-age']-sms@first.age+1L,nrow=nYears,dimnames=list(years,paste('age',sms@first.age:info[x,'last-age'])))
 })
+
 if (dim(ay)[[1]]>0) for (i in (1:dim(ay)[[1]])) {
   x[[ay[i,'s']]][ay[i,'y']:nYears,ay[i,'a']]<-ay[i,'index'] 
 }
+
 x<-lapply(x,function(xx){
   for (a in 2:ncol(xx)) if (xx[1,a]== -1) xx[,a]<- xx[,a-1]
   xx
 })
-keyLogSeparF<- x
-if (dim(ay)[[1]]>0) logSeparF<-rep(log(0.1),max(ay$index)) else logSeparF<-numeric(0)
+#x[[1]]
 
-# keyLogSeparF[[7]]
+keylogSeparAgeF<- x
+if (dim(ay)[[1]]>0) logSeparAgeF<-rep(log(0.1),max(ay$index)) else logSeparAgeF<-numeric(0)
 
-##### year and season in separable F-Model
-# use sms@catch.sep.year and quarters
-qEffect<-lapply(1:nSpecies,function(x)  fq:lq )
-x<-map2(qEffect,sms@catch.sep.year,function(x,y) {
-  xx<-expand.grid(q=x,year=y)
+
+####################
+
+x<-map2(sms@catch.sep.season,sms@catch.sep.year,function(x,y) {
+  xx<-expand.grid(age=sort(unique(c(fa,x))),year=y,q=fq:lq)
 })
 
+for (s in 1:nSpecies) {
+  x[[s]]<-data.frame(x[[s]],s=s,seasonalC=seasonalCatches[s],FfromSeparable=FfromSeparableModel[s]) %>%
+    filter(FfromSeparable==1) %>%   mutate(y=year+off.year,seasonalC=NULL,FfromSeparable=NULL,a=age+off.age) 
+}
+xx<-do.call(rbind,x) %>% mutate(year=NULL,qGrp=1L) %>%   arrange (s,y,q,age) %>%   mutate(qGrp=cumsum(qGrp)) %>%rename(fy=y,fa=age)
 
-for (s in 1:nSpecies) x[[s]]<-data.frame(x[[s]],s=s,seasonalC=seasonalCatches[s],FfromSeparable=FfromSeparableModel[s])
-qy<-do.call(rbind,x) %>% filter(FfromSeparable==1) %>% mutate(y=year+off.year,qGrp=1L) 
-
-tot<-expand.grid(y=1:nYears,q=fq:lq,s=sort(unique(qy$s)))
-xx<-left_join(tot,qy,by = join_by(y, q, s)) %>% mutate(year=NULL,seasonalC=NULL,FfromSeparable=NULL,qGrp=if_else(is.na(qGrp),0,qGrp)) %>%
-    arrange (s,q,y) %>%   mutate(qGrp=cumsum(qGrp))
-
-keylogSeasonF<-lapply(1:nSpecies,function(x) {
-  y<-filter(xx,s==x)
-  tapply(y$qGrp,list(y$y,y$q),sum)
-})
-
-keylogSeasonF
-
-
-p<-0
-for (s in 1:nSpecies) if (dim(keylogSeasonF[[s]])[1]>0) p<-p+max(keylogSeasonF[[s]])
-#if (p>0)  logFSeasonal<-rep(0,p)  else  logFSeasonal<-numeric(0)  # parameter
+p<-max(xx$qGrp)
 if (p>0)  logFSeasonal<-rep(log(1/nSeasons),p)  else  logFSeasonal<-numeric(0)  # parameter
 
 
+allY<-do.call(rbind,lapply(1:length(sms@catch.sep.year),function(s){
+  y<-sms@catch.sep.year[[s]]
+  y<-sort(unique(c(y,nYears-off.year+1L)))+off.year
+  do.call(rbind,lapply(1:(length(y)-1L),function(i) expand.grid(s=s,fy=y[i],y=y[i]:(y[i+1]-1L))))
+}))
+#sms@catch.sep.year[[9]]
+#filter(allY,s==9)
+
+allA<-do.call(rbind,lapply(1:length(sms@catch.sep.season),function(s){
+  a<-sort(unique(c(fa,sms@catch.sep.season[[s]])))
+  a<-sort(unique(c(a,info[s,'last-age']+1L)))
+  do.call(rbind,lapply(1:(length(a)-1L),function(i) expand.grid(s=s,fa=a[i],age=a[i]:(a[i+1]-1L))))
+}))
+
+x2<-full_join(xx,allY,by = join_by(s, fy),relationship = "many-to-many")
+x2<-full_join(x2,allA,by = join_by(s, fa),relationship = "many-to-many") %>%
+        filter(!is.na(q)) %>% mutate(fa=NULL,fy=NULL,a=age+off.age,age=NULL) %>%
+        arrange(s,y,q,a)
+head(x2)
+
+keylogSeasonF<-lapply(1:nSpecies,function(x) {
+  y<-filter(x2,s==x)
+  tapply(y$qGrp,list(y$y,y$q,y$a),sum)
+})
+
+#keylogSeasonF[[6]][1,,]
+#str(keylogSeasonF,1)
+#ftable(keylogSeasonF[[7]])
+
+if (FALSE) {  
+  #OLD
+  ##### year and season in separable F-Model
+  # use sms@catch.sep.year and quarters
+  qEffect<-lapply(1:nSpecies,function(x)  fq:lq )
+  x<-map2(qEffect,sms@catch.sep.year,function(x,y) {
+    xx<-expand.grid(q=x,year=y)
+  })
+  
+  
+  for (s in 1:nSpecies) x[[s]]<-data.frame(x[[s]],s=s,seasonalC=seasonalCatches[s],FfromSeparable=FfromSeparableModel[s])
+  qy<-do.call(rbind,x) %>% filter(FfromSeparable==1) %>% mutate(y=year+off.year,qGrp=1L)
+  
+  tot<-expand.grid(y=1:nYears,q=fq:lq,s=sort(unique(qy$s)))
+  xx<-left_join(tot,qy,by = join_by(y, q, s)) %>% mutate(year=NULL,seasonalC=NULL,FfromSeparable=NULL,qGrp=if_else(is.na(qGrp),0,qGrp)) %>%
+      arrange (s,q,y) %>%   mutate(qGrp=cumsum(qGrp))
+  filter(xx,s==7)
+  
+  keylogSeasonF<-lapply(1:nSpecies,function(x) {
+    y<-filter(xx,s==x)
+    tapply(y$qGrp,list(y$y,y$q),sum)
+  })
+  
+  
+  p<-max(unlist(lapply(keylogSeasonF,function(x) if (nrow(x) >0)  max(x) else 0L)))
+  if (p>0)  logFSeasonal<-rep(log(1/nSeasons),p)  else  logFSeasonal<-numeric(0)  # parameter
+}
 ##### states at age for N ,
 
 nlogN<-as.integer(info[1:nSpecies,"last-age"]-sms@first.age+off.age)
@@ -318,38 +405,7 @@ for (s in 1:nSpecies) {
 
 
 
-# zero-catch years
-zy<-data.frame(s=1:nSpecies,y=0L)
-if (sms@zero.catch.year.season==1) {
-  fname<-'zero_catch_year_season.in'
-  z<-head(scan(file.path(dir,fname),comment.char='#',quiet = TRUE),-1)
-  bz<-expand.grid(s=(first.VPA:nsp) +off.species,y=1:nYears,q=1:nSeasons)
-  bz<-bz[order(bz$s,bz$y,bz$q),]
-  bz$z<-z 
-  zeroCatchYear<-bz %>%group_by(s,y) %>% summarize(z=sum(z),.groups = "drop") %>%  filter(z==0) %>% mutate(z=NULL)
-} else zeroCatchYear<-NULL
-zy<-rbind(zy,zeroCatchYear)
 
-zeroCatchYear<-by(zy,list(zy$s),function(x) { x<-x$y[x$y>0]})
-zeroCatchYearExistsSp<-unlist(lapply(zeroCatchYear,function(x) length(x)))
-zeroCatchYearExistsSp[zeroCatchYearExistsSp>0] <-1L
-
-zy<-zy %>% mutate(zero=TRUE) %>% filter(y>0)
-if (dim(zy)[[1]]>0) zeroCatchYearExists<-1L else zeroCatchYearExists<-0L
-
-
-#zero-catch season-age
-if (sms@zero.catch.year.season==1) {
-  fname<-'zero_catch_season_ages.in'
-  z<-head(scan(file.path(dir,fname),comment.char='#',quiet = TRUE),-1)
-  bz<-expand.grid(s=(first.VPA:nsp) +off.species,a=1:nAges,q=1:nSeasons)
-  bz<-bz[order(bz$s,bz$q,bz$a),]
-  bz$z<-as.integer(z) 
-} else bz<-NULL
-
-zeroCatchSeasonAge<-tapply(bz$z,list(bz$s,bz$q,bz$a),sum)
-
-#ftable(zeroCatchSeasonAge)
 
 
 #### variance of catch and surveys
@@ -364,19 +420,22 @@ b<-do.call(rbind,lapply(1:nSpecies,function(s) data.frame(s=s,array2DF(zeroCatch
 ab<- left_join(b,a,by = join_by(s, a))
 
 ft<-data.frame(s=1:nSpecies,faf=info[1:nSpecies,'first-age F>0']+off.age,laf=info[1:nSpecies,'last-age']+off.age,seasonalCatches=seasonalCatches)
-ab<-left_join(ab,ft,by = join_by(s)) %>% filter(a>=faf & a<=laf & incl) %>% group_by(s,a) %>% mutate(firstQ=min(q)) %>%
-    filter((q==firstQ & seasonalCatches==0 ) | seasonalCatches==1) %>% mutate(q=if_else( seasonalCatches==0,1,q)) %>% 
-    transmute(s,q,a,vari=if_else(is.na(vari),FALSE,TRUE)) %>% ungroup() %>%
-    arrange(s,q,a) %>% mutate(varGroup=cumsum(vari))
+
+ab<-left_join(ab,ft,by = join_by(s)) %>% filter(a>=faf & a<=laf & incl) %>% filter( !(a==1 & seasonalCatches & q <fqa[1])) %>%
+  group_by(s,a) %>% mutate(firstQ=min(q)) %>%
+  filter((q==firstQ & seasonalCatches==0 ) | seasonalCatches==1) %>% mutate(q=if_else( seasonalCatches==0,1,q)) %>% 
+  transmute(s,q,a,vari=if_else(is.na(vari),FALSE,TRUE)) %>% ungroup() %>%
+  arrange(s,q,a) %>% mutate(varGroup=cumsum(vari))
 
 
 #filter(ab,s==1)
+filter(ab,s==7)
 #print(filter(ab,s==6),n=100)
 #filter(ab,s==7)
 
 
 keyVarObsCatch.df<-ab
-logSdLogObsCatch<-rep(-0.35,max(keyVarObsCatch.df$varGroup)) # parameter
+logSdLogObsCatch<-rep(log(0.5),max(keyVarObsCatch.df$varGroup)) # parameter
 
 ###########  survey
 
@@ -557,7 +616,7 @@ rec_years<-matrix(head(x,-1),nrow=nSpecies,byrow=TRUE)==1
 source(file.path(rsms.root.prog,"from_sms_format_to_rsms_data.R"))
 
 
-d<-From_SMS_format_to_rsms(dir,otherPredExist=multi,catchMultiplier=1)
+d<-From_SMS_format_to_rsms(dir,otherPredExist=multi,catchMultiplier=1,fixCatch=match(fixCatch,oldAllSpeciesNames))
 
 
 #merge data
@@ -574,7 +633,6 @@ b<-left_join(b,a,by = join_by(species.n))
 #head(b)
 FfromSeparableModel
 
-summary(filter(b,species.n==17))
 #x<-b$age==fa & b$quarter < recSeason & b$annualC==0
  x<-b$age==fa & b$quarter < recSeason & b$FfromSeparableModel==1
 b[x,'CATCHN']<-0
@@ -666,10 +724,11 @@ trimIt<-function(x,used=c(1,2),spnames=spNames){
 
 propMat         <-trimIt(x=propMat,used=1:nSpecies)
 stockMeanWeight <-trimIt(x=stockMeanWeight,used=1:nSpecies)
-catchMeanWeight <-trimIt(x=catchMeanWeight,used=1:nSpecies)
 natMor          <-trimIt(x=natMor,used=1:nSpecies)
 catchMeanWeight <-trimIt(x=catchMeanWeight,used=1:nSpecies)
 catchNumber     <-trimIt(x=catchNumber,used=1:nSpecies)
+
+ftable(catchNumber[[7]][3,,])
 
 if (multi) {
   consum          <-trimIt(x=consum,used=1:nAllSp,spnames=allSpNames)
@@ -694,17 +753,15 @@ catch<-left_join(b,
 # round(ftable(xtabs(CATCHN~year+q+age,data=filter(catch,s==1))))
 # round(ftable(xtabs(CATCHN~year+q+age,data=filter(catch,s==2))))
 
-filter(catch,s==2 & y==5)
-
 #filter(bz,s==7)
 #head(catch);head(bz)
 catch<-left_join(catch,bz,by = join_by(s,a, q)) %>% mutate(CATCHN=if_else(z==1,CATCHN,0),z=NULL)
 
 
 #filter(zy,s==6)
-head(catch);head(zy)
+#head(catch);head(zy)
 catch<-left_join(catch,zy,by = join_by(y, s)) %>% filter(is.na(zero)) %>% mutate(zero=NULL)
-filter(catch,s==2 & y==5)
+#filter(catch,s==2 & y==5)
 catch2<-catch
 
 #  round(ftable(xtabs(CATCHN~year+q+age,data=filter(catch2,s==2))))
@@ -717,12 +774,20 @@ catch<-aggregate(CATCHN~year+species.n+ sub_area+ age+y+q+ s+ a,FUN=sum,data=fil
 #summary(filter(catch,s==1))
 #summary(filter(catch,s==6))
 
-filter(catch,s==2 & y==5)
+#filter(catch,s==2 & y==5)
 
 catch$obs.no<-1:dim(catch)[[1]]
 logCatchObs<-log(catch$CATCHN)
 
-
+if (FALSE) {
+  filter(keyCatch,is.na(keyVarObsCatch))
+  summary(keyLogFsta.df)
+  summary(keyVarObsCatch.df)
+  summary(k)
+  summary(keyCatch)
+  filter(keyCatch,s==7 & year==1989)
+  filter(catch,s==7 & year==1989)
+}
 
 keyCatch<-catch %>% mutate(CATCHN=NULL,species.n=NULL) %>% mutate_if(is.numeric,as.integer)
 # head(catch);head(filter(keyLogFsta.df,s==8));head(filter(keyVarObsCatch.df,s==8))
@@ -739,13 +804,14 @@ keyCatch<-left_join(keyCatch,k,by = join_by(s, q,a)) %>% mutate(species.n=NULL,a
 keyCatch<-keyCatch %>% arrange(obs.no)
 # head(keyCatch)
 # filter(keyCatch,s==7)
-summary(filter(keyCatch,s==2))
-summary(filter(keyCatch,is.na(keyLogFsta)))
+#summary(filter(keyCatch,s==2))
+#summary(filter(keyCatch,is.na(keyLogFsta)))
 
-stopifnot(dim(filter(keyCatch,is.na(keyLogFsta)))[[1]]==0)
+print('CKECK it! Morten\n')
+#stopifnot(dim(filter(keyCatch,is.na(keyLogFsta)))[[1]]==0)
 
 keyCatch <-keyCatch %>% mutate(year=NULL,keyLogFsta=NULL)
-filter(keyCatch,s==2 & y==4)
+#filter(keyCatch,s==2 & y==4)
 keyCatch<-as.matrix(keyCatch)
 
 #filter(catch2,s==6 & age==1 & year>1976)
@@ -753,7 +819,7 @@ keyCatch<-as.matrix(keyCatch)
 y<-tapply(catch2$seasFprop,list(catch2$s,catch2$y,catch2$q,catch2$a),sum) #
 y[is.na(y)]<-0
 y<-array2DF((y)) %>% mutate_if(is.character,as.integer) %>% transmute(s=Var1,y=Var2,q=Var3,a=Var4,seasFprop=Value)
-summary(y)
+#summary(y)
 
 seasFprop <-by(y,y$s,function(x) {y<-tapply(x$seasFprop,list(x$y,x$q,x$a),sum); y[is.na(y)]<-0; y}) 
 
@@ -789,6 +855,27 @@ info<-cbind(info,
     la=info[,"last-age"]+off.age,
     faf=info[,"first-age F>0"]+off.age)
  
+##### recruitment
+
+recEst<-unlist(lapply(catchNumber,function(x) sum(unlist(x))/nYears*2))
+
+#      1=Ricker, 2=Beverton & Holt, 3=Geom mean,
+#      4= Hockey stick, 5=hockey stick with smoother,
+#      6= hockey stick with known breakpoint (given as input in SSB.R.add )
+
+rec_loga <- log(recEst)           # geom mean
+rec_loga[stockRecruitmentModelCode==1] <- log(200)  # Ricker
+rec_loga[stockRecruitmentModelCode==2] <- 4         # B&W
+rec_loga[stockRecruitmentModelCode %in% c(4,5,6)] <- log(1E6) #hockey slope
+
+rec_logb <- rep(1,nSpecies) 
+rec_logb[stockRecruitmentModelCode==1] <- -12  # Ricker
+rec_logb[stockRecruitmentModelCode==2] <- -12        # B&W
+rec_logb[stockRecruitmentModelCode %in% c(4,5) ] <- log(50000)     
+rec_logb[stockRecruitmentModelCode ==6 ] <- log(stockRecruitmentModelCodeAdd[stockRecruitmentModelCode ==6] ) #hockey with known inflection point
+
+
+
 ###############   stomach data
 
 if (multi) {
@@ -1465,8 +1552,9 @@ rl<-list(
      nAges=nAges,
      nSeasons=nSeasons,                                 # number of seasons
      fq=fq,
-     lq=lq,                                       
-     fqa=fqa,                                          # fist quater for each age
+     lq=lq, 
+     fa=fa,
+     fqa=fqa,                                          # fist quarter for each age
      yqIdx=yq_idx,                                     # index for year-season combinations
      minAge=as.integer(sms@first.age),                 # A vector of integers defining the the lowest age class in the assessment for each species.
      #maxAge=as.integer(sms@max.age.all),              # Maximum age for all species. The actual age range by species is given in "info"
@@ -1536,7 +1624,7 @@ rl<-list(
      logCatchObs=logCatchObs,
      recruitYears=rec_years,
      #nCatchObs=length(logCatchObs),
-     keyLogSeparF=keyLogSeparF,
+     keylogSeparAgeF=keylogSeparAgeF,
      keySurvey=keySurvey,
      keySurvey.overview=keySurvey.overview,  # not really used
      logSurveyObs=logSurveyObs,
@@ -1550,7 +1638,7 @@ rl<-list(
       logCatchability=logCatchability,
       logSdLogObsSurvey=logSdLogObsSurvey,
       logQpow=logQpow,
-      logSeparF=logSeparF,
+      logSeparAgeF=logSeparAgeF,
       logYearEffectF=logYearEffectF,
       logTechCreep=logTechCreep,
       logSdLogFsta=logSdLogFsta,

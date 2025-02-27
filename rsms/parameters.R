@@ -19,10 +19,10 @@ extractParameters<-function(sdrep,myMap,data) {
                      transmute(Var1=if_else(seasonal==1,paste0(data$spNames[s],' Q:',q),data$spNames[s]) ,Var2=paste('age',a-data$off.age),Value=varGroup,param='logSdLogObsCatch',type='species'))
   
   if ('logFSeasonal' %in% parName) {
-    k<-do.call(rbind,lapply(1:data$nSpecies,function(s) if (data$FfromSeparableModel[s]) array2DF(data$keylogSeasonF[[s]]) %>% 
-             transmute(s,y=as.integer(Var1),q=as.integer(Var2),grp=as.integer(Value)) %>% 
-             group_by(s,q,grp) %>%summarize(fy=min(y)-data$off.year,ly=max(y)-data$off.year,.groups='drop') %>%
-             transmute(Var1=paste0(data$spNames[s],' Q:',q), Var2=paste(fy,ly,sep='-'), Value=grp,param="logFSeasonal",type='qData') else NULL))
+    k<-do.call(rbind,lapply(1:data$nSpecies,function(s) if (data$FfromSeparableModel[s]==1) array2DF(data$keylogSeasonF[[s]]) %>% filter(Value>0) %>%
+             transmute(s,y=as.integer(Var1),q=as.integer(Var2),age=as.integer(Var3)-data$off.age,grp=as.integer(Value)) %>% 
+             group_by(s,q,grp) %>%summarize(fa=min(age),la=max(age),fy=min(y)-data$off.year,ly=max(y)-data$off.year,.groups='drop') %>%
+             transmute(Var1=paste0(data$spNames[s],' Q:',q,' ',fy,'-',ly), Var2=paste(fa,la,sep='-'), Value=grp,param="logFSeasonal",type='qData') else NULL))
 
     k<-k %>% arrange(Value) %>%mutate(used= !is.na(myMap$logFSeasonal)) %>% filter(used) %>% mutate(used=NULL,Value=1:dplyr::n())
     

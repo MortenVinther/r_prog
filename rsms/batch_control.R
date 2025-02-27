@@ -18,6 +18,9 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
   a@species.info[,'last-age'] <-as.integer(
     # FUL GLT HEG KTW GBG GNT PUF RAZ RAJ GUR WHM NHM GSE HBP HKE COD WHG HAD POK MAC HER NSA SSA,NOP SPR PLE SOL
     c(1,    1,  1,  1,  1,  1,  1,  1,  3,  4,  3,  6,  1,  1,  9, 10,  6, 10, 10, 10,  8,  4,  4,  3,  3, 10, 10))
+  a@species.info[,'C by timestep'] <-as.integer(
+    # FUL GLT HEG KTW GBG GNT PUF RAZ RAJ GUR WHM NHM GSE HBP HKE COD WHG HAD POK MAC HER NSA SSA,NOP SPR PLE SOL
+    c(-9, -9,  -9,-9,  -9,-9,  -9, -9,-9, -9, -9,  -9,-9, -9, -9,  0,  0,  0, 0,  0,   1,  1,  1,  1,  1,  0, 0))
   
   no.other.predators<-sum(a@species.info[,'predator']==2)
   
@@ -34,15 +37,15 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
   
   
   bySpAge<-list(
-    c(1,2,9), #COD   
+    c(1,2,7,9), #COD   
     c(0,1,5),   #WHG   
-    c(0,1), #HAD   
+    c(0,1,2,6,8), #HAD   
     c(3,5,8), #POK   
     c(1,2), #MAC   
     c(0,1, 8), #HER   
     c(1,3), #NSA
     c(1,3), #SSA   
-    c(0,1,3), #NOP
+    c(0,1,3), #NOP 0,1,3
     c(1,3), #SPR
     c(1,2,3), #PLE
     c(1,2,3)  #SOL 
@@ -70,22 +73,26 @@ batch_default_configuration <-function(outfile='rsms.dat',dir=data.path,writeCon
   );
   a@keyVarLogN<-bySpAge
   
-  bySpAge<-list(
-    c(1,2,3), #COD   
-    c(0,1),     #WHG   
-    c(0,1,2),   #HAD   
-    c(3,4,5),   #POK   
-    c(1),   #MAC   
-    c(0,1,2), #HER   
-    c(1,3),   #NSA
-    c(1,3),   #SSA   
+  bySpAge<-list(  # adapted from from the old sms info "last age with age dependent fishing selection" 
+    c(1,2,3,4,5,6,7,8,9), #COD   
+    c(0,1,2,3,5),     #WHG   
+    c(0,1,2,3,4,5,6,7),   #HAD   
+    c(3,4,5,6,7,8),   #POK   
+    c(1,2,3,4,5,6,7),   #MAC   
+    c(0,1,2,3,4,5), #HER   
+    c(1,2,3),   #NSA
+    c(1,2,3),   #SSA   
     c(0,1,2), #NOP
-    c(1),     #SPR
-    c(1,2,3), #PLE
-    c(1,2,3)  #SOL 
+    c(1,2),     #SPR
+    c(1,2,3,5,6,7), #PLE
+    c(1,2,3,5,6,7)  #SOL 
   );
   a@keyLogFsta<-bySpAge
 
+  
+  #                           COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
+  a@incl.Ssb.R<-          c( 0.9,  0.1,  0.1,  1.0,  1.0,  0.1,  0.1,  0.1,  0.1,  0.1, 0.1,  0.1) 
+  
   
   #                      COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
   a@use.rho<-as.integer(c(1,    0,    0,    0,    0,    0,    0,    0,    0,    0,    1,    1) )
@@ -257,7 +264,7 @@ batch_SMS_old_like_configuration <-function(outfile='rsms.dat',dir=data.path,wri
   
  
   #                                 COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
-  a@combined.catches  <-as.integer(c(2,    2,    2,    2,    2,    3,    3,    3,    3,    3,    2,    2) )
+  a@combined.catches  <-as.integer(c(1,    1,    1,    1,    1,    3,    3,    3,    3,    3,    1,    1) )
   
   #                                 COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
   a@incl.process.noise<-as.integer(c(3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3) )
@@ -282,9 +289,7 @@ batch_SMS_old_like_configuration <-function(outfile='rsms.dat',dir=data.path,wri
   #                       COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
   a@fModel  <-as.integer(c(3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3) )
 
-  #                        COD   WHG   HAD   POK   MAC   HER   NSA   SSA   NOP   SPR   PLE   SOL 
-  a@incl.Ssb.R<-as.integer(c(1,    1,    1,    1,    1,    1,    0,    0,    1,    1,    1,    1) )
-  
+   
   
   
   

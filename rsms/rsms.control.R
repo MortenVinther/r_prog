@@ -14,6 +14,19 @@ validRSMS.control <- function(object){
     return("last.season must be >= 1")
   
   
+  valid.test.output<-c(1,2,3,4)
+  if (!all(object@combined.catches %in% valid.test.output))
+    return(paste("value of combined.catches must have a value in:", paste(valid.test.output,collapse=', ')))
+  
+  valid.test.output<-c(1,2,3)
+  if (!all(object@fModel %in% valid.test.output))
+    return(paste("value of fModel must have a value in:", paste(valid.test.output,collapse=', ')))
+  
+  valid.test.output<-c(1,2,3)
+  if (!all(object@incl.process.noise %in% valid.test.output))
+    return(paste("value of incl.process.noise must have a value in:", paste(valid.test.output,collapse=', ')))
+  
+  
   a<-object@fModel[object@firstAgeYearEffect<object@max.age.all] 
   if (length(setdiff(a,c(2,3))) >0) return(paste("fModel must be 2 or 3 for species with firstAgeYearEffect < ",object@max.age.all,
                                            '\n fModel=',paste(object@fModel,collapse=', '),
@@ -108,7 +121,7 @@ setClass("RSMS.control",
         first.age       =0L,                                            
         rec.season      =1L,                                            
         max.age.all     =0L,                                            
-        species.info    =matrix(0L,ncol=9,nrow=1,dimnames=list(c("sp1"),c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3"))),
+        species.info    =matrix(0L,ncol=9,nrow=1,dimnames=list(c("sp1"),c("last-age","first-age F>0","+group","predator","prey","SpawningQ","C by timestep","add1","add2"))),
         SSB.R           =as.vector(0,mode="numeric"),
         SSB.R.add       =as.vector(0,mode="numeric"),
         min.catch.CV    =0.2,                                                
@@ -116,7 +129,7 @@ setClass("RSMS.control",
         combined.catches=as.vector(0L,mode="list"),  
         incl.process.noise=as.vector(0L,mode="list"),
         keyVarLogN      =as.vector(0L,mode="list"),
-        incl.Ssb.R      =as.vector(0L,mode="list"),
+        incl.Ssb.R      =as.vector(1.0,mode="list"),
         fModel          =as.vector(1L,mode="integer"),
         keyLogFsta      =as.vector(0L,mode="list"),
         catch.s2.group  =as.vector(0L,mode="list"),  
@@ -350,10 +363,10 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
                  "# 3. plus group, 0=no plus group, 1=plus group\n",
                  "# 4. predator species, 0=no, 1=VPA predator, 2=Other predator \n",
                  "# 5. prey species, 0=no, 1=yes\n",
-                 "# 6. Spawning season (not used yet, but set to 1)\n", 
-                 "# 7. Additional data1\n",
-                 "# 8. additional data2\n",
-                 "# 9. additional data3\n",
+                 "# 6. Spawning season\n", 
+                 "# 7. Catch input by timestep, 0=aggregation level of catches is less than number of seasons, 1=aggregation level of catches is the same as number of timesteps \n",
+                 "# 8. additional data1\n",
+                 "# 9. additional data2\n",
                  "##\n",
                  file=file,append=T,sep="")
              wr.matrix.nice(slot(control,x),paste(1:length(sp.names),sp.names))
@@ -394,7 +407,6 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
            "combined.catches"  ={if (nice) {
              cat(sepLine,file=file,append=T)
              cat("## use seasonal or annual catches",inpOnly,  "(option combined.catches)\n",
-                 '#    0=annual catches in likelihood, with seasonal proportions of annual F at age derived from seasonal catch N / sum(all seasonal catch N)\n',
                  '#    1=annual catches in likelihood, with seasonal proportions of annual F at age from number of seasons (1/nseasons)\n',
                  '#    2=annual catches in likelihood with seasonal proportions of annual F at age from file proportion_of_annual_f.in\n',
                  '#    3=seasonal catches in likelihood with estimation of seasonal F from separable F-model \n',
@@ -426,7 +438,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
              cat(sepLine,file=file,append=T)
              cat("## Include stock-recruitment relation in log-likelihood (option incl.Ssb.R)\n",
                  "#   0 = no\n",  
-                  "#   1 = include the likelihood (only used in cases where recruitment is estimatede as a fixed parameter)\n",
+                  "#  > 0.00 = include the likelihood with the provided weightng factor (only used in cases where recruitment is estimatede as a fixed parameter)\n",
                  file=file,append=T,sep="")
              if (expand) wr.vector.expand(slot(control,x),VPA.species) else wr.vector.nice(slot(control,x),VPA.species)
              
@@ -902,7 +914,7 @@ write.RSMS.control<-function(control,file="rsms.dat",path=NULL,write.multi=TRUE,
 read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {       
   #print(file.path(dir,file))
   opt<-scan(file=file.path(dir,file), comment.char = "#",quiet=T) 
-  
+
   n<-1
   control<-new("RSMS.control")
   n.<-slotNames(control)
@@ -925,7 +937,7 @@ read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {
        
        "species.info"        = {    ncols<-9;
            tmp<-matrix(as.integer(opt[n:(n-1+nsp*ncols)]),ncol=ncols,nrow=nsp,byrow=TRUE,
-                       dimnames<-list(species.names,c("last-age","first-age F>0","+group","predator","prey","SpawningQ","add1","add2","add3")));
+                       dimnames<-list(species.names,c("last-age","first-age F>0","+group","predator","prey","SpawningQ","C by timestep","add1","add2")));
            slot(control,x)<-tmp;
            n<-n+nsp*ncols;
            n.prey<-0L; n.pred<-0L; n.oth.pred<-0L
@@ -946,7 +958,7 @@ read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {
            group<-vector("list", length=n.VPA.sp); 
            for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
             slot(control,x)<-group},
-       "incl.Ssb.R"         ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
+       "incl.Ssb.R"         ={slot(control,x)<-as.vector(opt[n:(n-1+n.VPA.sp)]); n<-n+n.VPA.sp; },
        "fModel"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
        "keyLogFsta"      = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
          group<-vector("list", length=n.VPA.sp); 
@@ -960,28 +972,25 @@ read.RSMS.control<-function(dir='.',file="rsms.dat",test=FALSE,silent=TRUE) {
              for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
              slot(control,x)<-group},
        "catch.s2.group"   = {slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
-      "catch.sep.age"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
+       "catch.sep.age"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
          group<-vector("list", length=n.VPA.sp); 
          for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
          slot(control,x)<-group }, 
       "catch.sep.season"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
-      group<-vector("list", length=n.VPA.sp); 
-      for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
-      slot(control,x)<-group },
+          group<-vector("list", length=n.VPA.sp); 
+          for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
+          slot(control,x)<-group },
       "catch.sep.year"    = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
-      group<-vector("list", length=n.VPA.sp); 
-      for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
-      slot(control,x)<-group }, 
-      
-      
+          group<-vector("list", length=n.VPA.sp); 
+          for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
+          slot(control,x)<-group }, 
        "use.rho"             ={slot(control,x)<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp},
-       
        "avg.F.ages"          = {slot(control,x)<-matrix(opt[n:(n-1+n.VPA.sp*2)],ncol=2,nrow=n.VPA.sp,byrow=TRUE,
                                                         dimnames=list(species.names[first.VPA:nsp],c("first-age","last-age"))); n<-n+n.VPA.sp*2},
        "catch.sep.year"      = {v<-as.vector(as.integer(opt[n:(n-1+n.VPA.sp)])); n<-n+n.VPA.sp;
-       group<-vector("list", length=n.VPA.sp); 
-       for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
-       slot(control,x)<-group },
+           group<-vector("list", length=n.VPA.sp); 
+           for (j in 1:n.VPA.sp) {group[[j]]<-as.integer(opt[n:(n-1+v[j])]); n<-n+v[j]; } 
+           slot(control,x)<-group },
       "checkValueSingle"   = {slot(control,x)<-as.integer(opt[n]); n<-n+1
                       if (!silent) cat('Check value1:',slot(control,x),'\n')
                        stopifnot('Check value1 should be -999. Something is wrong\n'=slot(control,x) ==  -999) },
@@ -1096,7 +1105,7 @@ RSMS.control <- function(
       stop("no.species is diffrent from number of species names")
     
     species.info<-matrix(0L,ncol=9,nrow=no.species,dimnames=list(species.names,
-                                      c("last-age", "first-age F>0", "+group", "predator", "prey", "SpawningQ", "add1", "add2", "add3")))
+                                      c("last-age", "first-age F>0", "+group", "predator", "prey", "SpawningQ", "C by timestep", "add1", "add2")))
     species.info[,1]<-as.integer(max.age.all)
     species.info[,2]<-as.integer(first.age)
     species.info[,3]<-1L
@@ -1130,7 +1139,7 @@ RSMS.control <- function(
                combined.catches=rep(2L, no.VPA.sp),
                incl.process.noise=rep(1L, no.VPA.sp),
                keyVarLogN=lapply(1:no.VPA.sp,function(x) 0L),
-               incl.Ssb.R=rep(1L, no.VPA.sp),
+               incl.Ssb.R=rep(1.0, no.VPA.sp),
                fModel=rep(1L, no.VPA.sp),
               
                keyLogFsta=lapply(1:no.VPA.sp,function(x) as.integer(species.info[x+no.other.predators,"first-age F>0"]:(species.info[x+no.other.predators,"first-age F>0"]+1L))),

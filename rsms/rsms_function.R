@@ -92,6 +92,7 @@ func <- function(parameters) {
 
   ssb<-matrix(0,nrow=nSpecies,ncol=nYears,dimnames=list(species=spNames,year=years))
   Fbar<-matrix(0,nrow=nSpecies,ncol=nYears,dimnames=list(species=spNames,year=years))
+  FbarAnn<-matrix(0,nrow=nSpecies,ncol=nYears,dimnames=list(species=spNames,year=years))
   recruit<-matrix(0,nrow=nSpecies,ncol=nYears,dimnames=list(species=spNames,year=years))
   
   fq<-1L;     # first season (e.g. quarter)
@@ -284,7 +285,7 @@ func <- function(parameters) {
            Zq[[s]][i,fq,j] <-  FisQ[[s]][i,fq,j] + MM[[s]][i,fq,j]
           logNbarq[[s]][i,fq,j] <- logNq[[s]][i,fq,j]-log(Zq[[s]][i,fq,j]) + log(1.0 -exp(-Zq[[s]][i,fq,j]))
           if (keyLogFsta[s,j]>0) Chat[[s]][i,fq,j] <- exp(logNbarq[[s]][i,fq,j])*FisQ[[s]][i,fq,j]
-        } else Chat[[s]][i,fq,j] = noCatch; # SNYD for at undgå log(0), værdien bruges ikke, så OK
+        } else Chat[[s]][i,fq,j] = noCatch; 
  
         # recruits within the year
         if (j==1 & recSeason>fq) {
@@ -378,10 +379,9 @@ func <- function(parameters) {
   # stock recruitment relation, if used
   if (inclSsbR[s]>0) {
     sd <- exp(logSsbRsd[inclSsbR[s]])
-    obs<-logNq[[s]][,recSeason,1][recruitYears[s,]]
+    obs<-logNq[[s]][recruitYears[s,],recSeason,1]
     predObs<-SSB_R(s,y=1:nYears)[recruitYears[s,]]
-
-    llh<- sum(dnorm(obs,predObs,sd,log=TRUE))
+    llh<- SsbRweight[s]* sum(dnorm(obs,predObs,sd,log=TRUE))
     ans <- ans - llh
     nlls[s,'SSB.R']<- nlls[s,'SSB.R'] - llh  
   }    
@@ -679,7 +679,7 @@ func <- function(parameters) {
  dfFisQ<-toDF1(x=FisQ,val='FisQ',expIt=FALSE) 
  res<-left_join(res,dfFisQ,by = join_by(year, quarter, age, species)) %>% as_tibble()
  
- "seasFprop"
+
  
  # 
  # dfFq<-left_join(dfZq %>% mutate(y=year+off.year, a=age+off.age), 
@@ -692,7 +692,7 @@ func <- function(parameters) {
  # }))
  #  res<-full_join(res,dfFq,by = join_by(year, quarter, age, species)) %>% as_tibble()
 
- resSurv<-as.data.frame(keySurvey) %>% 
+ residSurv<-as.data.frame(keySurvey) %>% 
    mutate(logObs=logSurveyObs, logPred=predSurveyObs, variance=varLogObsSurvey[keyVarObsSurvey],obs.no=NULL,keyVarObsSurvey=NULL, keyCatchability=NULL, keyPowerQ=NULL) %>% as_tibble()
  
  
@@ -732,9 +732,30 @@ func <- function(parameters) {
      mutate(b,year=as.integer(year)) 
  }
  
+ toDF5<-function(){
+  do.call(rbind,lapply(seq_len(nSpecies),function(s) {
+    idx<-keyCatch[,"s"]==s
+    key.v<-keyCatch[idx,"keyVarObsCatch"]
+    yy<-keyCatch[idx,"y"]
+    aa<-keyCatch[idx,'a']
+    qq<-keyCatch[idx,'q']
+   if (seasonalCatches[s]==1) {
+     yqa<-cbind(yy,qq,aa)
+     logPred<-log(Chat[[s]][yqa])
+   } else {
+     predObs<-apply(Chat[[s]],c(1,3),sum) 
+     ya<-cbind(yy,aa)
+     logPred<-log(predObs[ya])
+   }
+   data.frame(s=s,y=yy,q=qq,a=aa,logPred, logObs=logCatchObs[idx],variance=varLogObsCatch[key.v])
+  }))}
+ 
+ 
  dfpredN<-toDF3(x=predN,val='predN',expIt=TRUE) 
  dfChat<-toDF1(x=Chat,val='Chat',expIt=FALSE) 
- #filter(dfChat,Chat>1E20)
+ 
+ residCatch<-toDF5()
+ 
  
  resAnnual<-right_join(dfpredN,dfChat,by = join_by(year, age, species)) %>% as_tibble()
  yieldQ<-left_join(toDF1(x=catchNumber,val='Catch',expIt=FALSE) ,
@@ -745,11 +766,10 @@ func <- function(parameters) {
  
  res<-left_join(res, yieldQ,by = join_by(year, quarter, age, species)) 
  
-
+ for (s in seq_len(nSpecies)) recruit[s,]<-logNq[[s]][,recSeason,1]
+   
  Fbar[,]<-0
  for (s in seq_len(nSpecies)) {
-   fModel <- as.integer(info[s,'fModel']) 
-   recruit[s,]<-logNq[[s]][,recSeason,1]
    nFa<-fbarRange[s,2]-fbarRange[s,1]+1
    for (y in seq_len(nYears)) {
       for (a in fbarRange[s,1]:fbarRange[s,2]) {
@@ -759,22 +779,45 @@ func <- function(parameters) {
    }
  }
  
+ 
+ FbarAnn[,]<-0
+ for (s in seq_len(nSpecies)) {
+   nFa<-fbarRange[s,2]-fbarRange[s,1]+1
+   for (y in seq_len(nYears)) {
+     for (a in fbarRange[s,1]:fbarRange[s,2]) {
+       deadM<-0; deadF<-0
+       for (q in fq:lq) {
+         Nbar<-exp(logNbarq[[s]][y,q,a])
+         deadM<-deadM + Nbar*MM[[s]][y,q,a]
+         deadF<-deadF + Nbar*FisQ[[s]][y,q,a]
+       }
+       FbarAnn[s,y]<- FbarAnn[s,y]+ deadF/(deadF+deadM)*sum(Zq[[s]][y,,a]) 
+     }  
+     FbarAnn[s,y]<- FbarAnn[s,y] /nFa
+   }
+ }
+ 
  resSummary<-left_join(toDF4(x=ssb,val='SSB',expIt=FALSE),toDF4(x=recruit,val='recruit',expIt=TRUE),by = join_by(species, year)) 
  resSummary<-left_join(resSummary,toDF4(x=Fbar,val='Fbar',expIt=FALSE),by = join_by(species, year))  %>% mutate(s=match(resSummary$species,spNames))
+ resSummary<-left_join(resSummary,toDF4(x=FbarAnn,val='FbarAnn',expIt=FALSE),by = join_by(species, year))  
+ 
  resSummary<-left_join(resSummary,yield%>% group_by(species,year) %>% 
               summarize(yield=sum(yield),.groups = "drop"),by = join_by(species, year))
  
  REPORT(res) 
  REPORT(resAnnual) 
  REPORT(resSummary) 
- REPORT(resSurv)
+ REPORT(residSurv)
+ REPORT(residCatch)
  
  FBAR<-log(Fbar)
+ FBARann<-log(FbarAnn)
  SSB<-log(ssb)
  
  ADREPORT(SSB)
  ADREPORT(recruit)
  ADREPORT(FBAR)
+ ADREPORT(FBARann)
   
   #REPORT(predN)
   #REPORT(Zq)

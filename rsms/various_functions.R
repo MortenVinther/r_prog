@@ -137,7 +137,7 @@ transExternalSummary<-function(inp='summary_table_raw.out',outSet='ICES',
                                spNames='COD',
                               exSpeciesNames=c("FUL","GLT","HEG","KTW","GBG","GNT","PUF","RAZ","RAJ","GUR","WHM","NHM","GSE","HBP","HKE","COD","WHG","HAD","POK","MAC","HER","NSA","SSA","NOP","SPR","PLE","SOL")) {
   a<-read.table(file=inp,header=TRUE) %>%as_tibble() %>%
-    transmute(year=Year,species=exSpeciesNames[Species.n],SSB=SSB,recruit=Rec,Fbar=mean.F, yield=Yield,s=match(species,spNames)) %>%
+    transmute(year=Year,species=exSpeciesNames[Species.n],SSB=SSB,recruit=Rec,Fbar=mean.F, FbarAnn=mean.F,yield=Yield,s=match(species,spNames)) %>%
     filter(!is.na(s))
 
  sms<-list(data=list(allSpNames=spNames,allSpNamesLong=spNames),rep=list(resSummary=a))
@@ -541,7 +541,9 @@ saveResults<-function(runName='nr1',data=data,parameters=parameters,obj=obj,opt=
   a<-left_join(a,x,by = join_by(s, year, quarter, age))
   rep$res<-left_join(rep$res,a,by = join_by(s,year, quarter, age, species))
   
-  rep$resSurv <-rep$resSurv %>% mutate(fleetName=data$fleetNames[f],year=y-data$off.year,age=a-data$off.age,species=data$spNames[s],resid=logObs-logPred)
+  rep$residSurv  <-rep$residSurv %>% mutate(fleetName=data$fleetNames[f],year=y-data$off.year,age=a-data$off.age,species=data$spNames[s],resid=logObs-logPred)
+  rep$residCatch <-rep$residCatch %>% mutate(year=y-data$off.year,age=a-data$off.age,species=data$spNames[s],resid=logObs-logPred)
+  
   sms<-list(data=data,parameters=parameters,obj=obj,opt=opt,lu=lu,map=map,random=random,rep=rep,sdrep=sdrep)
   save(sms,file=file.path(data.path,paste0(runName,".Rdata")))
   print(object.size(sms),units="Mb"); #lapply(sms,function(x) print(object.size(x),units="Mb"))

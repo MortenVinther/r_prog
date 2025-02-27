@@ -210,6 +210,7 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
                         labels=c('Single sp','Multi sp'),
                         outFormat=c('screen','pdf','png')[1],
                         showAges=0:4,
+                        useF=c("simpleSumqF","fromCandZ")[2],
                         multN=1E-6,multBIO=1E-3,
                         ncols=2,
                         allInOne=FALSE,
@@ -230,13 +231,11 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
     x<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       out<-data.frame(value=sms$sdrep$value,sd=sms$sdrep$sd,variable=names(sms$sdrep$value)) 
-      nvar<-3
+      nvar<-4
       b<-cbind(expand.grid(s=1:sms$data$nSpecies,year=sms$data$years,dummy=1:nvar),out) %>% filter(s %in% showSpecies) %>%
          mutate(run=labels[i],species=sms$data$spNames[s],mid=exp(value),low=exp(value-2*sd),high=exp(value+2*sd))
       if (Type =="SSBrecConf") b<- b%>% rowwise%>% mutate(use_rec=sms$data$recruitYears[s,year+sms$data$off.year])
       b
-      
-  
     }))
     
   } else if (Type=='M2'){
@@ -270,7 +269,6 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
   x<- x %>% mutate(run=factor(run,labels))
 
   if (Type %in% c("SSBrecConf","SSBrec")) {
-
     SR<-do.call(rbind,lapply(1:length(labels),function(i){
       load(file=file.path(data.path,paste0(inpRdata[i],".Rdata")))
       a<-suppressWarnings(extractParameters(sdrep=sms$sdrep,myMap=sms$map,data=sms$data)[[2]]) %>% 
@@ -319,13 +317,16 @@ plotCompareRunSummary<-function(Type=c("SummaryConf","Summary","SSBrecConf","SSB
    
      if (Type=="Summary") {
        pSSB<-plotSSB(x,sp=mysp,mult=multBIO)
+       if (useF=="fromCandZ") x$Fbar<-x$FbarAnn
        pF<-plotF(x,sp=mysp)
        pRecruit<-plotRecruits(x,sp=mysp,mult=multN)
        
      } else if (Type=="SummaryConf"){
         pSSB<-plotSSBRibbon( x=filter(x,variable=='SSB'),sp=mysp,mult=multBIO)
         pRecruit<-plotRecruitsRibbon(x=filter(x,variable=='recruit'),sp=mysp,mult=multN)
-        pF<-plotFRibbon(x=filter(x,variable=='FBAR'),sp=mysp)
+        if (useF=="simpleSumqF")  pF<-plotFRibbon(x=filter(x,variable=='FBAR'),sp=mysp)
+        if (useF=="fromCandZ")  pF<-plotFRibbon(x=filter(x,variable=="FBARann"),sp=mysp)
+
         
      } else if (Type=="SSBrec") {
         pSSBR<-plotSSBR(x,sp=mysp,titSp=allSpNamesLong,multN=multN,multBIO=multBIO,SR=SR)

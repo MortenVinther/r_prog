@@ -32,23 +32,23 @@ map_param<-function(data,parameters) {
   
   # my.map<-list(Uf=UfMap) else my.map=list()
   
-  (data$inclSsbR==0  & !data$doProcessN_any)
-  if (any(data$stockRecruitmentModelCode %in% c(0,3,6))) { #random walk recruitment and other with less than two parameters
-    aMap<-1L:length(parameters$rec_loga)
-    bMap<-1L:length(parameters$rec_logb)
-    aMap[data$stockRecruitmentModelCode==0]<-NA
-    bMap[data$stockRecruitmentModelCode==0]<-NA
-    bMap[data$stockRecruitmentModelCode==3]<-NA
-    bMap[data$stockRecruitmentModelCode==6]<-NA
-    noRec<-data$inclSsbR==0  & !data$doProcessN_any
-    aMap[noRec]<-NA
-    bMap[noRec]<-NA
-    aMap<-factor(aMap)
-    bMap<-factor(bMap)
-    #my.map<-c(my.map,list(rec_loga=aMap),list(rec_logb=bMap))
-    my.map<-purrr::assign_in(my.map,'rec_loga',aMap)
-    my.map<-purrr::assign_in(my.map,'rec_logb',bMap)
-  }
+
+
+  aMap<-1L:length(parameters$rec_loga)
+  bMap<-1L:length(parameters$rec_logb)
+  aMap[data$stockRecruitmentModelCode==0]<-NA
+  bMap[data$stockRecruitmentModelCode==0]<-NA
+  bMap[data$stockRecruitmentModelCode==3]<-NA
+  bMap[data$stockRecruitmentModelCode==6]<-NA
+  noRec<-data$inclSsbR==0  & !data$doProcessN_any
+  aMap[noRec]<-NA
+  bMap[noRec]<-NA
+  aMap<-factor(aMap)
+  bMap<-factor(bMap)
+  #my.map<-c(my.map,list(rec_loga=aMap),list(rec_logb=bMap))
+  my.map<-purrr::assign_in(my.map,'rec_loga',aMap)
+  my.map<-purrr::assign_in(my.map,'rec_logb',bMap)
+
   
   if (any(data$useRho<=0)) {
     rhoMap<-1L:length(data$useRho)

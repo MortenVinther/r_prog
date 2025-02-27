@@ -117,6 +117,7 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   d$logNrecruitParamfromTo<-cutFromTo0(data$logNrecruitParamfromTo)
 
   x<-data$inclSsbR[ps]; x[x>0]<-1L; d$inclSsbR<-cumsum(x); d$inclSsbR[x==0]<-0L
+  d$SsbRweight<-data$SsbRweight[ps]
   
   #d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ 1L
   d$nlogF <- d$nlogFfromTo[,2]- d$nlogFfromTo[,1]+ ifelse(apply(d$nlogFfromTo,1,sum)>0,1L,0L)
@@ -145,14 +146,25 @@ pick_species<-function(ps=c(1L), pso=c(0L),inp, smsConf=0L) {
   cut_tab_4<-function(tab,reNumber=FALSE) {
     tab<-tab[ps] 
     if (reNumber) {
-      k<-unique(unlist(tab))
-      kk<-1:length(k)
+      k<-sort(unique(c(0,unlist(tab))))
+      kk<-0:(length(k)-1L)
       names(kk)<-k
       tab<-map(tab,function(x) array(kk[as.character(x)],dim=dim(x),dimnames=dimnames(x)))
      }
   }
-    
+  
   d$keylogSeasonF<-cut_tab_4(tab=data$keylogSeasonF,reNumber=TRUE)
+  if (FALSE){
+    data$keylogSeasonF[[6]][1,,]  
+    data$keylogSeasonF[[6]][25,,] 
+    data$keylogSeasonF[[6]][40,,] 
+    max(data$keylogSeasonF[[6]])
+    
+    d$keylogSeasonF[[1]][1,,]  
+    d$keylogSeasonF[[1]][25,,] 
+    d$keylogSeasonF[[1]][40,,] 
+    max(d$keylogSeasonF[[1]])
+  }  
   p$logFSeasonal<-rep(log(1/data$nSeasons),max(unlist(lapply(d$keylogSeasonF,function(x) if (nrow(x) >0)  max(x) else 0L))))
   
   

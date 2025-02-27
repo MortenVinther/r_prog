@@ -22,4 +22,5 @@ source(file.path(rsms.root.prog,"rsms_function.R"))
 source(file.path(rsms.root.prog,"map_param.R"))
 source(file.path(rsms.root.prog,"lowerUpper.R"))
 source(file.path(rsms.root.prog,"batch_control.R"))
-
+source(file.path(rsms.root.prog,"residuals_catch_survey.R"))
+source(file.path(rsms.root.prog,"batch_control.R"))

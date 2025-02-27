@@ -6,8 +6,7 @@ if (TRUE) {
 
 # rsms<- batch_default_configuration(outfile=rsmsControl,writeConrol=T)
   rsms<-batch_SMS_old_like_configuration(outfile=rsmsControl,writeConrol=T)
-
-#  rsms
+# rsms
 }
 
 
@@ -22,19 +21,23 @@ if (TRUE) {  # transform  SMS data into RSMS format
   save(inp_all,file=file.path(data.path,"rsms_input_all.Rdata")) 
 } else load(file=file.path(data.path,"rsms_input_all.Rdata"),verbose=TRUE)
 
+tail(inp_all$data$keyCatch[inp_all$data$keyCatch[,'s'] %in% 8,])
+
 
 smsConf<-0L # 0=single species, 1=multi species, but fixed single species parameters, 2=multi species, all parameters are estimated
 
 # select a combination of species from the (full) data set, also including multi species information
 my.ps=c(1,3,4,5,6,7,8,9,10,11,12)
-my.ps=c(1,3,4,5,6,7,8)
-my.ps=c(7,8)
+my.ps=c(1,2,3,4,5,6,7,8)
+my.ps=c(9)
 my.pso<-c(0L)
 #my.pso<-13L:27L
 
 
 inp<-pick_species(ps=my.ps,pso=my.pso, inp=inp_all,smsConf) 
 #inp=inp_all
+
+tail(inp$data$keyCatch[inp$data$keyCatch[,'s'] %in% 1,])
 
 inp$data$sms.mode<-smsConf
 
@@ -69,7 +72,7 @@ announce(opt)
 
 system.time(sdrep <- sdreport(obj))
 cat('Hesssian:',sdrep$pdHess,'\n')
-
+8
 a<-extractParameters(sdrep,myMap,data)[[2]]
 print(a,n=600)
 
@@ -90,6 +93,23 @@ if (FALSE) { #You have to run this if you change species included
   transExternalSummary(inp='summary_table_raw_SMS_old_SS.out',outSet='SMS_old_SS',spNames=data$spNames) #, exSpeciesNames=data$spNames)
   transExternalData(inp='summary_SMS_old_SS.out',outSet='SMS_old_details_SS',spNames=data$spNames)
 }
+transExternalSummary(inp='summary_table_raw_SMS_old_SS.out',outSet='SMS_old_SS',spNames=data$spNames) #, exSpeciesNames=data$spNames)
+transExternalData(inp='summary_SMS_old_SS.out',outSet='SMS_old_details_SS',spNames=data$spNames)
+
+
+
+
+plotSurveyResiduals(runName,inclSp=1:100, outFormat=c('screen','pdf','png')[1],standardized=T) 
+plotCatchResiduals (runName,inclSp=1:100,fileLabel='catch_residuals',mult=3,outFormat=c('screen','pdf','png')[1],longSpNames=TRUE,standardized=FALSE,scaleY=c('fixed',"free_y")[1]) 
+
+
+plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[21],showSpecies=1:12,
+                      inpRdata=list(runName,"SMS_old_SS"),
+                      labels=c(runName,"SMS_old_SS"),
+                      outFormat=c('screen','pdf','png')[1],
+                      showAges=0:10, ncol=3,allInOne=T,
+                      useF=c("simpleSumqF","fromCandZ")[2],
+                      longSpNames=TRUE, fileLabel='single')
 
 
 plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[1],showSpecies=1:12,
@@ -97,15 +117,9 @@ plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2",
                       labels=c(runName),
                       outFormat=c('screen','pdf','png')[1],
                       showAges=0:10, ncol=3,allInOne=T,
+                      useF=c("simpleSumqF","fromCandZ")[2],
                       longSpNames=TRUE, fileLabel='single')
 
-
-plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[2],showSpecies=1:12,
-                      inpRdata=list(runName,"SMS_old_SS"),
-                      labels=c(runName,"SMS_old_SS"),
-                      outFormat=c('screen','pdf','png')[1],
-                      showAges=0:10, ncol=3,allInOne=TRUE,
-                      longSpNames=FALSE, fileLabel='single')
 
 plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2","F","N","ExpPat")[2],showSpecies=1:12,
                       inpRdata=list(runName,"SMS_old_SS",'ICES_single_sp'),
@@ -114,7 +128,7 @@ plotCompareRunSummary(Type=c("SummaryConf","Summary","SSBrecConf","SSBrec","M2",
                       showAges=0:10, ncol=3,allInOne=TRUE,
                       longSpNames=FALSE, fileLabel='single')
 
-plotSeasonalData(inp=runName,Type=c("N","F","C","M","M1",'"M2','Z',"WEST","WECA","propMat","seasFprop","FiProp")[2],
+plotSeasonalData(inp=runName,Type=c("N","F","C","M","M1",'"M2','Z',"WEST","WECA","propMat","seasFprop","FiProp")[12],
                            CombineSeason=T,
                            showSpecies=1:100,
                            outFormat=c('screen','pdf','png')[1],

@@ -56,8 +56,8 @@ out<-list(catch=b)
 ############## bio data
 WSEA<-scanData('west.in');WSEA<-WSEA[((first.VPA-1)*noAreas*ny*(la-fa+1)*nq+1):length(WSEA)]
 PROPMAT<-scanData('propmat.in')
-#M<-scanData('natmor.in')
-M<-scanData('natmorm1m2.out')
+M<-scanData('natmor.in')
+#M<-scanData('natmorm1m2.out')
 M1<-scanData('natmor1.in')
 PROP_M2<-scanData('n_proportion_m2.in')
 
